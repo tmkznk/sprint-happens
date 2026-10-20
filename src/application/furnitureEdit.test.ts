@@ -24,7 +24,12 @@ describe('tryb „Urządź” — ocena i polecenie (SH-013, SH-014)', () => {
   });
 
   it('zakup bez środków jest oceniany jak w silniku', () => {
-    const poor = recordOperation(testState(), { key: 'event:x', kind: 'event', amount: -49_000 });
+    const start = testState();
+    const poor = recordOperation(start, {
+      key: 'event:x',
+      kind: 'event',
+      amount: 1000 - start.finance.cash,
+    });
     if (!poor.ok) throw new Error('setup');
 
     expect(editProblem(poor.state, DEFAULT_BALANCE, buyDesk)).toBe('insufficientFunds');

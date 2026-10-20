@@ -13,19 +13,19 @@ export type BalanceConfig = DeepReadonly<{
   // T:MOVE-05, MOVE-09 (R): tempo ruchu i parametry rozwiązywania blokad (SH-003).
   movement: MovementConfig;
   mission: {
-    // MIS-02 (B): wartość zastępcza do czasu ustalenia balansu w SH-001/SH-032.
+    // MIS-02 (B): kilka dni utrzymania małego zespołu — roboczo ustalone w SH-032.
     startingCash: number;
   };
   finance: {
-    // FIN-02 (B): stałe koszty biura za dzień; wartość zastępcza do SH-032.
+    // FIN-02 (B): stałe koszty biura za dzień (SH-032).
     officeUpkeepPerDay: number;
   };
   staff: {
-    // EMP-02 (B): pensja dzienna zależy od seniority; wartości zastępcze do SH-032.
+    // EMP-02 (B): pensja dzienna zależy od seniority (SH-032).
     dailyWage: WageTable;
   };
   furniture: {
-    // FIN-02 (B): cena zakupu wyposażenia; wartości zastępcze do SH-032.
+    // FIN-02 (B): cena zakupu wyposażenia (SH-032).
     prices: Record<FurnitureType, number>;
     // OFF-06 (B): udział ceny zakupu zwracany przy sprzedaży.
     saleRefundRatio: number;
@@ -38,7 +38,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   },
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {
-    startingCash: 50_000,
+    startingCash: 15_000,
   },
   finance: {
     officeUpkeepPerDay: 1_000,
