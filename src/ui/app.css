@@ -278,3 +278,15 @@ body,
   font: inherit;
   font-weight: bold;
 }
+
+.finance-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.negative {
+  color: #ff8a80;
+}

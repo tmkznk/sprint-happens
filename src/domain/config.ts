@@ -14,6 +14,10 @@ export type BalanceConfig = DeepReadonly<{
     // MIS-02 (B): wartość zastępcza do czasu ustalenia balansu w SH-001/SH-032.
     startingCash: number;
   };
+  finance: {
+    // FIN-02 (B): stałe koszty biura za dzień; wartość zastępcza do SH-032.
+    officeUpkeepPerDay: number;
+  };
 }>;
 
 export const DEFAULT_BALANCE: BalanceConfig = {
@@ -23,5 +27,8 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {
     startingCash: 50_000,
+  },
+  finance: {
+    officeUpkeepPerDay: 1_000,
   },
 };

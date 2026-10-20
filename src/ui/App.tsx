@@ -9,6 +9,7 @@ import type { Engine } from '../simulation/engine';
 import { DayClock } from './DayClock';
 import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
+import { FinanceSummary } from './FinanceSummary';
 import { NewGameButton } from './NewGameButton';
 import { SaveIndicator } from './SaveIndicator';
 import { SelectionPanel } from './SelectionPanel';
@@ -61,6 +62,7 @@ export function App({
               <DayClock />
               <SaveIndicator manager={saveManager} />
             </div>
+            <FinanceSummary />
             <SpeedControls />
             <DayControls />
             <NewGameButton onConfirm={onNewGame} />

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { BalanceConfig } from '../domain/config';
+import { OPERATION_KINDS } from '../domain/finance';
 import { ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { SPEEDS, type GameState } from '../domain/state';
@@ -29,7 +30,20 @@ const missionSchema = z.strictObject({
   report: z.strictObject({ day: z.int().min(1), cashAfterSettlement: z.int() }).nullable(),
 });
 
-const financeSchema = z.strictObject({ cash: z.int() });
+const financeSchema = z.strictObject({
+  openingCash: z.int(),
+  cash: z.int(),
+  ledger: z.array(
+    z.strictObject({
+      key: z.string().min(1),
+      day: z.int().min(1),
+      kind: z.enum(OPERATION_KINDS),
+      amount: z.int(),
+      ref: z.string().nullable(),
+    }),
+  ),
+  wagesDueToday: z.record(z.string().min(1), z.int().min(0)),
+});
 
 const furnitureSchema = z.strictObject({
   id: furnitureId,
@@ -98,7 +112,11 @@ type Issue = { path: (string | number)[]; message: string };
 
 // Spójność, której nie wyrazi sam kształt danych: ID, referencje, zajętość pól, fazy dnia.
 export function consistencyIssues(state: GameState, context: ValidationContext): Issue[] {
-  const issues = [...missionIssues(state, context), ...furnitureIssues(state, context)];
+  const issues = [
+    ...missionIssues(state, context),
+    ...financeIssues(state),
+    ...furnitureIssues(state, context),
+  ];
   // Ruch sprawdzamy na poprawnym układzie mebli — inaczej mapa przejść byłaby niewiarygodna.
   return issues.length > 0 ? issues : movementIssues(state, context);
 }
@@ -126,6 +144,24 @@ function missionIssues(state: GameState, { config }: ValidationContext): Issue[]
   ) {
     issues.push({ path: ['mission', 'report'], message: 'Raport niezgodny z fazą lub dniem' });
   }
+  return issues;
+}
+
+// SH-027: saldo wynika z księgi, a każda operacja występuje raz.
+function financeIssues(state: GameState): Issue[] {
+  const issues: Issue[] = [];
+  const { finance, mission } = state;
+  const total = finance.ledger.reduce((sum, entry) => sum + entry.amount, finance.openingCash);
+  if (total !== finance.cash) {
+    issues.push({ path: ['finance', 'cash'], message: 'Saldo niezgodne z księgą operacji' });
+  }
+  const keys = new Set<string>();
+  finance.ledger.forEach((entry, index) => {
+    const path = ['finance', 'ledger', index];
+    if (keys.has(entry.key)) issues.push({ path, message: `Powtórzona operacja ${entry.key}` });
+    keys.add(entry.key);
+    if (entry.day > mission.day) issues.push({ path, message: 'Operacja z przyszłego dnia' });
+  });
   return issues;
 }
 

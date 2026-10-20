@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { SPEEDS, type Speed } from '../domain/state';
-import type { RejectionCode } from '../simulation/commands';
+import { REJECTION_MESSAGES } from './rejectionMessages';
 
 const LABELS: Record<Speed, string> = { 0: '❚❚', 1: '1×', 2: '2×', 4: '4×' };
-
-const REJECTION_MESSAGES: Record<RejectionCode, string> = {
-  missionEnded: 'Misja została zakończona.',
-  phaseNotAllowed: 'Dzień pracy się zakończył.',
-  invalidSpeed: 'Nieobsługiwane tempo gry.',
-};
 
 export function SpeedControls() {
   const speed = useGameSelector((state) => state.mission.speed);

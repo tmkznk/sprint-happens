@@ -1,5 +1,6 @@
 import type { BalanceConfig } from '../../domain/config';
 import type { GameState, Speed } from '../../domain/state';
+import type { FinanceRejection } from '../finance';
 import type { CommandCategory } from './phases';
 
 export type SetSpeedCommand = { type: 'SetSpeed'; speed: Speed };
@@ -10,7 +11,12 @@ export type Command = SetSpeedCommand | SettleDayCommand | StartNextDayCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
-export type RejectionCode = 'missionEnded' | 'phaseNotAllowed' | 'invalidSpeed';
+export type RejectionCode =
+  | 'missionEnded'
+  | 'phaseNotAllowed'
+  | 'invalidSpeed'
+  // SH-027: operacje finansowe.
+  | FinanceRejection;
 
 export type Rejection = { code: RejectionCode };
 

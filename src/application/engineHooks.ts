@@ -19,6 +19,11 @@ export function useGameSelector<T>(selector: (state: GameState) => T): T {
   return useSyncExternalStore(engine.subscribe, () => selector(engine.getState()));
 }
 
+// Konfiguracja balansu — dla selektorów, które jej potrzebują (np. prognoza kosztów).
+export function useBalanceConfig(): Engine['config'] {
+  return useEngine().config;
+}
+
 // Jedyna droga zmiany stanu z UI to polecenie wysłane do silnika (T:ARCH-03).
 export function useDispatch(): (command: Command) => CommandResult {
   const engine = useEngine();

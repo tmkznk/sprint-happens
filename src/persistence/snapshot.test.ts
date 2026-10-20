@@ -243,6 +243,37 @@ describe('odrzucanie zapisu', () => {
   });
 });
 
+describe('odrzucanie niespójnych finansów (SH-027)', () => {
+  it('saldo niezgodne z księgą', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.finance.cash += 1;
+      }),
+      'niezgodne z księgą',
+    );
+  });
+
+  it('powtórzona operacja w księdze', () => {
+    const entry = { key: 'advance:c-1', day: 1, kind: 'advance', amount: 10, ref: null };
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.finance.ledger = [entry, entry];
+        s.finance.cash += 20;
+      }),
+      'Powtórzona operacja',
+    );
+  });
+
+  it('operacja z przyszłego dnia', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.finance.ledger = [{ key: 'x', day: 9, kind: 'event', amount: 0, ref: null }];
+      }),
+      'przyszłego dnia',
+    );
+  });
+});
+
 describe('odrzucanie niespójnego ruchu', () => {
   const withAgents = (agents: object[], reservations: Record<string, string> = {}) =>
     withJsonEdit((s) => {
