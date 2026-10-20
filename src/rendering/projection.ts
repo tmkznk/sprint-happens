@@ -40,15 +40,15 @@ export function interpolate(previous: GridPoint, current: GridPoint, alpha: numb
   };
 }
 
-// T:ART-05 (O): robocza kolejność zasłaniania według sumy współrzędnych przedniego narożnika
-// (bliżej kamery = większa wartość). Dla obiektów wielopolowych może nie wystarczyć —
-// scena testowa okluzji służy do wykrycia takich przypadków w SH-002.
+// T:ART-05 (O): robocza kolejność zasłaniania według sumy współrzędnych środka footprintu
+// (bliżej kamery = większa wartość). Suma przedniego narożnika dawała remis dla obiektu stojącego
+// tuż przed innym (np. ekspres przed biurkiem 3×2). Dla nachodzących obiektów wielopolowych
+// heurystyka może nie wystarczyć — scena testowa okluzji służy do wykrycia takich przypadków (SH-002).
 export function depthOfFootprint(origin: GridPoint, size: { width: number; height: number }) {
-  return origin.x + size.width + origin.y + size.height;
+  return origin.x + size.width / 2 + origin.y + size.height / 2;
 }
 
 export function depthOfPoint(point: GridPoint): number {
-  // Postać w środku pola ma tę samą głębokość co przedni narożnik tego pola, plus odrobinę,
-  // aby rysować ją przed podłogą i obiektem zajmującym to samo pole.
-  return point.x + point.y + 1 + 0.01;
+  // Niewielki naddatek rozstrzyga remis postaci z obiektem na korzyść postaci.
+  return point.x + point.y + 0.01;
 }

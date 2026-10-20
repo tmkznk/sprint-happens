@@ -14,9 +14,60 @@ body,
   height: 100%;
 }
 
-.scene {
+.scene-area {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+/* Gesty na scenie obsługuje gra; przeglądarka nie przewija ani nie powiększa strony. */
+.scene {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* UX-01: dolny panel nad sceną; zdarzenia na nim nie docierają do canvasu (T:VIEW-03). */
+.selection-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px 16px;
+  background: #2a2d3d;
+  border-top: 2px solid #4a4f6a;
+}
+
+.selection-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selection-panel h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.selection-panel button {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+}
+
+.selection-panel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+}
+
+.selection-panel dd {
+  margin: 0;
 }
 
 .panel {

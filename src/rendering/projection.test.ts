@@ -49,4 +49,11 @@ describe('projection', () => {
     expect(depthOfPoint(cellCenter({ x: 3, y: 4 }))).toBeGreaterThan(desk);
     expect(depthOfPoint(cellCenter({ x: 3, y: 1 }))).toBeLessThan(desk);
   });
+
+  it('obiekt stojący tuż przed biurkiem jest bliżej kamery (brak remisu)', () => {
+    const desk = depthOfFootprint({ x: 2, y: 2 }, { width: 3, height: 2 });
+    const coffeeInFront = depthOfFootprint({ x: 3, y: 4 }, { width: 1, height: 1 });
+
+    expect(coffeeInFront).toBeGreaterThan(desk);
+  });
 });

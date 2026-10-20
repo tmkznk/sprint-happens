@@ -1,11 +1,27 @@
 import * as Phaser from 'phaser';
-import type { FurnitureType } from '../domain/furniture';
+import type { Selection, SelectionStore } from '../application/selection';
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
-import { footprintSize, interactionCells } from '../world/geometry';
-import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect, type RoomId } from '../world/officeLayout';
+import { interactionCells } from '../world/geometry';
+import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
+import type { Bounds } from './cameraMath';
+import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
+import { furnitureRect, pickFurniture, prismSilhouette } from './picking';
+import {
+  ACTOR_COLOR,
+  ACTOR_HEIGHT,
+  BACK_WALL_HEIGHT,
+  DOOR_COLOR,
+  FLOOR_COLORS,
+  FRONT_WALL_HEIGHT,
+  FURNITURE_STYLE,
+  MARKER_COLOR,
+  SELECTION_COLOR,
+  WALL_COLOR,
+  WINDOW_COLOR,
+} from './placeholderStyle';
 import {
   cellCenter,
   depthOfFootprint,
@@ -20,22 +36,6 @@ export type OfficeSceneOptions = {
   occlusionTest: boolean;
 };
 
-// Zastępcze kolory i wysokości (px źródłowe) do czasu właściwych assetów (SH-035, SH-036).
-const FLOOR_COLORS: Record<RoomId, number> = { main: 0x8a7a5c, small: 0x7c8a5c, social: 0x5c7a8a };
-const DOOR_COLOR = 0x6b5a3e;
-const WALL_COLOR = 0xc9c3b6;
-const WINDOW_COLOR = 0x9fd3ff;
-const FURNITURE_STYLE: Record<FurnitureType, { color: number; height: number }> = {
-  desk: { color: 0xb07a45, height: 22 },
-  sofa: { color: 0x6a4fa3, height: 18 },
-  coffeeMachine: { color: 0x3d3d3d, height: 34 },
-};
-const BACK_WALL_HEIGHT = 48;
-const FRONT_WALL_HEIGHT = 12;
-// T:ART-02 (R): stojąca postać ma około 48 px wysokości.
-const ACTOR_HEIGHT = 48;
-const ACTOR_COLOR = 0xf2c14e;
-const MARKER_COLOR = 0x55ff99;
 const FLOOR_DEPTH = -1000;
 
 const TEST_STEP_MS = 100;
@@ -43,36 +43,56 @@ const TEST_STEPS_PER_CELL = 4;
 
 export class OfficeScene extends Phaser.Scene {
   private readonly engine: Engine;
+  private readonly selection: SelectionStore;
   private readonly options: OfficeSceneOptions;
   private furnitureGraphics: Phaser.GameObjects.Graphics[] = [];
   private renderedFurniture: GameState['world']['furniture'] | null = null;
+  private renderedSelection: Selection = null;
   private actor: Phaser.GameObjects.Graphics | null = null;
   private actorPath: GridPoint[] = [];
   private actorStep = 0;
   private actorAccumulatorMs = 0;
 
-  constructor(engine: Engine, options: OfficeSceneOptions) {
+  constructor(engine: Engine, selection: SelectionStore, options: OfficeSceneOptions) {
     super('office');
     this.engine = engine;
+    this.selection = selection;
     this.options = options;
   }
 
   create(): void {
     this.drawFloor();
     this.drawWalls();
-    this.syncFurniture(this.engine.getState());
-    const unsubscribe = this.engine.subscribe((state) => this.syncFurniture(state));
+    this.syncFurniture();
+    const unsubscribeEngine = this.engine.subscribe(() => this.syncFurniture());
+    const unsubscribeSelection = this.selection.subscribe(() => this.syncFurniture());
 
     if (this.options.occlusionTest) this.createTestActor();
 
-    this.fitCamera();
-    this.scale.on(Phaser.Scale.Events.RESIZE, this.fitCamera, this);
-
-    // T:VIEW-05 — scena sprząta subskrypcje przy zamknięciu.
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      unsubscribe();
-      this.scale.off(Phaser.Scale.Events.RESIZE, this.fitCamera, this);
+    const detachCamera = attachOfficeCamera(this, {
+      bounds: officeBounds(),
+      onTap: (world) => this.select(world),
     });
+
+    // T:VIEW-05 — scena sprząta subskrypcje i listenery przy zamknięciu. Zniszczenie gry
+    // (np. podwójny montaż w StrictMode) emituje DESTROY bez SHUTDOWN, więc obsługujemy oba.
+    let cleanedUp = false;
+    const cleanUp = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      unsubscribeEngine();
+      unsubscribeSelection();
+      detachCamera();
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUp);
+    this.events.once(Phaser.Scenes.Events.DESTROY, cleanUp);
+  }
+
+  // UX-01 (Z): dotknięcie mebla otwiera panel szczegółów; dotknięcie pustego miejsca go zamyka.
+  private select(world: ScreenPoint): void {
+    const furniture = Object.values(this.engine.getState().world.furniture);
+    const id = pickFurniture(world, furniture);
+    this.selection.set(id ? { kind: 'furniture', id } : null);
   }
 
   override update(_time: number, deltaMs: number): void {
@@ -131,17 +151,24 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 
-  private syncFurniture(state: GameState): void {
-    if (state.world.furniture === this.renderedFurniture) return;
-    this.renderedFurniture = state.world.furniture;
+  private syncFurniture(): void {
+    const { furniture: allFurniture } = this.engine.getState().world;
+    const selection = this.selection.get();
+    if (allFurniture === this.renderedFurniture && selection === this.renderedSelection) return;
+    this.renderedFurniture = allFurniture;
+    this.renderedSelection = selection;
     for (const graphics of this.furnitureGraphics) graphics.destroy();
     this.furnitureGraphics = [];
 
-    for (const furniture of Object.values(state.world.furniture)) {
-      const rect = { ...furniture.origin, ...footprintSize(furniture) };
+    for (const furniture of Object.values(allFurniture)) {
+      const rect = furnitureRect(furniture);
       const style = FURNITURE_STYLE[furniture.type];
       const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
       drawPrism(graphics, rect, style.height, style.color);
+      if (selection?.kind === 'furniture' && selection.id === furniture.id) {
+        graphics.lineStyle(3, SELECTION_COLOR, 1);
+        graphics.strokePoints(toVectors(prismSilhouette(rect, style.height)), true);
+      }
       this.furnitureGraphics.push(graphics);
 
       if (this.options.occlusionTest) {
@@ -163,21 +190,17 @@ export class OfficeScene extends Phaser.Scene {
     actor.fillStyle(0xf5d6b4, 1).fillCircle(0, -ACTOR_HEIGHT + 7, 7);
     this.actor = actor;
   }
+}
 
-  private fitCamera(): void {
-    const camera = this.cameras.main;
-    const { width, height } = OFFICE_LAYOUT.size;
-    const corners = rectCorners({ x: 0, y: 0, width, height });
-    const [top, right, bottom, left] = corners;
-    if (!top || !right || !bottom || !left) return;
-    const officeWidth = right.x - left.x;
-    const officeHeight = bottom.y - top.y + BACK_WALL_HEIGHT;
-    // UX-03 (Z): stały kąt kamery; dopasowanie skali bez obrotu świata. Gesty — SH-010.
-    camera.setZoom(
-      Math.min(this.scale.width / officeWidth, this.scale.height / officeHeight) * 0.95,
-    );
-    camera.centerOn((left.x + right.x) / 2, (top.y - BACK_WALL_HEIGHT + bottom.y) / 2);
-  }
+// Granice biura na ekranie świata, łącznie z wysokością tylnych ścian.
+function officeBounds(): Bounds {
+  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...OFFICE_LAYOUT.size });
+  return {
+    left: left?.x ?? 0,
+    right: right?.x ?? 0,
+    top: (top?.y ?? 0) - BACK_WALL_HEIGHT,
+    bottom: bottom?.y ?? 0,
+  };
 }
 
 // Narożniki prostokąta siatki na ekranie: górny, prawy, dolny, lewy.
