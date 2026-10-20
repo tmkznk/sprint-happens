@@ -1,32 +1,44 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_BALANCE, type BalanceConfig } from '../domain/config';
-import { createInitialState, type GameState, type Speed } from '../domain/state';
-import { deepFreeze } from '../test/deepFreeze';
+import { createInitialState, type Speed } from '../domain/state';
+import { testEngine } from '../test/engineFixture';
 import { createEngine } from './engine';
-
-function engineWith(patch: Partial<GameState['mission']> = {}) {
-  const initial = createInitialState(DEFAULT_BALANCE);
-  const initialState = deepFreeze({ ...initial, mission: { ...initial.mission, ...patch } });
-  return createEngine({ config: DEFAULT_BALANCE, initialState });
-}
+import { DAY_LENGTH_MS } from './time';
 
 describe('createInitialState', () => {
   it('startuje misję pierwszego dnia, na pauzie, z budżetem z konfiguracji', () => {
-    const config: BalanceConfig = { mission: { startingCash: 1234 } };
-    const state = createInitialState(config);
+    const config: BalanceConfig = { ...DEFAULT_BALANCE, mission: { startingCash: 1234 } };
+    const state = createInitialState(config, 1);
 
-    expect(state.mission).toEqual({ status: 'active', day: 1, phase: 'working', speed: 0 });
+    expect(state.mission).toEqual({
+      status: 'active',
+      day: 1,
+      phase: 'working',
+      speed: 0,
+      timeInDayMs: 0,
+    });
     expect(state.finance.cash).toBe(1234);
   });
 
   it('nie przechowuje konfiguracji w stanie misji', () => {
-    expect(JSON.stringify(createInitialState(DEFAULT_BALANCE))).not.toContain('startingCash');
+    const snapshot = JSON.stringify(createInitialState(DEFAULT_BALANCE, 1));
+
+    expect(snapshot).not.toContain('startingCash');
+    expect(snapshot).not.toContain('stepMs');
+  });
+});
+
+describe('createEngine', () => {
+  it.each([0, -100, 7, 99.5])('odrzuca krok %s ms, który nie dzieli dnia', (stepMs) => {
+    const config: BalanceConfig = { ...DEFAULT_BALANCE, simulation: { stepMs } };
+
+    expect(() => createEngine({ config, initialState: createInitialState(config, 1) })).toThrow();
   });
 });
 
 describe('engine.dispatch', () => {
   it('wykonuje poprawne polecenie i zwraca nowy obiekt stanu', () => {
-    const engine = engineWith();
+    const engine = testEngine();
     const before = engine.getState();
 
     expect(engine.dispatch({ type: 'SetSpeed', speed: 4 })).toEqual({ ok: true });
@@ -36,7 +48,7 @@ describe('engine.dispatch', () => {
   });
 
   it('działa na pauzie, gdy faza na to pozwala', () => {
-    const engine = engineWith({ speed: 0 });
+    const engine = testEngine({ speed: 0 });
 
     expect(engine.dispatch({ type: 'SetSpeed', speed: 1 }).ok).toBe(true);
   });
@@ -47,7 +59,7 @@ describe('engine.dispatch', () => {
     ['faza po rozliczeniu', { phase: 'settled' }, 1, 'phaseNotAllowed'],
     ['zakończona misja', { status: 'won' }, 1, 'missionEnded'],
   ] as const)('odrzuca polecenie: %s — bez zmiany stanu', (_, patch, speed, code) => {
-    const engine = engineWith(patch);
+    const engine = testEngine(patch);
     const before = engine.getState();
 
     const result = engine.dispatch({ type: 'SetSpeed', speed: speed as Speed });
@@ -57,9 +69,48 @@ describe('engine.dispatch', () => {
   });
 });
 
+describe('engine.step', () => {
+  const stepsPerDay = DAY_LENGTH_MS / DEFAULT_BALANCE.simulation.stepMs;
+
+  it('przesuwa czas dnia o jeden krok', () => {
+    const engine = testEngine({ speed: 1 });
+
+    engine.step();
+
+    expect(engine.getState().mission.timeInDayMs).toBe(DEFAULT_BALANCE.simulation.stepMs);
+  });
+
+  it('kończy dzień pracy dokładnie po 600 s czasu gry i pauzuje', () => {
+    const engine = testEngine({ speed: 1 });
+
+    for (let i = 0; i < stepsPerDay - 1; i++) engine.step();
+    expect(engine.getState().mission.phase).toBe('working');
+
+    engine.step();
+    expect(engine.getState().mission).toMatchObject({
+      phase: 'workEnded',
+      speed: 0,
+      timeInDayMs: DAY_LENGTH_MS,
+    });
+  });
+
+  it.each([
+    ['pauza', { speed: 0 }],
+    ['koniec pracy', { phase: 'workEnded', speed: 1 }],
+    ['zakończona misja', { status: 'bankrupt', speed: 1 }],
+  ] as const)('nie zmienia stanu: %s', (_, patch) => {
+    const engine = testEngine(patch);
+    const before = engine.getState();
+
+    engine.step();
+
+    expect(engine.getState()).toBe(before);
+  });
+});
+
 describe('engine.subscribe', () => {
   it('powiadamia o zmianie stanu, a nie o odrzuceniu ani poleceniu bez skutku', () => {
-    const engine = engineWith({ speed: 1 });
+    const engine = testEngine({ speed: 1 });
     const listener = vi.fn();
     engine.subscribe(listener);
 
@@ -73,7 +124,7 @@ describe('engine.subscribe', () => {
   });
 
   it('przestaje powiadamiać po wypisaniu', () => {
-    const engine = engineWith();
+    const engine = testEngine();
     const listener = vi.fn();
     const unsubscribe = engine.subscribe(listener);
 
