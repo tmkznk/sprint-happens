@@ -1,7 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { EngineContext } from '../application/engineHooks';
+import { DEFAULT_BALANCE } from '../domain/config';
 import { createOfficeGame } from '../rendering/createOfficeGame';
+import { createEngine } from '../simulation/engine';
+import { SpeedControls } from './SpeedControls';
 
 export function App() {
+  const [engine] = useState(() => createEngine({ config: DEFAULT_BALANCE }));
   const sceneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -12,9 +17,13 @@ export function App() {
   }, []);
 
   return (
-    <div className="app">
-      <div ref={sceneRef} className="scene" />
-      <div className="panel">Panel zarządczy</div>
-    </div>
+    <EngineContext value={engine}>
+      <div className="app">
+        <div ref={sceneRef} className="scene" />
+        <div className="panel">
+          <SpeedControls />
+        </div>
+      </div>
+    </EngineContext>
   );
 }
