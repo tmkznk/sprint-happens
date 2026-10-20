@@ -198,3 +198,83 @@ body,
   margin: 0;
   text-align: right;
 }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.save-indicator {
+  font-size: 0.8rem;
+  color: #a9adc1;
+}
+
+.save-indicator.save-error {
+  color: #ff8a80;
+}
+
+.secondary-button {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 16px;
+  border: 2px solid #4a4f6a;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.modal-backdrop.fullscreen {
+  position: fixed;
+  z-index: 10;
+}
+
+.modal p {
+  margin: 0 0 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-actions .secondary-button {
+  margin-top: 0;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.screen h1 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.screen p {
+  max-width: 360px;
+  margin: 0;
+  color: #c9ccda;
+}
+
+.screen button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid #f2c14e;
+  border-radius: 4px;
+  background: #f2c14e;
+  color: #1d1f2b;
+  font: inherit;
+  font-weight: bold;
+}

@@ -12,6 +12,7 @@ import { advanceStep } from './step';
 import { assertValidStepMs } from './time';
 
 export type Listener = (state: GameState) => void;
+export type CommandListener = (command: Command, state: GameState) => void;
 
 export type Engine = {
   readonly config: BalanceConfig;
@@ -21,6 +22,8 @@ export type Engine = {
   // T:TIME-T01 — jeden stały krok czasu gry. Tempo decyduje o liczbie kroków, nie o ich długości.
   step(): void;
   subscribe(listener: Listener): () => void;
+  // Powiadamia o poleceniu, które zmieniło stan (np. dla autozapisu po ważnych działaniach).
+  subscribeCommands(listener: CommandListener): () => void;
 };
 
 export type EngineOptions = {
@@ -32,6 +35,7 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
   assertValidStepMs(config.simulation.stepMs);
   let state = initialState;
   const listeners = new Set<Listener>();
+  const commandListeners = new Set<CommandListener>();
 
   function commit(next: GameState): void {
     if (next === state) return;
@@ -57,7 +61,9 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
     dispatch(command) {
       const outcome = execute(command);
       if (!outcome.ok) return outcome;
+      const changed = outcome.state !== state;
       commit(outcome.state);
+      if (changed) for (const listener of commandListeners) listener(command, state);
       return { ok: true };
     },
     step() {
@@ -67,6 +73,12 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
+      };
+    },
+    subscribeCommands(listener) {
+      commandListeners.add(listener);
+      return () => {
+        commandListeners.delete(listener);
       };
     },
   };

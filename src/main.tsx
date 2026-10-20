@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './ui/App';
+import { GameRoot } from './ui/GameRoot';
 import { MovementDemo } from './ui/MovementDemo';
 import { SCENARIOS } from './world/movement/scenarios';
 import './ui/app.css';
@@ -17,6 +17,6 @@ const demoScenario =
 
 createRoot(root).render(
   <StrictMode>
-    {demoScenario ? <MovementDemo scenario={demoScenario} scenarios={SCENARIOS} /> : <App />}
+    {demoScenario ? <MovementDemo scenario={demoScenario} scenarios={SCENARIOS} /> : <GameRoot />}
   </StrictMode>,
 );
