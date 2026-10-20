@@ -38,4 +38,7 @@ export type Finance = {
   // FIN-03, FIN-08: należności bieżącego dnia — dniówka każdej osoby zatrudnionej choć przez
   // część dnia, także zwolnionej. Rozliczenie dnia pobiera je i czyści (SH-029).
   wagesDueToday: Record<string, number>;
+  // FIN-05 (decyzja SH-004 A1): po rozliczeniu z ujemnym saldem — dzień, którego rozliczenie
+  // musi zakończyć się saldem ≥ 0, inaczej bankructwo. null — brak okresu ratunkowego.
+  rescueDeadlineDay: number | null;
 };

@@ -23,7 +23,12 @@ describe('cykl dnia (TIME-08)', () => {
     expect(engine.dispatch({ type: 'SettleDay' })).toEqual({ ok: true });
     expect(engine.getState().mission).toMatchObject({
       phase: 'settled',
-      report: { day: 1, cashAfterSettlement: DEFAULT_BALANCE.mission.startingCash },
+      report: {
+        day: 1,
+        upkeep: DEFAULT_BALANCE.finance.officeUpkeepPerDay,
+        cashAfterSettlement:
+          DEFAULT_BALANCE.mission.startingCash - DEFAULT_BALANCE.finance.officeUpkeepPerDay,
+      },
     });
 
     expect(engine.dispatch({ type: 'StartNextDay' })).toEqual({ ok: true });

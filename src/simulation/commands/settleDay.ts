@@ -1,3 +1,4 @@
+import { settle } from '../settlement';
 import type { CommandHandler, SettleDayCommand } from './types';
 
 // TIME-08 (Z): „Rozlicz dzień” — dokładnie raz, po zakończeniu pracy. Kolejność rozliczenia:
@@ -5,17 +6,7 @@ import type { CommandHandler, SettleDayCommand } from './types';
 // tego samego dnia jest odrzucana przez fazę `settled`, także po zapisie i wczytaniu.
 export const settleDay: CommandHandler<SettleDayCommand> = {
   category: 'settlement',
-  execute(state) {
-    return {
-      ok: true,
-      state: {
-        ...state,
-        mission: {
-          ...state.mission,
-          phase: 'settled',
-          report: { day: state.mission.day, cashAfterSettlement: state.finance.cash },
-        },
-      },
-    };
+  execute(state, _command, config) {
+    return { ok: true, state: settle(state, config) };
   },
 };

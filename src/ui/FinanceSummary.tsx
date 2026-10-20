@@ -9,6 +9,7 @@ export function FinanceSummary() {
   const config = useBalanceConfig();
   const cash = useGameSelector((state) => state.finance.cash);
   const forecast = useGameSelector((state) => forecastCash(state, config).afterSettlement);
+  const rescueDeadline = useGameSelector((state) => state.finance.rescueDeadlineDay);
 
   return (
     <div className="finance-summary">
@@ -19,6 +20,11 @@ export function FinanceSummary() {
         Po rozliczeniu{' '}
         <strong className={forecast < 0 ? 'negative' : undefined}>{money.format(forecast)}</strong>
       </span>
+      {rescueDeadline !== null && (
+        <span className="negative" role="status">
+          Okres ratunkowy: saldo ≥ 0 do rozliczenia dnia {rescueDeadline}
+        </span>
+      )}
     </div>
   );
 }

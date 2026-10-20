@@ -1,5 +1,5 @@
 import { DEFAULT_BALANCE, type BalanceConfig } from '../domain/config';
-import { createInitialState, type GameState } from '../domain/state';
+import { createInitialState, type DayReport, type GameState } from '../domain/state';
 import { createEngine } from '../simulation/engine';
 import { deepFreeze } from './deepFreeze';
 
@@ -15,4 +15,17 @@ export function testEngine(
   config: BalanceConfig = DEFAULT_BALANCE,
 ) {
   return createEngine({ config, initialState: testState(missionPatch) });
+}
+
+// Raport rozliczenia dla stanów testowych w fazie `settled`.
+export function testReport(day: number, cashAfterSettlement: number): DayReport {
+  return {
+    day,
+    income: 0,
+    spending: 0,
+    wages: 0,
+    upkeep: 0,
+    cashAfterSettlement,
+    rescueDeadlineDay: null,
+  };
 }

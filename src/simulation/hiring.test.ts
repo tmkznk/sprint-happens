@@ -3,7 +3,7 @@ import { DEFAULT_BALANCE } from '../domain/config';
 import { SENIORITIES, SPECIALIZATIONS, type CandidateId } from '../domain/employees';
 import { createInitialState, type GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
-import { testState } from '../test/engineFixture';
+import { testReport, testState } from '../test/engineFixture';
 import { interactionCells } from '../world/geometry';
 import { cellKey } from '../world/movement/grid';
 import { movementEnvFor } from '../world/movement/officeEnv';
@@ -175,7 +175,7 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
           ...settled.mission,
           phase: 'settled',
           timeInDayMs: 600_000,
-          report: { day: 1, cashAfterSettlement: settled.finance.cash },
+          report: testReport(1, settled.finance.cash),
         },
       }),
     );

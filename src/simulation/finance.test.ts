@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import type { GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
-import { testState } from '../test/engineFixture';
+import { testReport, testState } from '../test/engineFixture';
 import {
   canHire,
   canPurchase,
@@ -130,7 +130,7 @@ describe('prognoza salda (FIN-03, FIN-08)', () => {
     const settled = testState({
       phase: 'settled',
       timeInDayMs: 600_000,
-      report: { day: 1, cashAfterSettlement: START },
+      report: testReport(1, START),
     });
 
     expect(forecastCash(settled, DEFAULT_BALANCE).afterSettlement).toBe(START);

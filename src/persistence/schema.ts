@@ -60,7 +60,17 @@ const missionSchema = z.strictObject({
   phase: z.enum(['working', 'workEnded', 'settled']),
   speed: z.literal(SPEEDS),
   timeInDayMs: z.int().min(0).max(DAY_LENGTH_MS),
-  report: z.strictObject({ day: z.int().min(1), cashAfterSettlement: z.int() }).nullable(),
+  report: z
+    .strictObject({
+      day: z.int().min(1),
+      income: z.int().min(0),
+      spending: z.int().min(0),
+      wages: z.int().min(0),
+      upkeep: z.int().min(0),
+      cashAfterSettlement: z.int(),
+      rescueDeadlineDay: z.int().min(1).nullable(),
+    })
+    .nullable(),
 });
 
 const financeSchema = z.strictObject({
@@ -76,6 +86,7 @@ const financeSchema = z.strictObject({
     }),
   ),
   wagesDueToday: z.record(z.string().min(1), z.int().min(0)),
+  rescueDeadlineDay: z.int().min(1).nullable(),
 });
 
 const furnitureSchema = z.strictObject({
@@ -198,6 +209,14 @@ function financeIssues(state: GameState): Issue[] {
     keys.add(entry.key);
     if (entry.day > mission.day) issues.push({ path, message: 'Operacja z przyszłego dnia' });
   });
+  // FIN-05: okres ratunkowy trwa najwyżej trzy dni od dnia, po którym powstał dług.
+  const deadline = finance.rescueDeadlineDay;
+  if (deadline !== null && (deadline < mission.day || deadline > mission.day + 3)) {
+    issues.push({
+      path: ['finance', 'rescueDeadlineDay'],
+      message: 'Okres ratunkowy poza zakresem',
+    });
+  }
   return issues;
 }
 

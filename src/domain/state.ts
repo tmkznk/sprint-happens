@@ -15,10 +15,20 @@ export type Speed = (typeof SPEEDS)[number];
 // TIME-08 (Z): dzień pracy → koniec pracy (przegląd i oddania) → po rozliczeniu (raport).
 export type DayPhase = 'working' | 'workEnded' | 'settled';
 
-// TIME-03 (Z): podsumowanie dnia. Koszty, przychody i terminy dochodzą w SH-029.
+// TIME-03 (Z): podsumowanie dnia — przepływy z księgi bieżącego dnia i stan po rozliczeniu.
+// Terminy projektów dojdą wraz z kontraktami (SH-020, SH-026).
 export type DayReport = {
   day: number;
+  // Wpływy dnia (zaliczki, płatności, sprzedaż, zdarzenia na plus).
+  income: number;
+  // Wydatki dnia poza kosztami obowiązkowymi (zakupy, zdarzenia na minus).
+  spending: number;
+  // FIN-02, FIN-03: pobrane przy rozliczeniu.
+  wages: number;
+  upkeep: number;
   cashAfterSettlement: number;
+  // FIN-05: ostatni dzień okresu ratunkowego albo null, gdy saldo jest nieujemne.
+  rescueDeadlineDay: number | null;
 };
 
 // MIS-03 (Z): zwycięstwo i bankructwo kończą misję.
@@ -77,6 +87,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       cash: config.mission.startingCash,
       ledger: [],
       wagesDueToday: {},
+      rescueDeadlineDay: null,
     },
     staff: { employees: {}, candidates: market.candidates },
     world: { furniture, movement: createMovementState([]) },
