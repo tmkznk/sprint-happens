@@ -6,6 +6,7 @@ import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
 import type { Bounds } from './cameraMath';
+import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
 import { furnitureRect, pickFurniture, prismSilhouette } from './picking';
@@ -203,30 +204,6 @@ function officeBounds(): Bounds {
   };
 }
 
-// Narożniki prostokąta siatki na ekranie: górny, prawy, dolny, lewy.
-function rectCorners(rect: Rect): ScreenPoint[] {
-  return [
-    gridToScreen({ x: rect.x, y: rect.y }),
-    gridToScreen({ x: rect.x + rect.width, y: rect.y }),
-    gridToScreen({ x: rect.x + rect.width, y: rect.y + rect.height }),
-    gridToScreen({ x: rect.x, y: rect.y + rect.height }),
-  ];
-}
-
-function drawPrism(
-  graphics: Phaser.GameObjects.Graphics,
-  rect: Rect,
-  height: number,
-  color: number,
-): void {
-  const [top, right, bottom, left] = rectCorners(rect);
-  if (!top || !right || !bottom || !left) return;
-  const up = (point: ScreenPoint) => ({ x: point.x, y: point.y - height });
-  fillPolygon(graphics, shade(color, 0.75), [left, bottom, up(bottom), up(left)]);
-  fillPolygon(graphics, shade(color, 0.6), [bottom, right, up(right), up(bottom)]);
-  fillPolygon(graphics, color, [up(top), up(right), up(bottom), up(left)]);
-}
-
 // Okno na ścianie zwróconej do pokoju: lewa ściana bryły, gdy pokój jest „pod” nią (y+1),
 // prawa, gdy pokój jest po jej prawej stronie (x+1).
 function drawWindow(graphics: Phaser.GameObjects.Graphics, rect: Rect, height: number): void {
@@ -244,24 +221,4 @@ function drawWindow(graphics: Phaser.GameObjects.Graphics, rect: Rect, height: n
     along(0.75, 0.8),
     along(0.25, 0.8),
   ]);
-}
-
-function fillPolygon(
-  graphics: Phaser.GameObjects.Graphics,
-  color: number,
-  points: ScreenPoint[],
-): void {
-  graphics.fillStyle(color, 1);
-  graphics.fillPoints(toVectors(points), true);
-}
-
-function toVectors(points: ScreenPoint[]): Phaser.Math.Vector2[] {
-  return points.map((point) => new Phaser.Math.Vector2(point.x, point.y));
-}
-
-function shade(color: number, factor: number): number {
-  const r = Math.round(((color >> 16) & 0xff) * factor);
-  const g = Math.round(((color >> 8) & 0xff) * factor);
-  const b = Math.round((color & 0xff) * factor);
-  return (r << 16) | (g << 8) | b;
 }

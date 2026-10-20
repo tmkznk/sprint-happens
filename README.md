@@ -17,7 +17,10 @@ npm install
 npm run dev    # serwer deweloperski Vite
 ```
 
-Scena testowa zasłaniania (postać na stałej trasie, punkty interakcji): `http://localhost:5173/?scene=occlusion`.
+Sceny pomocnicze:
+
+- `http://localhost:5173/?scene=occlusion` — zasłanianie (postać na stałej trasie, punkty interakcji),
+- `http://localhost:5173/?scene=movement` — scenariusze ruchu postaci bez przenikania.
 
 ## Skrypty
 

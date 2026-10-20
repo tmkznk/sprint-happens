@@ -102,3 +102,38 @@ body,
   gap: 8px;
   margin-bottom: 8px;
 }
+
+.movement-demo p {
+  margin: 0 0 8px;
+}
+
+.movement-demo .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.movement-demo .legend span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.movement-demo nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.movement-demo nav a {
+  color: #f2f2f2;
+}
+
+.movement-demo nav a[aria-current='page'] {
+  color: #f2c14e;
+}
