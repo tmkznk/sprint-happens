@@ -2,6 +2,7 @@ import type { Seniority, Specialization } from '../domain/employees';
 import type { FurnitureType } from '../domain/furniture';
 import type { AgentStatus } from '../domain/movement';
 import type { WorkStatus } from '../simulation/assignments';
+import type { Activity } from '../simulation/needs';
 
 export const SPECIALIZATION_LABELS: Record<Specialization, string> = {
   frontend: 'Frontend Developer',
@@ -45,6 +46,17 @@ export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
   noWorkForRole: 'Projekt nie ma pracy dla tej roli',
   scopeDone: 'Swoja część ukończona — brak pracy',
   ready: 'Gotowy do pracy nad projektem',
+};
+
+// SH-017: logiczna czynność pracownika wynikająca ze stanu silnika.
+export const ACTIVITY_LABELS: Record<Activity, string> = {
+  idle: 'Bez zajęcia',
+  walking: 'W drodze',
+  working: 'Pracuje',
+  waitingForRest: 'Czeka na wolne miejsce odpoczynku',
+  onCoffee: 'Pije kawę',
+  onSofa: 'Odpoczywa na kanapie',
+  exhausted: 'Wyczerpany — brak miejsca do odpoczynku',
 };
 
 export const money = new Intl.NumberFormat('pl-PL');

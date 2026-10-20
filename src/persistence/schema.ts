@@ -2,12 +2,13 @@ import { z } from 'zod';
 import type { BalanceConfig } from '../domain/config';
 import {
   SENIORITIES,
+  MAX_ENERGY,
   SPECIALIZATIONS,
   type CandidateId,
   type EmployeeId,
 } from '../domain/employees';
 import {
-  MILLI_POINTS,
+  POINT_SCALE,
   TECH_SPECIALIZATIONS,
   type OfferId,
   type ProjectId,
@@ -94,6 +95,7 @@ const staffSchema = z.strictObject({
       hiredOnDay: z.int().min(1),
       deskId: furnitureId.nullable(),
       projectId: projectId.nullable(),
+      energy: z.int().min(0).max(MAX_ENERGY),
     }),
   ),
   candidates: z.array(z.strictObject({ id: candidateId, ...person })),
@@ -326,7 +328,7 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     // PROJ-09: postęp tylko w zakresach projektu i nie ponad zakres.
     for (const [specialization, done] of Object.entries(project.progress)) {
       const scope = project.scopes[specialization as keyof typeof project.scopes];
-      if (scope === undefined || done > scope * MILLI_POINTS) {
+      if (scope === undefined || done > scope * POINT_SCALE) {
         issues.push({ path, message: `Postęp ${specialization} poza zakresem projektu` });
       }
     }

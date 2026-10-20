@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
-import { MILLI_POINTS, type ProjectId } from '../domain/contracts';
+import { POINT_SCALE, type ProjectId } from '../domain/contracts';
 import type { Employee, EmployeeId, Seniority, Specialization } from '../domain/employees';
 import { testState } from '../test/engineFixture';
 import { workStatus } from './assignments';
@@ -9,10 +9,12 @@ import { isAtOwnDesk, progressPercent, workPerStep } from './work';
 
 type Engine = ReturnType<typeof createEngine>;
 const P1 = 'project-1' as ProjectId;
+// Testy samego postępu bez zużycia energii — dokładne przyrosty; energia ma osobne testy (needs.test).
+const CONFIG = { ...DEFAULT_BALANCE, energy: { ...DEFAULT_BALANCE.energy, drainPerSecond: 0 } };
 
 // Projekt 1 to kontrakt startowy: Frontend 60 pp, Backend 40 pp.
 function setup() {
-  const engine = createEngine({ config: DEFAULT_BALANCE, initialState: testState() });
+  const engine = createEngine({ config: CONFIG, initialState: testState() });
   const starter = engine.getState().contracts.offers[0];
   if (!starter) throw new Error('brak oferty');
   engine.dispatch({ type: 'AcceptOffer', offerId: starter.id });
@@ -53,7 +55,7 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     const engine = setup();
     const frontend = hire(engine, 'frontend', 'junior');
     runUntilAtDesk(engine, [frontend]);
-    const rate = workPerStep(employeeOf(engine, frontend), DEFAULT_BALANCE);
+    const rate = workPerStep(employeeOf(engine, frontend), CONFIG);
     // Kolejność kroku (SH-004 B4): ruch, potem praca — punkty tylko za krok, w którym osoba siedzi.
     expect(progress(engine, 'frontend')).toBe(rate);
 
@@ -73,11 +75,11 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     steps(engine, 50);
 
     const perStep =
-      workPerStep(employeeOf(engine, junior), DEFAULT_BALANCE) +
-      workPerStep(employeeOf(engine, mid), DEFAULT_BALANCE);
+      workPerStep(employeeOf(engine, junior), CONFIG) +
+      workPerStep(employeeOf(engine, mid), CONFIG);
     expect(progress(engine, 'frontend') - before).toBe(50 * perStep);
-    expect(workPerStep(employeeOf(engine, mid), DEFAULT_BALANCE)).toBeGreaterThan(
-      workPerStep(employeeOf(engine, junior), DEFAULT_BALANCE),
+    expect(workPerStep(employeeOf(engine, mid), CONFIG)).toBeGreaterThan(
+      workPerStep(employeeOf(engine, junior), CONFIG),
     );
   });
 
@@ -102,7 +104,7 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     steps(engine, 3500);
 
     const project = engine.getState().contracts.projects[P1];
-    expect(progress(engine, 'frontend')).toBe(60 * MILLI_POINTS);
+    expect(progress(engine, 'frontend')).toBe(60 * POINT_SCALE);
     expect(project && progressPercent(project, 'frontend')).toBe(100);
     expect(workStatus(engine.getState(), employeeOf(engine, senior))).toBe('scopeDone');
   });

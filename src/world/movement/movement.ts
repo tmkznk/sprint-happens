@@ -35,6 +35,44 @@ const PUSHABLE: ReadonlySet<AgentStatus> = new Set([
   'deadlocked',
 ]);
 
+// Kończy bieżące korzystanie z miejsca (np. koniec przerwy wyznaczony przez system potrzeb):
+// zwalnia rezerwację i przechodzi do kolejnego zadania. Postać stojąca w kolejce też ją opuszcza.
+export function finishUse(state: ReadonlyMovementState, id: string): MovementState {
+  const agent = state.agents.find((a) => a.id === id);
+  const task = agent?.tasks[0];
+  if (!agent || task?.kind !== 'use') return removeAgentReservations(state, id, false);
+  return {
+    ...removeAgentReservations(state, id, false),
+    agents: state.agents.map((a) =>
+      a.id === id
+        ? {
+            ...cloneAgent(a),
+            tasks: a.tasks.slice(1).map((t) => ({ ...t })) as Task[],
+            reservedDestination: null,
+            queuedSince: null,
+            usedSteps: 0,
+            path: [],
+            status: 'idle',
+          }
+        : cloneAgent(a),
+    ),
+  };
+}
+
+function removeAgentReservations(
+  state: ReadonlyMovementState,
+  id: string,
+  removeAgentToo: boolean,
+): MovementState {
+  return {
+    step: state.step,
+    agents: state.agents.filter((agent) => !removeAgentToo || agent.id !== id).map(cloneAgent),
+    reservations: Object.fromEntries(
+      Object.entries(state.reservations).filter(([, holder]) => holder !== id),
+    ),
+  };
+}
+
 // SH-012: odejście postaci zwalnia jej pola, rezerwacje i ustąpienia na jej rzecz.
 export function removeAgent(state: ReadonlyMovementState, id: string): MovementState {
   return {

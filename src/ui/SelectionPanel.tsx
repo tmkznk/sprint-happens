@@ -3,15 +3,18 @@ import { useBalanceConfig, useDispatch, useGameSelector } from '../application/e
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
 import type { ProjectId } from '../domain/contracts';
-import type { EmployeeId } from '../domain/employees';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
+import { ENERGY_SCALE, type EmployeeId } from '../domain/employees';
 import { workStatus } from '../simulation/assignments';
+import { activityOf } from '../simulation/needs';
+import { isWorking } from '../simulation/work';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import {
+  ACTIVITY_LABELS,
   AGENT_STATUS_LABELS,
   FURNITURE_NAMES,
   money,
@@ -269,6 +272,13 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
     const current = state.staff.employees[id];
     return current ? workStatus(state, current) : null;
   });
+  const activity = useGameSelector((state) => {
+    const current = state.staff.employees[id];
+    return current ? activityOf(state, current, isWorking(state, current)) : null;
+  });
+  const energy = useGameSelector((state) =>
+    Math.round((state.staff.employees[id]?.energy ?? 0) / ENERGY_SCALE),
+  );
   if (!employee) return null;
   return (
     <Panel title={employee.name}>
@@ -292,12 +302,23 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
           <dd className={work === 'ready' ? undefined : 'warning'}>{WORK_STATUS_LABELS[work]}</dd>
         </>
       )}
-      {status && (
+      <dt>Energia</dt>
+      <dd className="energy">
+        <progress max={100} value={energy} aria-label="Energia" />
+        <span className={energy <= 15 ? 'negative' : undefined}>{energy}%</span>
+      </dd>
+      {activity && (
         <>
           <dt>Teraz</dt>
-          <dd className={status === 'noRoute' || status === 'deadlocked' ? 'negative' : undefined}>
-            {AGENT_STATUS_LABELS[status]}
+          <dd className={activity === 'exhausted' ? 'negative' : undefined}>
+            {ACTIVITY_LABELS[activity]}
           </dd>
+        </>
+      )}
+      {(status === 'noRoute' || status === 'deadlocked') && (
+        <>
+          <dt>Ruch</dt>
+          <dd className="negative">{AGENT_STATUS_LABELS[status]}</dd>
         </>
       )}
     </Panel>

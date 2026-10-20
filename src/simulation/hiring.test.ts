@@ -70,6 +70,7 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
         hiredOnDay: 1,
         deskId: 'furniture-1',
         projectId: null,
+        energy: 100_000,
       },
     ]);
     expect(state.finance.wagesDueToday).toEqual({ 'employee-1': candidate.dailyWage });

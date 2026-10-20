@@ -41,7 +41,12 @@ export type Employee = {
   deskId: FurnitureId | null;
   // EMP-05 (Z): jeden aktywny przydział do projektu; null — bez przydziału.
   projectId: ProjectId | null;
+  // NEED-01 (Z): energia w tysięcznych częściach (0–100 000 = 0–100).
+  energy: number;
 };
+
+export const ENERGY_SCALE = 1000;
+export const MAX_ENERGY = 100 * ENERGY_SCALE;
 
 // Imiona i nazwiska kandydatów — neutralne, wyłącznie kosmetyczne.
 export const FIRST_NAMES = [

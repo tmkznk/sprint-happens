@@ -520,3 +520,13 @@ body,
 .progress-list progress {
   width: 100%;
 }
+
+.selection-panel dd.energy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selection-panel dd.energy progress {
+  width: 120px;
+}

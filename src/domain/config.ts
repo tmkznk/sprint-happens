@@ -26,6 +26,18 @@ export type BalanceConfig = DeepReadonly<{
     // EMP-02, PROJ-09, decyzja SH-032 B1 (B): punkty pracy na pełny dzień aktywnej pracy.
     workPointsPerDay: WageTable;
   };
+  // NEED-01, NEED-02, decyzje SH-004 A3/A4 i SH-032 B2 (B). Energia w skali 0–100, czas w sekundach gry.
+  energy: {
+    drainPerSecond: number;
+    // Progi przerw (rosnąco: wyczerpanie < zmęczenie < profilaktyka) i koniec odpoczynku na kanapie.
+    thresholds: { exhausted: number; tired: number; prophylactic: number; rested: number };
+    coffeeGain: number;
+    coffeeSeconds: number;
+    sofaGainPerSecond: number;
+    maxRestSeconds: number;
+    // Przy zmęczeniu kawa także wtedy, gdy w kolejce do ekspresu czeka najwyżej tyle osób.
+    shortQueue: number;
+  };
   contracts: {
     // CON-01 (Z): liczba ofert na tablicy.
     boardSize: number;
@@ -58,6 +70,15 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   staff: {
     dailyWage: { junior: 300, mid: 500, senior: 800 },
     workPointsPerDay: { junior: 60, mid: 90, senior: 120 },
+  },
+  energy: {
+    drainPerSecond: 0.15,
+    thresholds: { exhausted: 15, tired: 35, prophylactic: 60, rested: 90 },
+    coffeeGain: 15,
+    coffeeSeconds: 20,
+    sofaGainPerSecond: 1,
+    maxRestSeconds: 90,
+    shortQueue: 1,
   },
   contracts: {
     boardSize: 3,

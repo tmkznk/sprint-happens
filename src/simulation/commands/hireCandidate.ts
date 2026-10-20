@@ -1,4 +1,4 @@
-import { generateCandidate, type Employee } from '../../domain/employees';
+import { generateCandidate, MAX_ENERGY, type Employee } from '../../domain/employees';
 import { allocateId } from '../../domain/ids';
 import { canHire, registerWageDue } from '../finance';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
@@ -25,6 +25,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       hiredOnDay: state.mission.day,
       deskId: firstFreeDesk(state),
       projectId: null,
+      energy: MAX_ENERGY,
     };
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi nowy kandydat.
