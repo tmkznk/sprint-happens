@@ -1,5 +1,5 @@
 import type { BalanceConfig } from '../../domain/config';
-import type { OfferId } from '../../domain/contracts';
+import type { OfferId, ProjectId } from '../../domain/contracts';
 import type { CandidateId, EmployeeId } from '../../domain/employees';
 import type { FurnitureId, FurnitureType, Rotation } from '../../domain/furniture';
 import type { GridPoint } from '../../domain/grid';
@@ -25,6 +25,11 @@ export type MoveFurnitureCommand = {
 };
 export type SellFurnitureCommand = { type: 'SellFurniture'; furnitureId: FurnitureId };
 export type AcceptOfferCommand = { type: 'AcceptOffer'; offerId: OfferId };
+export type AssignProjectCommand = {
+  type: 'AssignProject';
+  employeeId: EmployeeId;
+  projectId: ProjectId | null;
+};
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -41,7 +46,8 @@ export type Command =
   | MoveFurnitureCommand
   | SellFurnitureCommand
   | BuyFurnitureCommand
-  | AcceptOfferCommand;
+  | AcceptOfferCommand
+  | AssignProjectCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -53,6 +59,9 @@ export type RejectionCode =
   // Brak wolnego pola przy wejściu (biuro pełne postaci).
   | 'noRoomToEnter'
   | 'unknownOffer'
+  | 'unknownProject'
+  | 'projectClosed'
+  | 'pmAlreadyAssigned'
   | 'unknownEmployee'
   | 'unknownFurniture'
   | 'notADesk'

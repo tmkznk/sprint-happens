@@ -1,6 +1,7 @@
 import type { Seniority, Specialization } from '../domain/employees';
 import type { FurnitureType } from '../domain/furniture';
 import type { AgentStatus } from '../domain/movement';
+import type { WorkStatus } from '../simulation/assignments';
 
 export const SPECIALIZATION_LABELS: Record<Specialization, string> = {
   frontend: 'Frontend Developer',
@@ -35,6 +36,14 @@ export const FURNITURE_NAMES: Record<FurnitureType, string> = {
   desk: 'Stanowisko pracy',
   sofa: 'Kanapa',
   coffeeMachine: 'Ekspres do kawy',
+};
+
+// EMP-07 (Z): interfejs sygnalizuje brak pracy.
+export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
+  noAssignment: 'Brak przydziału do projektu',
+  noDesk: 'Brak biurka — nie może pracować',
+  noWorkForRole: 'Projekt nie ma pracy dla tej roli',
+  ready: 'Gotowy do pracy nad projektem',
 };
 
 export const money = new Intl.NumberFormat('pl-PL');

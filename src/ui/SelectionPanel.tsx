@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
+import type { ProjectId } from '../domain/contracts';
 import type { EmployeeId } from '../domain/employees';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
+import { workStatus } from '../simulation/assignments';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -15,6 +17,7 @@ import {
   money,
   SENIORITY_LABELS,
   SPECIALIZATION_LABELS,
+  WORK_STATUS_LABELS,
 } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
@@ -215,11 +218,57 @@ function takenDesksKey(state: GameState): string {
     .join('|');
 }
 
+// EMP-05, EMP-07 (Z): przydział zmienia wyłącznie gracz; oddane projekty nie są dostępne.
+function ProjectSelect({
+  employeeId,
+  projectId,
+}: {
+  employeeId: EmployeeId;
+  projectId: ProjectId | null;
+}) {
+  const projects = useGameSelector((state) => state.contracts.projects);
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const dispatch = useDispatch();
+  const [message, setMessage] = useState<string | null>(null);
+  const active = Object.values(projects).filter((project) => project.status === 'active');
+
+  return (
+    <>
+      <select
+        aria-label="Projekt"
+        value={projectId ?? ''}
+        disabled={!isWorking}
+        onChange={(event) => {
+          const value = event.target.value;
+          const result = dispatch({
+            type: 'AssignProject',
+            employeeId,
+            projectId: value === '' ? null : (value as ProjectId),
+          });
+          setMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
+        }}
+      >
+        <option value="">Bez przydziału</option>
+        {active.map((project) => (
+          <option key={project.id} value={project.id}>
+            {project.name}
+          </option>
+        ))}
+      </select>
+      {message && <span className="warning">{message}</span>}
+    </>
+  );
+}
+
 function EmployeeDetails({ id }: { id: EmployeeId }) {
   const employee = useGameSelector((state) => state.staff.employees[id]);
   const status = useGameSelector(
     (state) => state.world.movement.agents.find((agent) => agent.id === id)?.status,
   );
+  const work = useGameSelector((state) => {
+    const current = state.staff.employees[id];
+    return current ? workStatus(state, current) : null;
+  });
   if (!employee) return null;
   return (
     <Panel title={employee.name}>
@@ -229,10 +278,20 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
       </dd>
       <dt>Pensja</dt>
       <dd>{money.format(employee.dailyWage)} / dzień</dd>
+      <dt>Projekt</dt>
+      <dd>
+        <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
+      </dd>
       <dt>Biurko</dt>
       <dd>
         <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
       </dd>
+      {work && (
+        <>
+          <dt>Praca</dt>
+          <dd className={work === 'ready' ? undefined : 'warning'}>{WORK_STATUS_LABELS[work]}</dd>
+        </>
+      )}
       {status && (
         <>
           <dt>Teraz</dt>

@@ -1,3 +1,4 @@
+import type { ProjectId } from './contracts';
 import type { FurnitureId } from './furniture';
 import { allocateId, type EntityId, type IdSequence } from './ids';
 import { nextRandom, type RngState } from './random';
@@ -38,6 +39,8 @@ export type Employee = {
   hiredOnDay: number;
   // OFF-04 (Z): jedno biurko na osobę; null — zatrudniony bez stanowiska (EMP-04).
   deskId: FurnitureId | null;
+  // EMP-05 (Z): jeden aktywny przydział do projektu; null — bez przydziału.
+  projectId: ProjectId | null;
 };
 
 // Imiona i nazwiska kandydatów — neutralne, wyłącznie kosmetyczne.

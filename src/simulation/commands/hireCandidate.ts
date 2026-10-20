@@ -24,6 +24,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       dailyWage: candidate.dailyWage,
       hiredOnDay: state.mission.day,
       deskId: firstFreeDesk(state),
+      projectId: null,
     };
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi nowy kandydat.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { TECH_SPECIALIZATIONS, type ContractTerms, type Offer } from '../domain/contracts';
-import { money } from './labels';
+import { money, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 const SCOPE_LABELS = {
@@ -16,6 +16,7 @@ const SCOPE_LABELS = {
 export function ContractsDialog({ onClose }: { onClose(): void }) {
   const offers = useGameSelector((state) => state.contracts.offers);
   const projects = useGameSelector((state) => state.contracts.projects);
+  const employees = useGameSelector((state) => state.staff.employees);
   const day = useGameSelector((state) => state.mission.day);
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const dispatch = useDispatch();
@@ -72,9 +73,18 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
         {active.length === 0 && <p className="hint">Brak przyjętych kontraktów.</p>}
         {active.map((project) => {
           const daysLeft = project.deadlineDay - day;
+          const team = Object.values(employees).filter((e) => e.projectId === project.id);
           return (
             <article key={project.id} className="contract-card">
               <h4>{project.name}</h4>
+              <p className="hint">
+                Zespół:{' '}
+                {team.length === 0
+                  ? 'nikt nie jest przypisany — przydziel pracowników w ich panelu.'
+                  : team
+                      .map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`)
+                      .join(', ')}
+              </p>
               <Terms
                 terms={project}
                 deadline={

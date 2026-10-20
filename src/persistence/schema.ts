@@ -87,6 +87,7 @@ const staffSchema = z.strictObject({
       ...person,
       hiredOnDay: z.int().min(1),
       deskId: furnitureId.nullable(),
+      projectId: projectId.nullable(),
     }),
   ),
   candidates: z.array(z.strictObject({ id: candidateId, ...person })),
@@ -332,6 +333,7 @@ function staffIssues(state: GameState): Issue[] {
   const issues: Issue[] = [];
   const { employees, candidates } = state.staff;
   const desks = new Map<string, string>();
+  const pms = new Map<string, string>();
   const agentIds = new Set(state.world.movement.agents.map((agent) => agent.id));
   for (const [key, employee] of Object.entries(employees)) {
     const path = ['staff', 'employees', key];
@@ -352,6 +354,18 @@ function staffIssues(state: GameState): Issue[] {
     }
     if (!agentIds.has(employee.id))
       issues.push({ path, message: 'Pracownik bez postaci w biurze' });
+    if (employee.projectId !== null) {
+      const project = state.contracts.projects[employee.projectId];
+      if (project?.status !== 'active') {
+        issues.push({ path, message: 'Przydział do nieistniejącego lub oddanego projektu' });
+      }
+      // PROJ-11 (Z): najwyżej jeden PM na projekt.
+      if (employee.specialization === 'pm') {
+        const otherPm = pms.get(employee.projectId);
+        if (otherPm) issues.push({ path, message: `Drugi PM w projekcie (jest ${otherPm})` });
+        pms.set(employee.projectId, employee.id);
+      }
+    }
   }
   for (const agentId of agentIds) {
     if (!(agentId in employees)) {
