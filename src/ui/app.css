@@ -502,3 +502,21 @@ body,
 .contract-card button:disabled {
   opacity: 0.4;
 }
+
+.progress-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.progress-list li {
+  display: grid;
+  grid-template-columns: 72px 1fr 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.progress-list progress {
+  width: 100%;
+}

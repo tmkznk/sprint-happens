@@ -3,6 +3,7 @@ import type { GameState } from '../domain/state';
 import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
+import { doWork } from './work';
 
 // Jeden stały krok symulacji. Kolejność systemów (decyzja SH-004 B4): ruch i rezerwacje →
 // czynności i potrzeby → praca/testy/naprawy → odejścia/zdarzenia → granica dnia.
@@ -13,7 +14,8 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
     return current;
   }
 
-  const state = moveCharacters(current, config);
+  // Decyzja SH-004 B4: ruch → (czynności i potrzeby — SH-017) → praca.
+  const state = doWork(moveCharacters(current, config), config);
 
   const timeInDayMs = mission.timeInDayMs + config.simulation.stepMs;
 

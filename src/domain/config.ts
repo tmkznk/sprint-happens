@@ -23,6 +23,8 @@ export type BalanceConfig = DeepReadonly<{
   staff: {
     // EMP-02 (B): pensja dzienna zależy od seniority (SH-032).
     dailyWage: WageTable;
+    // EMP-02, PROJ-09, decyzja SH-032 B1 (B): punkty pracy na pełny dzień aktywnej pracy.
+    workPointsPerDay: WageTable;
   };
   contracts: {
     // CON-01 (Z): liczba ofert na tablicy.
@@ -55,6 +57,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   },
   staff: {
     dailyWage: { junior: 300, mid: 500, senior: 800 },
+    workPointsPerDay: { junior: 60, mid: 90, senior: 120 },
   },
   contracts: {
     boardSize: 3,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { TECH_SPECIALIZATIONS, type ContractTerms, type Offer } from '../domain/contracts';
+import { progressPercent } from '../simulation/work';
 import { money, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
@@ -85,6 +86,15 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                       .map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`)
                       .join(', ')}
               </p>
+              <ul className="progress-list" aria-label="Postęp prac">
+                {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
+                  <li key={s}>
+                    <span>{SCOPE_LABELS[s]}</span>
+                    <progress max={100} value={progressPercent(project, s)} />
+                    <span>{progressPercent(project, s)}%</span>
+                  </li>
+                ))}
+              </ul>
               <Terms
                 terms={project}
                 deadline={

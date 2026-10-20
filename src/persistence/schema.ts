@@ -6,7 +6,12 @@ import {
   type CandidateId,
   type EmployeeId,
 } from '../domain/employees';
-import { TECH_SPECIALIZATIONS, type OfferId, type ProjectId } from '../domain/contracts';
+import {
+  MILLI_POINTS,
+  TECH_SPECIALIZATIONS,
+  type OfferId,
+  type ProjectId,
+} from '../domain/contracts';
 import { OPERATION_KINDS } from '../domain/finance';
 import { ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
@@ -74,6 +79,7 @@ const contractsSchema = z.strictObject({
       acceptedOnDay: z.int().min(1),
       deadlineDay: z.int().min(2),
       status: z.enum(['active', 'delivered']),
+      progress: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
     }),
   ),
   deliveredCount: z.int().min(0),
@@ -316,6 +322,13 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     }
     if (project.deadlineDay !== project.acceptedOnDay + project.deadlineDays) {
       issues.push({ path, message: 'Termin niezgodny z dniem przyjęcia (TIME-08)' });
+    }
+    // PROJ-09: postęp tylko w zakresach projektu i nie ponad zakres.
+    for (const [specialization, done] of Object.entries(project.progress)) {
+      const scope = project.scopes[specialization as keyof typeof project.scopes];
+      if (scope === undefined || done > scope * MILLI_POINTS) {
+        issues.push({ path, message: `Postęp ${specialization} poza zakresem projektu` });
+      }
     }
     if (advances.get(project.id) !== project.advance) {
       issues.push({ path, message: 'Brak zaliczki projektu w księdze (FIN-01)' });

@@ -30,10 +30,16 @@ export type Offer = ContractTerms & { id: OfferId };
 
 export type ProjectStatus = 'active' | 'delivered';
 
+// PROJ-09 (Z): postęp liczony wewnętrznie w punktach pracy; przechowywany w tysięcznych
+// częściach punktu (liczby całkowite — deterministycznie i bez błędów zaokrągleń).
+export const MILLI_POINTS = 1000;
+
 export type Project = ContractTerms & {
   id: ProjectId;
   acceptedOnDay: number;
   // TIME-08 (Z): kontrakt przyjęty w dniu D na N dni ma termin na koniec dnia D+N.
   deadlineDay: number;
   status: ProjectStatus;
+  // Wykonana praca każdej specjalizacji (tysięczne pp); nigdy nie maleje (PROJ-09).
+  progress: Partial<Record<TechSpecialization, number>>;
 };

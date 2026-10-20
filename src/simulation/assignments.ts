@@ -1,6 +1,7 @@
 import type { Project } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
+import { isTechSpecialization, remainingPoints } from './work';
 
 // EMP-07 (Z): interfejs sygnalizuje, dlaczego osoba nie pracuje. Pracownik nie zmienia
 // projektu samodzielnie — to wyłącznie decyzja gracza.
@@ -10,17 +11,23 @@ export type WorkStatus =
   | 'noDesk'
   // Projekt nie ma zakresu dla tej roli (np. Mobile przy projekcie bez aplikacji mobilnej).
   | 'noWorkForRole'
+  // EMP-07 (Z): własna część ukończona — osoba pozostaje przypisana, interfejs to sygnalizuje.
+  | 'scopeDone'
   | 'ready';
 
 export function workStatus(state: GameState, employee: Employee): WorkStatus {
   const project = employee.projectId ? state.contracts.projects[employee.projectId] : undefined;
   if (!project || project.status !== 'active') return 'noAssignment';
   if (!employee.deskId) return 'noDesk';
-  return hasRoleInProject(employee, project) ? 'ready' : 'noWorkForRole';
+  if (!hasRoleInProject(employee, project)) return 'noWorkForRole';
+  const { specialization } = employee;
+  if (isTechSpecialization(specialization) && remainingPoints(project, specialization) <= 0) {
+    return 'scopeDone';
+  }
+  return 'ready';
 }
 
-// Czy projekt w ogóle przewiduje pracę dla tej roli. Wyczerpanie zakresu w trakcie prac
-// („brak własnej pracy” po ukończeniu części) dochodzi z postępem prac (SH-021).
+// Czy projekt w ogóle przewiduje pracę dla tej roli.
 function hasRoleInProject(employee: Employee, project: Project): boolean {
   switch (employee.specialization) {
     case 'frontend':
