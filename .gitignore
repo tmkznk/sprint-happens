@@ -4,3 +4,8 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .vite/
+
+# Dokumentacja lokalna — nie trafia do repozytorium
+spec/
+docs/
+CLAUDE.md
