@@ -11,6 +11,8 @@ const FLOAT_TOLERANCE_MS = 1e-6;
 export type FixedStepDriver = {
   // Przyjmuje upływ czasu rzeczywistego i wykonuje tyle pełnych kroków, ile wynika z tempa.
   advance(realDeltaMs: number): number;
+  // Ułamek bieżącego kroku w [0, 1) — do interpolacji pozycji na scenie (T:TIME-T02).
+  alpha(): number;
   reset(): void;
 };
 
@@ -43,6 +45,9 @@ export function createFixedStepDriver(
         }
       }
       return steps;
+    },
+    alpha() {
+      return Math.min(Math.max(accumulatorMs / engine.config.simulation.stepMs, 0), 0.999);
     },
     reset() {
       accumulatorMs = 0;

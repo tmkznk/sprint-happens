@@ -1,10 +1,12 @@
 import * as Phaser from 'phaser';
+import type { FrameClock } from '../application/gameLoop';
 import type { Selection, SelectionStore } from '../application/selection';
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
+import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import { attachOfficeCamera } from './officeCamera';
@@ -45,7 +47,9 @@ const TEST_STEPS_PER_CELL = 4;
 export class OfficeScene extends Phaser.Scene {
   private readonly engine: Engine;
   private readonly selection: SelectionStore;
+  private readonly frameClock: FrameClock;
   private readonly options: OfficeSceneOptions;
+  private readonly agentSprites = new Map<string, AgentSprite>();
   private furnitureGraphics: Phaser.GameObjects.Graphics[] = [];
   private renderedFurniture: GameState['world']['furniture'] | null = null;
   private renderedSelection: Selection = null;
@@ -54,10 +58,16 @@ export class OfficeScene extends Phaser.Scene {
   private actorStep = 0;
   private actorAccumulatorMs = 0;
 
-  constructor(engine: Engine, selection: SelectionStore, options: OfficeSceneOptions) {
+  constructor(
+    engine: Engine,
+    selection: SelectionStore,
+    frameClock: FrameClock,
+    options: OfficeSceneOptions,
+  ) {
     super('office');
     this.engine = engine;
     this.selection = selection;
+    this.frameClock = frameClock;
     this.options = options;
   }
 
@@ -97,6 +107,7 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   override update(_time: number, deltaMs: number): void {
+    this.renderAgents();
     if (!this.actor) return;
     this.actorAccumulatorMs += deltaMs;
     while (this.actorAccumulatorMs >= TEST_STEP_MS) {
@@ -115,6 +126,32 @@ export class OfficeScene extends Phaser.Scene {
     const position = interpolate(cellCenter(from), cellCenter(to), progress);
     const screen = gridToScreen(position);
     this.actor.setPosition(screen.x, screen.y).setDepth(depthOfPoint(position));
+  }
+
+  // Postacie z silnika (SH-011, SH-012): scena tylko przedstawia pozycje logiczne
+  // i interpoluje je wizualnie — nie przesuwa ich i nie zwalnia rezerwacji (T:TIME-T02).
+  private renderAgents(): void {
+    const { agents } = this.engine.getState().world.movement;
+    const present = new Set<string>();
+    agents.forEach((agent, index) => {
+      present.add(agent.id);
+      let sprite = this.agentSprites.get(agent.id);
+      if (!sprite) {
+        sprite = createAgentSprite(this, index);
+        this.agentSprites.set(agent.id, sprite);
+      }
+      placeAgentSprite(
+        sprite,
+        agent,
+        this.frameClock.alpha,
+        this.engine.config.movement.stepsPerCell,
+      );
+    });
+    for (const [id, sprite] of this.agentSprites) {
+      if (present.has(id)) continue;
+      sprite.destroy();
+      this.agentSprites.delete(id);
+    }
   }
 
   private drawFloor(): void {

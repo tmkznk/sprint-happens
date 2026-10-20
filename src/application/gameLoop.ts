@@ -24,9 +24,16 @@ export const browserEnvironment: LoopEnvironment = {
   },
 };
 
+// T:VIEW-02 — scena czyta ułamek bieżącego kroku, aby interpolować pozycje postaci.
+export type FrameClock = { alpha: number };
+
 // Pętla aplikacji (T:TIME-T05): jedno źródło czasu dla silnika. Zwraca funkcję zatrzymania,
 // która usuwa pętlę i listenery (T:VIEW-05).
-export function startGameLoop(engine: Engine, environment = browserEnvironment): () => void {
+export function startGameLoop(
+  engine: Engine,
+  environment = browserEnvironment,
+  frameClock?: FrameClock,
+): () => void {
   const driver = createFixedStepDriver(engine);
   let lastFrameMs: number | null = null;
   let handle = 0;
@@ -34,6 +41,7 @@ export function startGameLoop(engine: Engine, environment = browserEnvironment):
   const onFrame = (nowMs: number) => {
     if (lastFrameMs !== null) driver.advance(nowMs - lastFrameMs);
     lastFrameMs = nowMs;
+    if (frameClock) frameClock.alpha = driver.alpha();
     handle = environment.requestFrame(onFrame);
   };
 

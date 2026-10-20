@@ -1,15 +1,19 @@
 import type { BalanceConfig } from '../domain/config';
 import type { GameState } from '../domain/state';
+import { stepMovement } from '../world/movement/movement';
+import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
 
-// Jeden stały krok symulacji. Kolejność systemów (T:TIME-T06, R): ruch i rezerwacje →
-// czynności i potrzeby → praca/testy/poprawki → odejścia/zdarzenia → granica dnia.
-// Systemy dochodzą w kolejnych zadaniach; obecnie krok przesuwa wyłącznie zegar dnia.
-export function advanceStep(state: GameState, config: BalanceConfig): GameState {
-  const { mission } = state;
+// Jeden stały krok symulacji. Kolejność systemów (decyzja SH-004 B4): ruch i rezerwacje →
+// czynności i potrzeby → praca/testy/naprawy → odejścia/zdarzenia → granica dnia.
+// Kolejne systemy dochodzą w swoich zadaniach.
+export function advanceStep(current: GameState, config: BalanceConfig): GameState {
+  const { mission } = current;
   if (mission.status !== 'active' || mission.phase !== 'working' || mission.speed === 0) {
-    return state;
+    return current;
   }
+
+  const state = moveCharacters(current, config);
 
   const timeInDayMs = mission.timeInDayMs + config.simulation.stepMs;
 
@@ -21,4 +25,12 @@ export function advanceStep(state: GameState, config: BalanceConfig): GameState 
     };
   }
   return { ...state, mission: { ...mission, timeInDayMs } };
+}
+
+// T:MOVE-01–09 — ruch postaci po mapie biura (SH-011, SH-012).
+function moveCharacters(state: GameState, config: BalanceConfig): GameState {
+  const { movement } = state.world;
+  if (movement.agents.length === 0) return state;
+  const next = stepMovement(movement, movementEnvFor(state, config));
+  return { ...state, world: { ...state.world, movement: next } };
 }

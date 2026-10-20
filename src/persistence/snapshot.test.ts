@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import type { FurnitureId } from '../domain/furniture';
+import { createAgent, createMovementState } from '../domain/movement';
 import { createInitialState, type GameState } from '../domain/state';
 import { createEngine } from '../simulation/engine';
 import { DAY_LENGTH_MS } from '../simulation/time';
@@ -89,6 +90,36 @@ describe('round-trip migawki (SH-037)', () => {
       restored.step();
     }
     expect(restored.getState()).toEqual(original.getState());
+  });
+
+  it('postacie w trakcie przejścia i w kolejce przetrwają zapis; ruch toczy się dalej identycznie', () => {
+    const initial = createInitialState(DEFAULT_BALANCE, 5);
+    const coffee = { kind: 'use', destinationIds: ['furniture-4#0'], steps: 20 } as const;
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: {
+        ...initial,
+        mission: { ...initial.mission, speed: 1 },
+        world: {
+          ...initial.world,
+          movement: createMovementState([
+            createAgent('employee-1', { x: 13, y: 12 }, [coffee]),
+            createAgent('employee-2', { x: 12, y: 12 }, [coffee]),
+          ]),
+        },
+      },
+    });
+    for (let i = 0; i < 25; i++) engine.step();
+    const mid = engine.getState();
+    expect(mid.world.movement.agents.some((a) => a.move !== null)).toBe(true);
+    expect(Object.keys(mid.world.movement.reservations)).toHaveLength(1);
+
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(mid) });
+    for (let i = 0; i < 150; i++) {
+      engine.step();
+      restored.step();
+    }
+    expect(restored.getState()).toEqual(engine.getState());
   });
 
   it('koperta zawiera wersję formatu i metadane zapisu', () => {
@@ -212,6 +243,39 @@ describe('odrzucanie zapisu', () => {
   });
 });
 
+describe('odrzucanie niespójnego ruchu', () => {
+  const withAgents = (agents: object[], reservations: Record<string, string> = {}) =>
+    withJsonEdit((s) => {
+      s.world.movement = { step: 10, agents, reservations };
+    });
+  const base = createAgent('employee-1', { x: 5, y: 6 });
+
+  it('dwie postacie na jednym polu (MOVE-04)', () => {
+    expectInvalidState(withAgents([base, { ...base, id: 'employee-2' }]), 'zajęte także przez');
+  });
+
+  it('postać na ścianie lub meblu', () => {
+    expectInvalidState(withAgents([{ ...base, cell: { x: 3, y: 2 } }]), 'na przeszkodzie');
+  });
+
+  it('przejście dalej niż na sąsiednie pole', () => {
+    expectInvalidState(
+      withAgents([{ ...base, move: { to: { x: 7, y: 6 }, elapsed: 0 } }]),
+      'sąsiednie pole',
+    );
+  });
+
+  it('rezerwacja nieistniejącej postaci lub miejsca', () => {
+    expectInvalidState(withAgents([base], { 'furniture-4#0': 'employee-9' }), 'nie ma');
+    expectInvalidState(
+      withAgents([{ ...base, reservedDestination: 'furniture-9#0' }], {
+        'furniture-9#0': 'employee-1',
+      }),
+      'nieistniejącego miejsca',
+    );
+  });
+});
+
 describe('serializeSnapshot', () => {
   it('nie zapisuje stanu z funkcją ani obiektem spoza danych', () => {
     const initial = createInitialState(DEFAULT_BALANCE, 1);
@@ -233,6 +297,7 @@ describe('serializeSnapshot', () => {
     const broken: GameState = {
       ...initial,
       world: {
+        ...initial.world,
         furniture: { ...initial.world.furniture, [second.id]: { ...second, origin: first.origin } },
       },
     };

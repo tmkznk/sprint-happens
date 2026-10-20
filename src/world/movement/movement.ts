@@ -1,68 +1,24 @@
+import {
+  createAgent,
+  createMovementState,
+  DEFAULT_MOVEMENT_CONFIG,
+  type Agent,
+  type AgentStatus,
+  type Destination,
+  type MovementConfig,
+  type MovementState,
+  type ReadonlyAgent,
+  type ReadonlyMovementState,
+  type Task,
+} from '../../domain/movement';
 import { cellKey, sameCell, type Cell, type MovementGrid } from './grid';
 import { findPath } from './pathfinding';
 
-// Prototyp ruchu bez przenikania (SH-003). Wszystko jest danymi i czystymi funkcjami:
-// stan da się zapisać, a ten sam stan i środowisko dają zawsze ten sam wynik.
+export { createAgent, createMovementState, DEFAULT_MOVEMENT_CONFIG };
+export type { Agent, AgentStatus, Destination, MovementConfig, MovementState, Task };
 
-export type MovementConfig = {
-  // Liczba kroków symulacji na przejście jednego pola (R).
-  stepsPerCell: number;
-  // Po tylu krokach czekania na stojącą postać szukamy trasy naokoło (R).
-  replanAfterSteps: number;
-  // Maksymalny czas trzymania pozycji po ustąpieniu, zanim postać wróci do celu (R).
-  yieldTimeoutSteps: number;
-};
-
-export const DEFAULT_MOVEMENT_CONFIG: MovementConfig = {
-  stepsPerCell: 4,
-  replanAfterSteps: 3,
-  yieldTimeoutSteps: 40,
-};
-
-// MOVE-02/MOVE-03 (Z): miejsce korzystania (np. ekspres, siedzisko kanapy) obsługuje jedną osobę.
-export type Destination = { id: string; cell: Cell };
-
-export type Task =
-  | { kind: 'goTo'; cell: Cell }
-  // Korzystanie z jednego z wolnych miejsc (np. dowolne siedzisko kanapy) przez `steps` kroków.
-  | { kind: 'use'; destinationIds: readonly string[]; steps: number };
-
-export type AgentStatus =
-  | 'idle'
-  | 'walking'
-  | 'waiting'
-  | 'yielding'
-  | 'queued'
-  | 'using'
-  | 'arrived'
-  // MOVE-08: jawnie rozpoznany brak drogi — UI musi to wyjaśnić graczowi.
-  | 'noRoute'
-  | 'deadlocked';
-
-export type Agent = {
-  id: string;
-  // Pole logiczne. W trakcie przejścia postać trzyma także pole docelowe `move.to`
-  // (T:MOVE-09) — dlatego dwie postacie nie mogą zająć jednego pola ani minąć się „przez siebie”.
-  cell: Cell;
-  move: { to: Cell; elapsed: number } | null;
-  tasks: Task[];
-  reservedDestination: string | null;
-  queuedSince: number | null;
-  usedSteps: number;
-  path: Cell[];
-  status: AgentStatus;
-  // T:MOVE-05 — dłuższe oczekiwanie zwiększa pierwszeństwo.
-  waitedSteps: number;
-  yieldingTo: string | null;
-  yieldHeldSteps: number;
-};
-
-export type MovementState = {
-  step: number;
-  agents: Agent[];
-  // ID miejsca → ID postaci, która je zarezerwowała (MOVE-03: rezerwacja przed wyruszeniem).
-  reservations: Record<string, string>;
-};
+// Ruch bez przenikania (SH-003, SH-011, SH-012). Czyste funkcje: ten sam stan i środowisko
+// dają zawsze ten sam wynik.
 
 export type MovementEnv = {
   grid: MovementGrid;
@@ -79,33 +35,29 @@ const PUSHABLE: ReadonlySet<AgentStatus> = new Set([
   'deadlocked',
 ]);
 
-export function createAgent(id: string, cell: Cell, tasks: Task[] = []): Agent {
+// SH-012: odejście postaci zwalnia jej pola, rezerwacje i ustąpienia na jej rzecz.
+export function removeAgent(state: ReadonlyMovementState, id: string): MovementState {
   return {
-    id,
-    cell,
-    move: null,
-    tasks,
-    reservedDestination: null,
-    queuedSince: null,
-    usedSteps: 0,
-    path: [],
-    status: 'idle',
-    waitedSteps: 0,
-    yieldingTo: null,
-    yieldHeldSteps: 0,
+    step: state.step,
+    agents: state.agents
+      .filter((agent) => agent.id !== id)
+      .map((agent) => {
+        const clone = cloneAgent(agent);
+        if (clone.yieldingTo === id) clone.yieldingTo = null;
+        return clone;
+      }),
+    reservations: Object.fromEntries(
+      Object.entries(state.reservations).filter(([, holder]) => holder !== id),
+    ),
   };
 }
 
-export function createMovementState(agents: Agent[]): MovementState {
-  return { step: 0, agents: [...agents].sort(byId), reservations: {} };
-}
-
 // Pola zajęte przez postacie: pole logiczne oraz pole, do którego trwa przejście.
-export function occupiedCellKeys(agent: Agent): string[] {
+export function occupiedCellKeys(agent: ReadonlyAgent): string[] {
   return agent.move ? [cellKey(agent.cell), cellKey(agent.move.to)] : [cellKey(agent.cell)];
 }
 
-export function currentGoal(agent: Agent, env: MovementEnv): Cell | null {
+export function currentGoal(agent: ReadonlyAgent, env: MovementEnv): Cell | null {
   const task = agent.tasks[0];
   if (!task) return null;
   if (task.kind === 'goTo') return task.cell;
@@ -113,7 +65,7 @@ export function currentGoal(agent: Agent, env: MovementEnv): Cell | null {
   return destination?.cell ?? null;
 }
 
-export function stepMovement(state: MovementState, env: MovementEnv): MovementState {
+export function stepMovement(state: ReadonlyMovementState, env: MovementEnv): MovementState {
   const step = state.step + 1;
   const agents = state.agents.map(cloneAgent);
   let reservations = { ...state.reservations };
@@ -128,6 +80,22 @@ export function stepMovement(state: MovementState, env: MovementEnv): MovementSt
       agent.cell = agent.move.to;
       agent.move = null;
     }
+  }
+
+  // SH-012: miejsce, które zniknęło (np. sprzedany lub przeniesiony mebel), zwalnia rezerwację;
+  // postać wraca do kolejki po inne miejsce.
+  const destinationIds = new Set(env.destinations.map((destination) => destination.id));
+  reservations = Object.fromEntries(
+    Object.entries(reservations).filter(([id]) => destinationIds.has(id)),
+  );
+  for (const agent of agents) {
+    if (agent.reservedDestination === null || destinationIds.has(agent.reservedDestination))
+      continue;
+    agent.reservedDestination = null;
+    agent.queuedSince = null;
+    agent.usedSteps = 0;
+    agent.path = [];
+    if (agent.status !== 'yielding') agent.status = 'queued';
   }
 
   // 2. Zadania postaci stojących: kolejka, korzystanie, dotarcie.
@@ -397,7 +365,7 @@ function byPriority(a: Agent, b: Agent): number {
   return b.waitedSteps - a.waitedSteps || byId(a, b);
 }
 
-function cloneAgent(agent: Agent): Agent {
+function cloneAgent(agent: ReadonlyAgent): Agent {
   return {
     ...agent,
     cell: { ...agent.cell },

@@ -1,23 +1,18 @@
 import * as Phaser from 'phaser';
 import { cellKey } from '../world/movement/grid';
-import {
-  stepMovement,
-  type Agent,
-  type AgentStatus,
-  type MovementState,
-} from '../world/movement/movement';
+import { stepMovement, type MovementState } from '../world/movement/movement';
 import type { Scenario } from '../world/movement/scenarios';
 import type { Bounds } from './cameraMath';
+import {
+  createAgentSprite,
+  displayPosition,
+  placeAgentSprite,
+  type AgentSprite,
+} from './agentSprites';
 import { drawPrism, fillPolygon, rectCorners } from './draw';
 import { attachOfficeCamera } from './officeCamera';
 import { ACTOR_HEIGHT, MARKER_COLOR, WALL_COLOR } from './placeholderStyle';
-import {
-  cellCenter,
-  depthOfFootprint,
-  depthOfPoint,
-  gridToScreen,
-  interpolate,
-} from './projection';
+import { depthOfFootprint, depthOfPoint, gridToScreen } from './projection';
 
 // Pokaz scenariuszy ruchu z SH-003 (`?scene=movement&scenario=<nazwa>`). Ma własny zegar
 // stałokrokowy — to narzędzie prototypu, nie stan gry.
@@ -25,24 +20,13 @@ const STEP_MS = 100;
 const RESTART_AFTER_STEPS = 20;
 const WALL_HEIGHT = 20;
 const FLOOR_COLOR = 0x8a7a5c;
-const AGENT_COLORS = [0xf2c14e, 0x4ec9f2, 0xf24e9a, 0x9af24e];
-const STATUS_COLORS: Partial<Record<AgentStatus, number>> = {
-  yielding: 0xff8c1a,
-  waiting: 0x9a9a9a,
-  queued: 0x4e7cf2,
-  using: 0x3ddc84,
-  deadlocked: 0xff3b3b,
-  noRoute: 0xff3b3b,
-};
-
-type AgentView = { body: Phaser.GameObjects.Graphics; ring: Phaser.GameObjects.Graphics };
 
 export class MovementDemoScene extends Phaser.Scene {
   private readonly scenario: Scenario;
   private state: MovementState;
   private accumulatorMs = 0;
   private stepsSinceFinish = 0;
-  private readonly views = new Map<string, AgentView>();
+  private readonly views = new Map<string, AgentSprite>();
 
   constructor(scenario: Scenario) {
     super('movement-demo');
@@ -53,16 +37,11 @@ export class MovementDemoScene extends Phaser.Scene {
   create(): void {
     this.drawMap();
     this.scenario.initial.agents.forEach((agent, index) => {
-      const ring = this.add.graphics();
-      const body = this.add.graphics();
-      const color = AGENT_COLORS[index % AGENT_COLORS.length] ?? 0xffffff;
-      body.fillStyle(color, 1).fillRect(-8, -ACTOR_HEIGHT + 8, 16, ACTOR_HEIGHT - 12);
-      body.fillStyle(0xf5d6b4, 1).fillCircle(0, -ACTOR_HEIGHT + 7, 7);
       this.add
         .text(0, 0, agent.id, { fontSize: '14px', color: '#000000', fontStyle: 'bold' })
         .setOrigin(0.5)
         .setName(`label-${agent.id}`);
-      this.views.set(agent.id, { body, ring });
+      this.views.set(agent.id, createAgentSprite(this, index));
     });
 
     const { width, height } = this.scenario.env.grid.size;
@@ -107,17 +86,10 @@ export class MovementDemoScene extends Phaser.Scene {
     for (const agent of this.state.agents) {
       const view = this.views.get(agent.id);
       if (!view) continue;
+      placeAgentSprite(view, agent, alpha, this.scenario.env.config.stepsPerCell);
       const position = displayPosition(agent, alpha, this.scenario.env.config.stepsPerCell);
       const screen = gridToScreen(position);
       const depth = depthOfPoint(position);
-      view.body.setPosition(screen.x, screen.y).setDepth(depth);
-      view.ring.clear();
-      const statusColor = STATUS_COLORS[agent.status];
-      view.ring.fillStyle(statusColor ?? 0x000000, statusColor ? 0.9 : 0.3);
-      view.ring
-        .fillEllipse(0, 0, 30, 13)
-        .setPosition(screen.x, screen.y)
-        .setDepth(depth - 0.005);
       const label = this.children.getByName(`label-${agent.id}`) as Phaser.GameObjects.Text | null;
       label?.setPosition(screen.x, screen.y - ACTOR_HEIGHT / 2).setDepth(depth + 0.001);
     }
@@ -144,11 +116,4 @@ export class MovementDemoScene extends Phaser.Scene {
       }
     }
   }
-}
-
-// T:TIME-T02 — pozycja wyświetlana leży między polem źródłowym a docelowym przejścia.
-function displayPosition(agent: Agent, alpha: number, stepsPerCell: number) {
-  const from = cellCenter(agent.cell);
-  if (!agent.move) return from;
-  return interpolate(from, cellCenter(agent.move.to), (agent.move.elapsed + alpha) / stepsPerCell);
 }

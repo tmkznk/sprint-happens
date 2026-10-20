@@ -2,6 +2,7 @@ import type { BalanceConfig } from './config';
 import type { Furniture, FurnitureId } from './furniture';
 import { allocateId, type IdSequence } from './ids';
 import { STARTING_FURNITURE } from './missionStart';
+import { createMovementState, type MovementState } from './movement';
 import { seedRng, type RngState } from './random';
 import type { DeepReadonly } from './readonly';
 
@@ -37,6 +38,8 @@ export type GameState = DeepReadonly<{
   };
   world: {
     furniture: Record<FurnitureId, Furniture>;
+    // T:MOVE-03–09: pozycje, przejścia, trasy, kolejki i rezerwacje postaci (SAVE-T02).
+    movement: MovementState;
   };
   ids: IdSequence;
   rng: RngState;
@@ -63,7 +66,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       report: null,
     },
     finance: { cash: config.mission.startingCash },
-    world: { furniture },
+    world: { furniture, movement: createMovementState([]) },
     ids,
     rng: seedRng(seed),
   };

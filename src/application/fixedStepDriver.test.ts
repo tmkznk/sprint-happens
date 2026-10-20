@@ -68,4 +68,14 @@ describe('createFixedStepDriver', () => {
     expect(engine.getState().mission.phase).toBe('workEnded');
     expect(driver.advance(250)).toBe(0);
   });
+
+  it('udostępnia ułamek bieżącego kroku do interpolacji (T:TIME-T02)', () => {
+    const engine = testEngine({ speed: 1 });
+    const driver = createFixedStepDriver(engine);
+
+    driver.advance(150);
+    expect(driver.alpha()).toBeCloseTo(0.5);
+    driver.reset();
+    expect(driver.alpha()).toBe(0);
+  });
 });

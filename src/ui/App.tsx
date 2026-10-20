@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { EngineContext } from '../application/engineHooks';
-import { browserEnvironment, startGameLoop } from '../application/gameLoop';
+import { browserEnvironment, startGameLoop, type FrameClock } from '../application/gameLoop';
 import { attachAutosave, type SaveManager } from '../application/saveManager';
 import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
@@ -29,9 +29,10 @@ export function App({
   onNewGame(): void;
 }) {
   const [selection] = useState(createSelectionStore);
+  const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const sceneRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => startGameLoop(engine), [engine]);
+  useEffect(() => startGameLoop(engine, browserEnvironment, frameClock), [engine, frameClock]);
 
   useEffect(
     () => attachAutosave(saveManager, engine, { onBackground: browserEnvironment.onBackground }),
@@ -40,9 +41,11 @@ export function App({
 
   useEffect(() => {
     if (!sceneRef.current) return;
-    const game = createOfficeGame(sceneRef.current, engine, selection, { occlusionTest });
+    const game = createOfficeGame(sceneRef.current, engine, selection, frameClock, {
+      occlusionTest,
+    });
     return () => game.destroy(true);
-  }, [engine, selection]);
+  }, [engine, selection, frameClock]);
 
   return (
     <EngineContext value={engine}>
