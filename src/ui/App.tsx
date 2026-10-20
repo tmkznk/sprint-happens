@@ -16,6 +16,7 @@ import { NewGameButton } from './NewGameButton';
 import { RecruitmentButton } from './RecruitmentButton';
 import { SaveIndicator } from './SaveIndicator';
 import { SelectionPanel } from './SelectionPanel';
+import { ShopButton } from './ShopButton';
 import { SpeedControls } from './SpeedControls';
 
 // Scena testowa okluzji dla SH-002: ?scene=occlusion
@@ -71,6 +72,7 @@ export function App({
               <DayControls />
               <div className="panel-actions">
                 <RecruitmentButton />
+                <ShopButton />
                 <NewGameButton onConfirm={onNewGame} />
               </div>
             </div>

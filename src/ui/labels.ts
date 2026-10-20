@@ -1,4 +1,5 @@
 import type { Seniority, Specialization } from '../domain/employees';
+import type { FurnitureType } from '../domain/furniture';
 import type { AgentStatus } from '../domain/movement';
 
 export const SPECIALIZATION_LABELS: Record<Specialization, string> = {
@@ -28,6 +29,12 @@ export const AGENT_STATUS_LABELS: Record<AgentStatus, string> = {
   arrived: 'Na miejscu',
   noRoute: 'Nie może dojść — brak drogi do celu',
   deadlocked: 'Zablokowany — nie ma jak przejść obok innych',
+};
+
+export const FURNITURE_NAMES: Record<FurnitureType, string> = {
+  desk: 'Stanowisko pracy',
+  sofa: 'Kanapa',
+  coffeeMachine: 'Ekspres do kawy',
 };
 
 export const money = new Intl.NumberFormat('pl-PL');

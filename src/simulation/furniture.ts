@@ -28,18 +28,27 @@ export function validatePlacement(
 ): PlacementRejection | null {
   const item = state.world.furniture[furnitureId];
   if (!item) return 'collision';
-  if (!(ROTATIONS as readonly number[]).includes(rotation)) return 'invalidRotation';
-  const candidate: Furniture = { ...item, origin, rotation };
+  return validateCandidate(state, { ...item, origin, rotation });
+}
+
+// Walidacja mebla w docelowym położeniu — istniejącego (przeniesienie) albo nowego (zakup).
+// Mebel o tym samym ID co kandydat jest pomijany jako „inne wyposażenie”.
+export function validateCandidate(
+  state: GameState,
+  candidate: Furniture,
+): PlacementRejection | null {
+  if (!(ROTATIONS as readonly number[]).includes(candidate.rotation)) return 'invalidRotation';
   const cells = occupiedCells(candidate);
   if (cells.some((cell) => cellKindAt(OFFICE_LAYOUT, cell) !== 'floor')) return 'outOfFloor';
 
-  const others = Object.values(state.world.furniture).filter((other) => other.id !== furnitureId);
+  const others = Object.values(state.world.furniture).filter((other) => other.id !== candidate.id);
   const taken = new Set(others.flatMap(occupiedCells).map(cellKey));
   if (cells.some((cell) => taken.has(cellKey(cell)))) return 'collision';
   // Dwa meble z tym samym punktem korzystania — jedna osoba odcięłaby drugą.
   const otherPoints = new Set(others.flatMap(interactionCells).map(cellKey));
-  if (interactionCells(candidate).some((cell) => otherPoints.has(cellKey(cell))))
+  if (interactionCells(candidate).some((cell) => otherPoints.has(cellKey(cell)))) {
     return 'collision';
+  }
 
   const people = new Set(state.world.movement.agents.flatMap(occupiedCellKeys));
   if (cells.some((cell) => people.has(cellKey(cell)))) return 'occupiedByPerson';

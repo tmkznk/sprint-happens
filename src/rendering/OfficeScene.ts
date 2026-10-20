@@ -1,5 +1,10 @@
 import * as Phaser from 'phaser';
-import type { FurnitureEdit, FurnitureEditStore } from '../application/furnitureEdit';
+import {
+  editCandidate,
+  editProblem,
+  type FurnitureEdit,
+  type FurnitureEditStore,
+} from '../application/furnitureEdit';
 import type { FrameClock } from '../application/gameLoop';
 import type { Selection, SelectionStore } from '../application/selection';
 import type { EmployeeId } from '../domain/employees';
@@ -10,7 +15,6 @@ import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
 import { rotatedSize } from '../world/geometry';
 import { FURNITURE_CATALOG } from '../domain/furniture';
-import { validatePlacement } from '../simulation/furniture';
 import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
@@ -119,9 +123,9 @@ export class OfficeScene extends Phaser.Scene {
     // UX-04: w trybie „Urządź” dotknięcie przestawia podgląd mebla zamiast wybierać obiekty.
     const edit = this.edit.get();
     if (edit) {
-      const item = this.engine.getState().world.furniture[edit.furnitureId];
-      if (!item) return;
-      const size = rotatedSize(FURNITURE_CATALOG[item.type].footprint, edit.rotation);
+      const candidate = editCandidate(this.engine.getState(), edit);
+      if (!candidate) return;
+      const size = rotatedSize(FURNITURE_CATALOG[candidate.type].footprint, edit.rotation);
       const cell = cellAtScreen(world);
       this.edit.set({
         ...edit,
@@ -255,7 +259,7 @@ export class OfficeScene extends Phaser.Scene {
       const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
       drawPrism(graphics, rect, style.height, style.color);
       // Edytowany mebel zostaje w starym miejscu jako cień — anulowanie przywraca ten stan.
-      if (edit?.furnitureId === furniture.id) graphics.setAlpha(0.3);
+      if (edit?.mode === 'move' && edit.furnitureId === furniture.id) graphics.setAlpha(0.3);
       if (!edit && selection?.kind === 'furniture' && selection.id === furniture.id) {
         graphics.lineStyle(3, SELECTION_COLOR, 1);
         graphics.strokePoints(toVectors(prismSilhouette(rect, style.height)), true);
@@ -277,12 +281,11 @@ export class OfficeScene extends Phaser.Scene {
   // Podgląd ustawienia: zielony — dozwolone, czerwony — odrzucone (powód pokazuje panel).
   private drawEditPreview(edit: FurnitureEdit): void {
     const state = this.engine.getState();
-    const item = state.world.furniture[edit.furnitureId];
-    if (!item) return;
-    const candidate = { ...item, origin: edit.origin, rotation: edit.rotation };
-    const valid = validatePlacement(state, item.id, edit.origin, edit.rotation) === null;
+    const candidate = editCandidate(state, edit);
+    if (!candidate) return;
+    const valid = editProblem(state, this.engine.config, edit) === null;
     const rect = furnitureRect(candidate);
-    const style = FURNITURE_STYLE[item.type];
+    const style = FURNITURE_STYLE[candidate.type];
     const ghost = this.add
       .graphics()
       .setDepth(depthOfFootprint(rect, rect) + 0.02)

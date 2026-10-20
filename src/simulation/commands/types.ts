@@ -1,6 +1,6 @@
 import type { BalanceConfig } from '../../domain/config';
 import type { CandidateId, EmployeeId } from '../../domain/employees';
-import type { FurnitureId, Rotation } from '../../domain/furniture';
+import type { FurnitureId, FurnitureType, Rotation } from '../../domain/furniture';
 import type { GridPoint } from '../../domain/grid';
 import type { GameState, Speed } from '../../domain/state';
 import type { FinanceRejection } from '../finance';
@@ -23,6 +23,12 @@ export type MoveFurnitureCommand = {
   rotation: Rotation;
 };
 export type SellFurnitureCommand = { type: 'SellFurniture'; furnitureId: FurnitureId };
+export type BuyFurnitureCommand = {
+  type: 'BuyFurniture';
+  furnitureType: FurnitureType;
+  origin: GridPoint;
+  rotation: Rotation;
+};
 
 export type Command =
   | SetSpeedCommand
@@ -31,7 +37,8 @@ export type Command =
   | HireCandidateCommand
   | AssignDeskCommand
   | MoveFurnitureCommand
-  | SellFurnitureCommand;
+  | SellFurnitureCommand
+  | BuyFurnitureCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.

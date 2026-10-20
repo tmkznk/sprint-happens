@@ -1,20 +1,21 @@
 import { useState } from 'react';
-import { useDispatch, useGameSelector } from '../application/engineHooks';
+import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
+import { editCommand, editProblem } from '../application/furnitureEdit';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { ROTATIONS, type Rotation } from '../domain/furniture';
-import { validatePlacement } from '../simulation/furniture';
+import { FURNITURE_NAMES, money } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 // UX-04 (Z): tryb „Urządź” — obrót, zatwierdzenie i anulowanie. Anulowanie przywraca poprzednie
-// ustawienie (stan gry zmienia dopiero zatwierdzenie). Zablokowane ustawienie nie da się zatwierdzić.
+// ustawienie (stan gry zmienia dopiero zatwierdzenie). Zablokowanego ustawienia lub zakupu bez
+// środków nie da się zatwierdzić; cena jest pobierana dopiero przy zatwierdzeniu (SH-013).
 export function FurnitureEditBar() {
   const edit = useFurnitureEdit();
   const store = useFurnitureEditStore();
+  const config = useBalanceConfig();
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
-  const problem = useGameSelector((state) =>
-    edit ? validatePlacement(state, edit.furnitureId, edit.origin, edit.rotation) : null,
-  );
+  const problem = useGameSelector((state) => (edit ? editProblem(state, config, edit) : null));
   if (!edit) return null;
 
   const rotate = () => {
@@ -23,13 +24,19 @@ export function FurnitureEditBar() {
     store.set({ ...edit, rotation });
   };
   const confirm = () => {
-    const result = dispatch({ type: 'MoveFurniture', ...edit });
+    const result = dispatch(editCommand(edit));
     if (result.ok) store.set(null);
     else setMessage(REJECTION_MESSAGES[result.rejection.code]);
   };
 
   return (
     <section className="selection-panel edit-bar" aria-label="Urządzanie">
+      {edit.mode === 'buy' && (
+        <h2>
+          Zakup: {FURNITURE_NAMES[edit.furnitureType]} —{' '}
+          {money.format(config.furniture.prices[edit.furnitureType])}
+        </h2>
+      )}
       <p>Dotknij podłogi, aby ustawić mebel. Gra jest wstrzymana.</p>
       {problem ? (
         <p className="warning" role="status">
@@ -51,7 +58,7 @@ export function FurnitureEditBar() {
           disabled={problem !== null}
           onClick={confirm}
         >
-          Zatwierdź
+          {edit.mode === 'buy' ? 'Kup' : 'Zatwierdź'}
         </button>
       </div>
     </section>

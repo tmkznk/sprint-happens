@@ -248,3 +248,112 @@ describe('SellFurniture (OFF-06, OFF-07, FIN-06)', () => {
     });
   });
 });
+
+describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
+  const PRICES = DEFAULT_BALANCE.furniture.prices;
+
+  it.each([
+    ['biurko', 'desk', { x: 2, y: 7 }, 0, [{ x: 3, y: 9 }]],
+    [
+      'kanapę obróconą o 90°',
+      'sofa',
+      { x: 2, y: 7 },
+      90,
+      [
+        { x: 1, y: 7 },
+        { x: 1, y: 9 },
+      ],
+    ],
+    ['ekspres obrócony o 180°', 'coffeeMachine', { x: 6, y: 8 }, 180, [{ x: 6, y: 7 }]],
+  ] as const)(
+    'kupuje %s: cena pobrana raz, obrót zmienia punkty korzystania',
+    (_, type, origin, rotation, points) => {
+      const engine = engineFor();
+      const cash = engine.getState().finance.cash;
+
+      expect(
+        engine.dispatch({ type: 'BuyFurniture', furnitureType: type, origin, rotation }),
+      ).toEqual({ ok: true });
+      const state = engine.getState();
+      const bought = state.world.furniture['furniture-5' as FurnitureId];
+      expect(bought).toMatchObject({ type, origin, rotation });
+      expect(bought && interactionCells(bought)).toEqual(points);
+      expect(state.finance.cash).toBe(cash - PRICES[type]);
+      expect(state.finance.ledger.filter((entry) => entry.kind === 'purchase')).toEqual([
+        {
+          key: 'purchase:furniture-5',
+          day: 1,
+          kind: 'purchase',
+          amount: -PRICES[type],
+          ref: 'furniture-5',
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    ['na kolizji z biurkiem', { x: 3, y: 2 }, 'collision'],
+    ['zastawiając drzwi do pokoju socjalnego', { x: 8, y: 9 }, 'blocksAccess'],
+    ['na ścianie', { x: 0, y: 0 }, 'outOfFloor'],
+  ] as const)('odrzuca zakup %s bez pobrania ceny', (_, origin, code) => {
+    const engine = engineFor();
+    const before = engine.getState();
+
+    expect(
+      engine.dispatch({ type: 'BuyFurniture', furnitureType: 'desk', origin, rotation: 0 }),
+    ).toEqual({ ok: false, rejection: { code } });
+    expect(engine.getState()).toBe(before);
+  });
+
+  it.each([
+    ['bez pełnej kwoty', 100, 'insufficientFunds'],
+    ['przy długu', -1, 'inDebt'],
+  ] as const)('odrzuca zakup %s (FIN-06, FIN-08)', (_, cash, code) => {
+    const funded = recordOperation(testState(), {
+      key: 'event:setup',
+      kind: 'event',
+      amount: cash - testState().finance.cash,
+    });
+    if (!funded.ok) throw new Error('setup');
+    const engine = engineFor(deepFreeze(funded.state));
+
+    expect(
+      engine.dispatch({
+        type: 'BuyFurniture',
+        furnitureType: 'desk',
+        origin: { x: 2, y: 7 },
+        rotation: 0,
+      }),
+    ).toEqual({ ok: false, rejection: { code } });
+  });
+
+  it('wymaga pauzy', () => {
+    const engine = engineFor(testState({ speed: 1 }));
+
+    expect(
+      engine.dispatch({
+        type: 'BuyFurniture',
+        furnitureType: 'desk',
+        origin: { x: 2, y: 7 },
+        rotation: 0,
+      }),
+    ).toEqual({ ok: false, rejection: { code: 'notPaused' } });
+  });
+
+  it('nowe biurko trafia do pierwszej osoby bez stanowiska (OFF-04)', () => {
+    const engine = engineFor();
+    hire(engine, 3);
+    expect(engine.getState().staff.employees['employee-3' as EmployeeId]?.deskId).toBeNull();
+
+    engine.dispatch({
+      type: 'BuyFurniture',
+      furnitureType: 'desk',
+      origin: { x: 2, y: 7 },
+      rotation: 0,
+    });
+
+    const state = engine.getState();
+    expect(state.staff.employees['employee-3' as EmployeeId]?.deskId).toBe('furniture-5');
+    expect(goalOf(state, 'employee-3')).toEqual(deskPoint(state, 'furniture-5' as FurnitureId));
+  });
+});

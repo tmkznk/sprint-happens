@@ -9,14 +9,14 @@ import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FurnitureEditBar } from './FurnitureEditBar';
-import { AGENT_STATUS_LABELS, money, SENIORITY_LABELS, SPECIALIZATION_LABELS } from './labels';
+import {
+  AGENT_STATUS_LABELS,
+  FURNITURE_NAMES,
+  money,
+  SENIORITY_LABELS,
+  SPECIALIZATION_LABELS,
+} from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
-
-const FURNITURE_NAMES: Record<FurnitureType, string> = {
-  desk: 'Stanowisko pracy',
-  sofa: 'Kanapa',
-  coffeeMachine: 'Ekspres do kawy',
-};
 
 // UX-01 (Z): dotknięcie pracownika lub mebla otwiera dolny panel szczegółów.
 export function SelectionPanel() {
@@ -84,7 +84,12 @@ function FurnitureDetails({ id }: { id: FurnitureId }) {
   const startMove = () => {
     pause();
     clear();
-    editStore.set({ furnitureId: id, origin: furniture.origin, rotation: furniture.rotation });
+    editStore.set({
+      mode: 'move',
+      furnitureId: id,
+      origin: furniture.origin,
+      rotation: furniture.rotation,
+    });
   };
   const sell = () => {
     pause();
