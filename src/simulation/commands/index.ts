@@ -1,3 +1,4 @@
+import { acceptOffer } from './acceptOffer';
 import { assignDesk } from './assignDesk';
 import { buyFurniture } from './buyFurniture';
 import { hireCandidate } from './hireCandidate';
@@ -21,4 +22,5 @@ export const commandHandlers: HandlerRegistry = {
   MoveFurniture: moveFurniture,
   SellFurniture: sellFurniture,
   BuyFurniture: buyFurniture,
+  AcceptOffer: acceptOffer,
 };

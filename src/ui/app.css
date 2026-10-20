@@ -463,3 +463,42 @@ body,
 .panel-actions .secondary-button:disabled {
   opacity: 0.4;
 }
+
+.modal.contracts {
+  max-width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal.contracts h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+}
+
+.contract-card {
+  padding: 8px 0 12px;
+  border-bottom: 1px solid #3a3e52;
+}
+
+.contract-card h4 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.contract-card .hint {
+  margin: 0 0 8px;
+}
+
+.modal dl.contract-terms {
+  grid-template-columns: auto 1fr;
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
+.modal dl.contract-terms dd {
+  text-align: left;
+}
+
+.contract-card button:disabled {
+  opacity: 0.4;
+}

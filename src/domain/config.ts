@@ -24,6 +24,16 @@ export type BalanceConfig = DeepReadonly<{
     // EMP-02 (B): pensja dzienna zależy od seniority (SH-032).
     dailyWage: WageTable;
   };
+  contracts: {
+    // CON-01 (Z): liczba ofert na tablicy.
+    boardSize: number;
+    // FIN-01, decyzja SH-032 B5 (B): zaliczka jako część wynagrodzenia.
+    advanceRatio: number;
+    // FIN-04, decyzja SH-032 B5 (B): kara za każdy rozpoczęty dzień opóźnienia.
+    latePenaltyRatio: number;
+    // PROJ-10, decyzja SH-032 B6 (B): punkty designu na jeden stopień znaczenia.
+    designPointsPerImportance: number;
+  };
   furniture: {
     // FIN-02 (B): cena zakupu wyposażenia (SH-032).
     prices: Record<FurnitureType, number>;
@@ -45,6 +55,12 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   },
   staff: {
     dailyWage: { junior: 300, mid: 500, senior: 800 },
+  },
+  contracts: {
+    boardSize: 3,
+    advanceRatio: 0.3,
+    latePenaltyRatio: 0.1,
+    designPointsPerImportance: 20,
   },
   furniture: {
     prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800 },

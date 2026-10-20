@@ -7,6 +7,7 @@ export const REJECTION_MESSAGES: Record<RejectionCode, string> = {
   invalidSpeed: 'Nieobsługiwane tempo gry.',
   unknownCandidate: 'Ten kandydat nie jest już dostępny.',
   noRoomToEnter: 'Przy wejściu nie ma wolnego miejsca — spróbuj za chwilę.',
+  unknownOffer: 'Ta oferta nie jest już dostępna.',
   unknownEmployee: 'Ten pracownik nie jest już zatrudniony.',
   unknownFurniture: 'Tego mebla już nie ma.',
   notADesk: 'To nie jest stanowisko pracy.',

@@ -8,6 +8,7 @@ import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import type { Engine } from '../simulation/engine';
+import { ContractsButton } from './ContractsButton';
 import { DayClock } from './DayClock';
 import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
@@ -71,6 +72,7 @@ export function App({
               <SpeedControls />
               <DayControls />
               <div className="panel-actions">
+                <ContractsButton />
                 <RecruitmentButton />
                 <ShopButton />
                 <NewGameButton onConfirm={onNewGame} />

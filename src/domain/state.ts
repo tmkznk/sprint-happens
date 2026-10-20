@@ -1,4 +1,6 @@
 import type { BalanceConfig } from './config';
+import { fillBoard } from './contractBoard';
+import type { Offer, Project, ProjectId } from './contracts';
 import { generateMarket, type Candidate, type Employee, type EmployeeId } from './employees';
 import type { Finance } from './finance';
 import type { Furniture, FurnitureId } from './furniture';
@@ -46,6 +48,13 @@ export type GameState = DeepReadonly<{
     report: DayReport | null;
   };
   finance: Finance;
+  contracts: {
+    // CON-01: oferty na tablicy; nieprzyjęte pozostają.
+    offers: Offer[];
+    projects: Record<ProjectId, Project>;
+    // SH-032 A3b: liczba oddanych projektów wyznacza poziom ofert.
+    deliveredCount: number;
+  };
   staff: {
     employees: Record<EmployeeId, Employee>;
     // EMP-03: rynek kandydatów — zawsze każda specjalizacja w każdym seniority.
@@ -72,6 +81,9 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
   }
 
   const market = generateMarket(ids, seedRng(seed), config.staff.dailyWage);
+  const board = fillBoard({ offers: [], ids: market.ids, rng: market.rng }, 0, config, {
+    guaranteeStarter: true,
+  });
 
   return {
     mission: {
@@ -89,9 +101,10 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       wagesDueToday: {},
       rescueDeadlineDay: null,
     },
+    contracts: { offers: board.offers, projects: {}, deliveredCount: 0 },
     staff: { employees: {}, candidates: market.candidates },
     world: { furniture, movement: createMovementState([]) },
-    ids: market.ids,
-    rng: market.rng,
+    ids: board.ids,
+    rng: board.rng,
   };
 }

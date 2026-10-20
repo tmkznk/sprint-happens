@@ -6,6 +6,7 @@ import {
   type CandidateId,
   type EmployeeId,
 } from '../domain/employees';
+import { TECH_SPECIALIZATIONS, type OfferId, type ProjectId } from '../domain/contracts';
 import { OPERATION_KINDS } from '../domain/finance';
 import { ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
@@ -41,6 +42,43 @@ const person = {
   seniority: z.enum(SENIORITIES),
   dailyWage: z.int().min(0),
 };
+const offerId = z.custom<OfferId>(
+  (value) => typeof value === 'string' && /^offer-[1-9]\d*$/.test(value),
+  'Niepoprawne ID oferty',
+);
+const projectId = z.custom<ProjectId>(
+  (value) => typeof value === 'string' && /^project-[1-9]\d*$/.test(value),
+  'Niepoprawne ID projektu',
+);
+// PROJ-09, decyzja SH-032 B1: zakresy w punktach pracy, wielokrotności fragmentu 10 pp.
+const scopePoints = z.int().min(10).multipleOf(10);
+const terms = {
+  templateId: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string(),
+  scopes: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), scopePoints),
+  designImportance: z.int().min(0).max(5),
+  designScope: z.int().min(0),
+  deadlineDays: z.int().min(1),
+  reward: z.int().min(1),
+  advance: z.int().min(0),
+  latePenaltyPerDay: z.int().min(0),
+};
+const contractsSchema = z.strictObject({
+  offers: z.array(z.strictObject({ id: offerId, ...terms })),
+  projects: z.record(
+    projectId,
+    z.strictObject({
+      id: projectId,
+      ...terms,
+      acceptedOnDay: z.int().min(1),
+      deadlineDay: z.int().min(2),
+      status: z.enum(['active', 'delivered']),
+    }),
+  ),
+  deliveredCount: z.int().min(0),
+});
+
 const staffSchema = z.strictObject({
   employees: z.record(
     employeeId,
@@ -146,6 +184,7 @@ const idsSchema = z.record(z.string().regex(/^[a-z][a-zA-Z]*$/), z.int().min(0))
 export const gameStateShape = z.strictObject({
   mission: missionSchema,
   finance: financeSchema,
+  contracts: contractsSchema,
   staff: staffSchema,
   world: worldSchema,
   ids: idsSchema,
@@ -163,6 +202,7 @@ export function consistencyIssues(state: GameState, context: ValidationContext):
     ...financeIssues(state),
     ...furniture,
     ...staffIssues(state),
+    ...contractIssues(state, context),
     // Ruch sprawdzamy tylko na poprawnym układzie mebli — inaczej mapa przejść jest niewiarygodna.
     ...(furniture.length === 0 ? movementIssues(state, context) : []),
   ];
@@ -238,6 +278,51 @@ function furnitureIssues(state: GameState, { layout }: ValidationContext): Issue
       if (other) issues.push({ path, message: `Mebel koliduje z ${other} na polu ${label(cell)}` });
       taken.set(label(cell), item.id);
     }
+  }
+  return issues;
+}
+
+// CON-01–03, FIN-01, TIME-08: tablica ofert i przyjęte kontrakty.
+function contractIssues(state: GameState, { config }: ValidationContext): Issue[] {
+  const issues: Issue[] = [];
+  const { offers, projects, deliveredCount } = state.contracts;
+  if (offers.length > config.contracts.boardSize) {
+    issues.push({ path: ['contracts', 'offers'], message: 'Więcej ofert niż miejsc na tablicy' });
+  }
+  const templates = new Set<string>();
+  offers.forEach((offer, index) => {
+    const path = ['contracts', 'offers', index];
+    if (templates.has(offer.templateId))
+      issues.push({ path, message: 'Powtórzony szablon na tablicy' });
+    templates.add(offer.templateId);
+    if (sequenceNumber(offer.id) > (state.ids.offer ?? 0)) {
+      issues.push({ path, message: 'ID oferty spoza przydzielonej sekwencji' });
+    }
+    if (Object.keys(offer.scopes).length === 0)
+      issues.push({ path, message: 'Oferta bez zakresu technicznego' });
+  });
+  const advances = new Map(
+    state.finance.ledger.filter((e) => e.kind === 'advance').map((e) => [e.ref, e.amount]),
+  );
+  for (const [key, project] of Object.entries(projects)) {
+    const path = ['contracts', 'projects', key];
+    if (project.id !== key) issues.push({ path, message: 'Klucz różny od ID projektu' });
+    if (sequenceNumber(project.id) > (state.ids.project ?? 0)) {
+      issues.push({ path, message: 'ID projektu spoza przydzielonej sekwencji' });
+    }
+    if (project.acceptedOnDay > state.mission.day) {
+      issues.push({ path, message: 'Przyjęcie w przyszłym dniu' });
+    }
+    if (project.deadlineDay !== project.acceptedOnDay + project.deadlineDays) {
+      issues.push({ path, message: 'Termin niezgodny z dniem przyjęcia (TIME-08)' });
+    }
+    if (advances.get(project.id) !== project.advance) {
+      issues.push({ path, message: 'Brak zaliczki projektu w księdze (FIN-01)' });
+    }
+  }
+  const delivered = Object.values(projects).filter((p) => p.status === 'delivered').length;
+  if (delivered !== deliveredCount) {
+    issues.push({ path: ['contracts', 'deliveredCount'], message: 'Liczba oddanych niezgodna' });
   }
   return issues;
 }

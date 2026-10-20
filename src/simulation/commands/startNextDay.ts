@@ -1,17 +1,25 @@
+import { fillBoard } from '../../domain/contractBoard';
 import type { CommandHandler, StartNextDayCommand } from './types';
 
 // TIME-04, TIME-08 (Z): „Następny dzień” po raporcie — tylko jeśli misja trwa (bramka silnika).
 // Noc nie wymaga upływu czasu symulacji; nowy dzień zaczyna się na pauzie.
-// Operacje dobowe: należna dniówka każdego zatrudnionego za nowy dzień (FIN-03). Pobranie
-// dniówek przy rozliczeniu — SH-029. Kolejne dołączą z systemami: energia do 100% (SH-017,
-// decyzja SH-004 A4c) i uzupełnienie ofert (SH-020).
+// Operacje dobowe: należna dniówka każdego zatrudnionego za nowy dzień (FIN-03) i uzupełnienie
+// wolnych miejsc na tablicy zleceń (CON-01). Energia do 100% — SH-017 (decyzja SH-004 A4c).
 export const startNextDay: CommandHandler<StartNextDayCommand> = {
   category: 'nextDay',
-  execute(state) {
+  execute(state, _command, config) {
+    const board = fillBoard(
+      { offers: [...state.contracts.offers], ids: state.ids, rng: state.rng },
+      state.contracts.deliveredCount,
+      config,
+    );
     return {
       ok: true,
       state: {
         ...state,
+        contracts: { ...state.contracts, offers: board.offers },
+        ids: board.ids,
+        rng: board.rng,
         finance: {
           ...state.finance,
           wagesDueToday: Object.fromEntries(

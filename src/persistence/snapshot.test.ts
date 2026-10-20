@@ -237,6 +237,42 @@ describe('odrzucanie zapisu', () => {
   });
 });
 
+describe('kontrakty w zapisie (SH-020)', () => {
+  it('przyjęty kontrakt i uzupełniona tablica przetrwają zapis', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 3),
+    });
+    const offer = engine.getState().contracts.offers[1];
+    if (!offer) throw new Error('brak oferty');
+    engine.dispatch({ type: 'AcceptOffer', offerId: offer.id });
+
+    expect(roundTrip(engine.getState())).toEqual(engine.getState());
+  });
+
+  it('odrzuca projekt bez zaliczki w księdze i z terminem niezgodnym z TIME-08', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 1),
+    });
+    const offer = engine.getState().contracts.offers[0];
+    if (!offer) throw new Error('brak oferty');
+    engine.dispatch({ type: 'AcceptOffer', offerId: offer.id });
+    const envelope = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state: engine.getState() }),
+    ) as { state: Record<string, any> };
+    envelope.state.contracts.projects['project-1'].deadlineDay = 99;
+    envelope.state.finance.ledger = [];
+    envelope.state.finance.cash = envelope.state.finance.openingCash;
+
+    const result = parseSnapshot(JSON.stringify(envelope), context);
+    expect(result.ok).toBe(false);
+    const issues = result.ok ? '' : result.error.issues.join('\n');
+    expect(issues).toContain('Termin niezgodny');
+    expect(issues).toContain('Brak zaliczki');
+  });
+});
+
 describe('odrzucanie niespójnych finansów (SH-027)', () => {
   it('saldo niezgodne z księgą', () => {
     expectInvalidState(
