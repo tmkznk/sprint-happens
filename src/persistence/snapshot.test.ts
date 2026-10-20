@@ -1,0 +1,245 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- testy celowo psują surowy JSON zapisu */
+import { describe, expect, it } from 'vitest';
+import { DEFAULT_BALANCE } from '../domain/config';
+import type { FurnitureId } from '../domain/furniture';
+import { createInitialState, type GameState } from '../domain/state';
+import { createEngine } from '../simulation/engine';
+import { DAY_LENGTH_MS } from '../simulation/time';
+import { OFFICE_LAYOUT } from '../world/officeLayout';
+import type { ValidationContext } from './schema';
+import { parseSnapshot, SCHEMA_VERSION, serializeSnapshot, type SnapshotMeta } from './snapshot';
+
+const context: ValidationContext = { config: DEFAULT_BALANCE, layout: OFFICE_LAYOUT };
+const meta: SnapshotMeta = {
+  gameBuildVersion: '0.0.0',
+  revision: 7,
+  savedAt: '2026-10-20T12:00:00.000Z',
+};
+
+function roundTrip(state: GameState): GameState {
+  const serialized = serializeSnapshot(state, meta, context);
+  if (!serialized.ok) throw new Error(serialized.error.issues.join('\n'));
+  const parsed = parseSnapshot(serialized.json, context);
+  if (!parsed.ok) throw new Error(parsed.error.issues.join('\n'));
+  return parsed.envelope.state;
+}
+
+// Stan po pełnym dniu: koniec pracy, rozliczenie, raport — oraz kolejny dzień w trakcie.
+function statesThroughDay(): GameState[] {
+  const engine = createEngine({
+    config: DEFAULT_BALANCE,
+    initialState: createInitialState(DEFAULT_BALANCE, 99),
+  });
+  const states = [engine.getState()];
+  engine.dispatch({ type: 'SetSpeed', speed: 2 });
+  for (let i = 0; i < DAY_LENGTH_MS / DEFAULT_BALANCE.simulation.stepMs; i++) engine.step();
+  states.push(engine.getState());
+  engine.dispatch({ type: 'SettleDay' });
+  states.push(engine.getState());
+  engine.dispatch({ type: 'StartNextDay' });
+  engine.dispatch({ type: 'SetSpeed', speed: 1 });
+  for (let i = 0; i < 1234; i++) engine.step();
+  states.push(engine.getState());
+  return states;
+}
+
+function withJsonEdit(edit: (state: Record<string, any>) => void): string {
+  const envelope = JSON.parse(
+    JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: createInitialState(DEFAULT_BALANCE, 1),
+    }),
+  ) as { state: Record<string, any> };
+  edit(envelope.state);
+  return JSON.stringify(envelope);
+}
+
+function expectInvalidState(json: string, fragment: string) {
+  const result = parseSnapshot(json, context);
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  expect(result.error.code).toBe('invalidState');
+  expect(result.error.issues.join('\n')).toContain(fragment);
+}
+
+describe('round-trip migawki (SH-037)', () => {
+  it('stan początkowy po zapisie i odczycie jest równoważny', () => {
+    const initial = createInitialState(DEFAULT_BALANCE, 12345);
+
+    expect(roundTrip(initial)).toEqual(initial);
+  });
+
+  it.each(['start', 'koniec pracy', 'po rozliczeniu', 'w trakcie dnia 2'].map((n, i) => [n, i]))(
+    'stan „%s” po zapisie i odczycie jest równoważny',
+    (_, index) => {
+      const state = statesThroughDay()[index as number];
+      if (!state) throw new Error('brak stanu');
+      expect(roundTrip(state)).toEqual(state);
+    },
+  );
+
+  it('odtworzony stan daje identyczną dalszą symulację (stan RNG i zegar w zapisie)', () => {
+    const [, , , midDay] = statesThroughDay();
+    if (!midDay) throw new Error('brak stanu');
+    const original = createEngine({ config: DEFAULT_BALANCE, initialState: midDay });
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(midDay) });
+    for (let i = 0; i < 500; i++) {
+      original.step();
+      restored.step();
+    }
+    expect(restored.getState()).toEqual(original.getState());
+  });
+
+  it('koperta zawiera wersję formatu i metadane zapisu', () => {
+    const serialized = serializeSnapshot(createInitialState(DEFAULT_BALANCE, 1), meta, context);
+    if (!serialized.ok) throw new Error('zapis odrzucony');
+
+    expect(JSON.parse(serialized.json)).toMatchObject({ schemaVersion: SCHEMA_VERSION, ...meta });
+  });
+});
+
+describe('odrzucanie zapisu', () => {
+  it('niepoprawny JSON', () => {
+    expect(parseSnapshot('{nie-json', context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidJson' },
+    });
+  });
+
+  it('brak pól koperty', () => {
+    expect(parseSnapshot(JSON.stringify({ state: {} }), context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidEnvelope' },
+    });
+  });
+
+  it('zapis z nowszej wersji gry (SH-004 A6b)', () => {
+    const json = JSON.stringify({ schemaVersion: SCHEMA_VERSION + 1, ...meta, state: {} });
+    expect(parseSnapshot(json, context)).toMatchObject({
+      ok: false,
+      error: { code: 'newerVersion' },
+    });
+  });
+
+  it('starszy format wymaga migracji', () => {
+    const json = JSON.stringify({ schemaVersion: 0, ...meta, state: {} });
+    expect(parseSnapshot(json, context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidEnvelope' },
+    });
+  });
+
+  it('nieznane pole w stanie', () => {
+    expectInvalidState(
+      withJsonEdit((s) => (s.debug = true)),
+      'Unrecognized key',
+    );
+  });
+
+  it('niepoprawne ID mebla', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        const item = s.world.furniture['furniture-1'];
+        s.world.furniture = { 'krzeslo-1': { ...item, id: 'krzeslo-1' } };
+      }),
+      'world.furniture.krzeslo-1',
+    );
+  });
+
+  it('klucz mebla różny od jego ID', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.world.furniture['furniture-1'].id = 'furniture-2';
+      }),
+      'Klucz różny od ID mebla',
+    );
+  });
+
+  it('ID spoza przydzielonej sekwencji (kolizja z przyszłymi ID)', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.ids.furniture = 2;
+      }),
+      'spoza przydzielonej sekwencji',
+    );
+  });
+
+  it('kolizja mebli na jednym polu', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.world.furniture['furniture-2'].origin = s.world.furniture['furniture-1'].origin;
+      }),
+      'koliduje',
+    );
+  });
+
+  it('mebel na ścianie', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.world.furniture['furniture-1'].origin = { x: 0, y: 0 };
+      }),
+      'poza podłogą',
+    );
+  });
+
+  it('rozliczony dzień bez raportu (ochrona przed podwójnym rozliczeniem)', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.phase = 'settled';
+        s.mission.timeInDayMs = DAY_LENGTH_MS;
+      }),
+      'Raport niezgodny',
+    );
+  });
+
+  it('czas dnia poza siatką kroków', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.timeInDayMs = 150;
+      }),
+      'poza siatką kroków',
+    );
+  });
+
+  it('stan generatora losowego poza zakresem uint32', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.rng = -1;
+      }),
+      'rng',
+    );
+  });
+});
+
+describe('serializeSnapshot', () => {
+  it('nie zapisuje stanu z funkcją ani obiektem spoza danych', () => {
+    const initial = createInitialState(DEFAULT_BALANCE, 1);
+    const broken = {
+      ...initial,
+      mission: { ...initial.mission, speed: (() => 1) as unknown as 0 },
+    };
+
+    const result = serializeSnapshot(broken, meta, context);
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('nie zapisuje stanu niespójnego (kolizja mebli)', () => {
+    const initial = createInitialState(DEFAULT_BALANCE, 1);
+    const first = initial.world.furniture['furniture-1' as FurnitureId];
+    const second = initial.world.furniture['furniture-2' as FurnitureId];
+    if (!first || !second) throw new Error('brak mebli');
+    const broken: GameState = {
+      ...initial,
+      world: {
+        furniture: { ...initial.world.furniture, [second.id]: { ...second, origin: first.origin } },
+      },
+    };
+
+    expect(serializeSnapshot(broken, meta, context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidState' },
+    });
+  });
+});
