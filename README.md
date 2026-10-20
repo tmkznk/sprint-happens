@@ -17,6 +17,8 @@ npm install
 npm run dev    # serwer deweloperski Vite
 ```
 
+Scena testowa zasłaniania (postać na stałej trasie, punkty interakcji): `http://localhost:5173/?scene=occlusion`.
+
 ## Skrypty
 
 | Komenda                                       | Opis                                                |

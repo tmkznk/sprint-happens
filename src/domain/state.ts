@@ -1,5 +1,7 @@
 import type { BalanceConfig } from './config';
-import type { IdSequence } from './ids';
+import type { Furniture, FurnitureId } from './furniture';
+import { allocateId, type IdSequence } from './ids';
+import { STARTING_FURNITURE } from './missionStart';
 import { seedRng, type RngState } from './random';
 import type { DeepReadonly } from './readonly';
 
@@ -26,17 +28,29 @@ export type GameState = DeepReadonly<{
   finance: {
     cash: number;
   };
+  world: {
+    furniture: Record<FurnitureId, Furniture>;
+  };
   ids: IdSequence;
   rng: RngState;
 }>;
 
-// MIS-01 (Z): misja startuje na pauzie. Wyposażenie startowe dochodzi wraz ze światem (SH-009).
+// MIS-01 (Z): misja startuje na pauzie, bez pracowników, ze startowym wyposażeniem.
 // Ziarno dostarcza warstwa aplikacji; silnik nie sięga po losowość ani czas systemowy.
 export function createInitialState(config: BalanceConfig, seed: number): GameState {
+  let ids: IdSequence = {};
+  const furniture: Record<FurnitureId, Furniture> = {};
+  for (const placement of STARTING_FURNITURE) {
+    const allocated = allocateId(ids, 'furniture');
+    ids = allocated.sequence;
+    furniture[allocated.id] = { ...placement, id: allocated.id };
+  }
+
   return {
     mission: { status: 'active', day: 1, phase: 'working', speed: 0, timeInDayMs: 0 },
     finance: { cash: config.mission.startingCash },
-    ids: {},
+    world: { furniture },
+    ids,
     rng: seedRng(seed),
   };
 }

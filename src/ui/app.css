@@ -44,3 +44,10 @@ body,
   border-color: #f2c14e;
   color: #f2c14e;
 }
+
+.day-clock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}

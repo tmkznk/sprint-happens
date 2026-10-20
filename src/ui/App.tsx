@@ -8,6 +8,9 @@ import { createEngine } from '../simulation/engine';
 import { DayClock } from './DayClock';
 import { SpeedControls } from './SpeedControls';
 
+// Scena testowa okluzji dla SH-002: ?scene=occlusion
+const occlusionTest = new URLSearchParams(window.location.search).get('scene') === 'occlusion';
+
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
 }
@@ -25,10 +28,10 @@ export function App() {
 
   useEffect(() => {
     if (!sceneRef.current) return;
-    const game = createOfficeGame(sceneRef.current);
+    const game = createOfficeGame(sceneRef.current, engine, { occlusionTest });
     // VIEW-05: jedna instancja na aktywną grę, pełne sprzątanie przy odmontowaniu.
     return () => game.destroy(true);
-  }, []);
+  }, [engine]);
 
   return (
     <EngineContext value={engine}>
