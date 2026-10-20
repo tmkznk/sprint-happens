@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import type { FrameClock } from '../application/gameLoop';
 import type { Selection, SelectionStore } from '../application/selection';
+import type { EmployeeId } from '../domain/employees';
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
@@ -11,7 +12,7 @@ import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
-import { furnitureRect, pickFurniture, prismSilhouette } from './picking';
+import { furnitureRect, pickAgent, pickFurniture, prismSilhouette } from './picking';
 import {
   ACTOR_COLOR,
   ACTOR_HEIGHT,
@@ -101,8 +102,19 @@ export class OfficeScene extends Phaser.Scene {
 
   // UX-01 (Z): dotknięcie mebla otwiera panel szczegółów; dotknięcie pustego miejsca go zamyka.
   private select(world: ScreenPoint): void {
-    const furniture = Object.values(this.engine.getState().world.furniture);
-    const id = pickFurniture(world, furniture);
+    const state = this.engine.getState();
+    const agentId = pickAgent(
+      world,
+      state.world.movement.agents,
+      this.frameClock.alpha,
+      this.engine.config.movement.stepsPerCell,
+    );
+    const employee = agentId ? state.staff.employees[agentId as EmployeeId] : undefined;
+    if (employee) {
+      this.selection.set({ kind: 'employee', id: employee.id });
+      return;
+    }
+    const id = pickFurniture(world, Object.values(state.world.furniture));
     this.selection.set(id ? { kind: 'furniture', id } : null);
   }
 

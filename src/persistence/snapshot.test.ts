@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import type { FurnitureId } from '../domain/furniture';
-import { createAgent, createMovementState } from '../domain/movement';
+import { createAgent } from '../domain/movement';
 import { createInitialState, type GameState } from '../domain/state';
 import { createEngine } from '../simulation/engine';
 import { DAY_LENGTH_MS } from '../simulation/time';
@@ -92,27 +92,21 @@ describe('round-trip migawki (SH-037)', () => {
     expect(restored.getState()).toEqual(original.getState());
   });
 
-  it('postacie w trakcie przejścia i w kolejce przetrwają zapis; ruch toczy się dalej identycznie', () => {
-    const initial = createInitialState(DEFAULT_BALANCE, 5);
-    const coffee = { kind: 'use', destinationIds: ['furniture-4#0'], steps: 20 } as const;
+  it('zatrudnieni pracownicy w trakcie przejścia przetrwają zapis; ruch toczy się dalej identycznie', () => {
     const engine = createEngine({
       config: DEFAULT_BALANCE,
-      initialState: {
-        ...initial,
-        mission: { ...initial.mission, speed: 1 },
-        world: {
-          ...initial.world,
-          movement: createMovementState([
-            createAgent('employee-1', { x: 13, y: 12 }, [coffee]),
-            createAgent('employee-2', { x: 12, y: 12 }, [coffee]),
-          ]),
-        },
-      },
+      initialState: createInitialState(DEFAULT_BALANCE, 5),
     });
+    for (const candidate of engine.getState().staff.candidates.slice(0, 3)) {
+      expect(engine.dispatch({ type: 'HireCandidate', candidateId: candidate.id })).toEqual({
+        ok: true,
+      });
+    }
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
     for (let i = 0; i < 25; i++) engine.step();
     const mid = engine.getState();
     expect(mid.world.movement.agents.some((a) => a.move !== null)).toBe(true);
-    expect(Object.keys(mid.world.movement.reservations)).toHaveLength(1);
+    expect(Object.keys(mid.staff.employees)).toHaveLength(3);
 
     const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(mid) });
     for (let i = 0; i < 150; i++) {

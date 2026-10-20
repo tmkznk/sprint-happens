@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import type { BalanceConfig } from '../domain/config';
+import {
+  SENIORITIES,
+  SPECIALIZATIONS,
+  type CandidateId,
+  type EmployeeId,
+} from '../domain/employees';
 import { OPERATION_KINDS } from '../domain/finance';
 import { ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
@@ -20,6 +26,33 @@ const furnitureId = z.custom<FurnitureId>(
 );
 
 const point = z.strictObject({ x: z.int(), y: z.int() });
+
+const employeeId = z.custom<EmployeeId>(
+  (value) => typeof value === 'string' && /^employee-[1-9]\d*$/.test(value),
+  'Niepoprawne ID pracownika',
+);
+const candidateId = z.custom<CandidateId>(
+  (value) => typeof value === 'string' && /^candidate-[1-9]\d*$/.test(value),
+  'Niepoprawne ID kandydata',
+);
+const person = {
+  name: z.string().min(1),
+  specialization: z.enum(SPECIALIZATIONS),
+  seniority: z.enum(SENIORITIES),
+  dailyWage: z.int().min(0),
+};
+const staffSchema = z.strictObject({
+  employees: z.record(
+    employeeId,
+    z.strictObject({
+      id: employeeId,
+      ...person,
+      hiredOnDay: z.int().min(1),
+      deskId: furnitureId.nullable(),
+    }),
+  ),
+  candidates: z.array(z.strictObject({ id: candidateId, ...person })),
+});
 
 const missionSchema = z.strictObject({
   status: z.enum(['active', 'won', 'bankrupt']),
@@ -102,6 +135,7 @@ const idsSchema = z.record(z.string().regex(/^[a-z][a-zA-Z]*$/), z.int().min(0))
 export const gameStateShape = z.strictObject({
   mission: missionSchema,
   finance: financeSchema,
+  staff: staffSchema,
   world: worldSchema,
   ids: idsSchema,
   // TIME-T04: stan generatora losowego jest zapisywany, aby wczytanie nie przelosowało wyników.
@@ -112,13 +146,15 @@ type Issue = { path: (string | number)[]; message: string };
 
 // Spójność, której nie wyrazi sam kształt danych: ID, referencje, zajętość pól, fazy dnia.
 export function consistencyIssues(state: GameState, context: ValidationContext): Issue[] {
-  const issues = [
+  const furniture = furnitureIssues(state, context);
+  return [
     ...missionIssues(state, context),
     ...financeIssues(state),
-    ...furnitureIssues(state, context),
+    ...furniture,
+    ...staffIssues(state),
+    // Ruch sprawdzamy tylko na poprawnym układzie mebli — inaczej mapa przejść jest niewiarygodna.
+    ...(furniture.length === 0 ? movementIssues(state, context) : []),
   ];
-  // Ruch sprawdzamy na poprawnym układzie mebli — inaczej mapa przejść byłaby niewiarygodna.
-  return issues.length > 0 ? issues : movementIssues(state, context);
 }
 
 function missionIssues(state: GameState, { config }: ValidationContext): Issue[] {
@@ -172,7 +208,7 @@ function furnitureIssues(state: GameState, { layout }: ValidationContext): Issue
   for (const [key, item] of Object.entries(state.world.furniture)) {
     const path = ['world', 'furniture', key];
     if (item.id !== key) issues.push({ path, message: 'Klucz różny od ID mebla' });
-    if (Number(item.id.split('-')[1]) > allocated) {
+    if (sequenceNumber(item.id) > allocated) {
       issues.push({ path, message: 'ID mebla spoza przydzielonej sekwencji' });
     }
     for (const cell of occupiedCells(item)) {
@@ -186,6 +222,66 @@ function furnitureIssues(state: GameState, { layout }: ValidationContext): Issue
   }
   return issues;
 }
+
+// EMP-01–04, OFF-04: pracownicy, biurka i rynek kandydatów.
+function staffIssues(state: GameState): Issue[] {
+  const issues: Issue[] = [];
+  const { employees, candidates } = state.staff;
+  const desks = new Map<string, string>();
+  const agentIds = new Set(state.world.movement.agents.map((agent) => agent.id));
+  for (const [key, employee] of Object.entries(employees)) {
+    const path = ['staff', 'employees', key];
+    if (employee.id !== key) issues.push({ path, message: 'Klucz różny od ID pracownika' });
+    if (sequenceNumber(employee.id) > (state.ids.employee ?? 0)) {
+      issues.push({ path, message: 'ID pracownika spoza przydzielonej sekwencji' });
+    }
+    if (employee.hiredOnDay > state.mission.day) {
+      issues.push({ path, message: 'Zatrudnienie w przyszłym dniu' });
+    }
+    if (employee.deskId !== null) {
+      if (state.world.furniture[employee.deskId]?.type !== 'desk') {
+        issues.push({ path, message: 'Przypisane biurko nie istnieje' });
+      }
+      const other = desks.get(employee.deskId);
+      if (other) issues.push({ path, message: `Biurko przypisane także do ${other}` });
+      desks.set(employee.deskId, employee.id);
+    }
+    if (!agentIds.has(employee.id))
+      issues.push({ path, message: 'Pracownik bez postaci w biurze' });
+  }
+  for (const agentId of agentIds) {
+    if (!(agentId in employees)) {
+      issues.push({
+        path: ['world', 'movement', 'agents'],
+        message: `Postać ${agentId} bez pracownika`,
+      });
+    }
+  }
+  const candidateIds = new Set<string>();
+  const offered = new Set<string>();
+  candidates.forEach((candidate, index) => {
+    const path = ['staff', 'candidates', index];
+    if (candidateIds.has(candidate.id)) issues.push({ path, message: 'Powtórzony kandydat' });
+    candidateIds.add(candidate.id);
+    if (sequenceNumber(candidate.id) > (state.ids.candidate ?? 0)) {
+      issues.push({ path, message: 'ID kandydata spoza przydzielonej sekwencji' });
+    }
+    offered.add(`${candidate.specialization}/${candidate.seniority}`);
+  });
+  for (const specialization of SPECIALIZATIONS) {
+    for (const seniority of SENIORITIES) {
+      if (!offered.has(`${specialization}/${seniority}`)) {
+        issues.push({
+          path: ['staff', 'candidates'],
+          message: `Brak kandydata ${specialization}/${seniority} (EMP-03)`,
+        });
+      }
+    }
+  }
+  return issues;
+}
+
+const sequenceNumber = (id: string) => Number(id.split('-')[1]);
 
 // T:SAVE-T06 — spójność rezerwacji i pozycji postaci (MOVE-03, MOVE-04, MOVE-09).
 function movementIssues(state: GameState, { config, layout }: ValidationContext): Issue[] {

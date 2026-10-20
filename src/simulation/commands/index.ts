@@ -1,3 +1,4 @@
+import { hireCandidate } from './hireCandidate';
 import { setSpeed } from './setSpeed';
 import { settleDay } from './settleDay';
 import { startNextDay } from './startNextDay';
@@ -11,4 +12,5 @@ export const commandHandlers: HandlerRegistry = {
   SetSpeed: setSpeed,
   SettleDay: settleDay,
   StartNextDay: startNextDay,
+  HireCandidate: hireCandidate,
 };

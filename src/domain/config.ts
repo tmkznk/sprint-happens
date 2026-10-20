@@ -1,3 +1,4 @@
+import type { WageTable } from './employees';
 import { DEFAULT_MOVEMENT_CONFIG, type MovementConfig } from './movement';
 import type { DeepReadonly } from './readonly';
 
@@ -18,6 +19,10 @@ export type BalanceConfig = DeepReadonly<{
     // FIN-02 (B): stałe koszty biura za dzień; wartość zastępcza do SH-032.
     officeUpkeepPerDay: number;
   };
+  staff: {
+    // EMP-02 (B): pensja dzienna zależy od seniority; wartości zastępcze do SH-032.
+    dailyWage: WageTable;
+  };
 }>;
 
 export const DEFAULT_BALANCE: BalanceConfig = {
@@ -30,5 +35,8 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   },
   finance: {
     officeUpkeepPerDay: 1_000,
+  },
+  staff: {
+    dailyWage: { junior: 300, mid: 500, senior: 800 },
   },
 };

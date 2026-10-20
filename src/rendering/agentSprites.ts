@@ -1,7 +1,10 @@
 import * as Phaser from 'phaser';
 import type { AgentStatus, ReadonlyAgent } from '../domain/movement';
-import { ACTOR_HEIGHT } from './placeholderStyle';
-import { cellCenter, depthOfPoint, gridToScreen, interpolate } from './projection';
+import { ACTOR_HEIGHT, SELECTION_COLOR } from './placeholderStyle';
+import { displayPosition } from './agentPosition';
+import { depthOfPoint, gridToScreen } from './projection';
+
+export { displayPosition };
 
 // Zastępcze sylwetki postaci (do czasu assetów z SH-036) i ich pozycja wyświetlana.
 const AGENT_COLORS = [0xf2c14e, 0x4ec9f2, 0xf24e9a, 0x9af24e, 0xc78bf2, 0xf2a14e];
@@ -37,19 +40,12 @@ export function createAgentSprite(scene: Phaser.Scene, index: number): AgentSpri
   };
 }
 
-// T:TIME-T02 — pozycja wyświetlana leży między polem źródłowym a docelowym przejścia;
-// `alpha` to ułamek bieżącego kroku symulacji. Pozycja logiczna pozostaje bez zmian.
-export function displayPosition(agent: ReadonlyAgent, alpha: number, stepsPerCell: number) {
-  const from = cellCenter(agent.cell);
-  if (!agent.move) return from;
-  return interpolate(from, cellCenter(agent.move.to), (agent.move.elapsed + alpha) / stepsPerCell);
-}
-
 export function placeAgentSprite(
   sprite: AgentSprite,
   agent: ReadonlyAgent,
   alpha: number,
   stepsPerCell: number,
+  selected = false,
 ): void {
   const position = displayPosition(agent, alpha, stepsPerCell);
   const screen = gridToScreen(position);
@@ -59,5 +55,6 @@ export function placeAgentSprite(
   sprite.ring.clear();
   sprite.ring.fillStyle(statusColor ?? 0x000000, statusColor ? 0.9 : 0.3);
   sprite.ring.fillEllipse(0, 0, 30, 13);
+  if (selected) sprite.ring.lineStyle(3, SELECTION_COLOR, 1).strokeEllipse(0, 0, 34, 16);
   sprite.ring.setPosition(screen.x, screen.y).setDepth(depth - 0.005);
 }

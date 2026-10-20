@@ -1,8 +1,9 @@
+import type { EmployeeId } from '../domain/employees';
 import type { FurnitureId } from '../domain/furniture';
 
 // T:ARCH-02 — zaznaczenie należy do stanu prezentacji, nie do stanu gry; nie trafia do zapisu.
-// Pracownicy dołączą jako kolejny rodzaj zaznaczenia (SH-015).
-export type Selection = { kind: 'furniture'; id: FurnitureId } | null;
+export type Selection =
+  { kind: 'furniture'; id: FurnitureId } | { kind: 'employee'; id: EmployeeId } | null;
 
 export type SelectionStore = {
   get(): Selection;

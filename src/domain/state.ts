@@ -1,4 +1,5 @@
 import type { BalanceConfig } from './config';
+import { generateMarket, type Candidate, type Employee, type EmployeeId } from './employees';
 import type { Finance } from './finance';
 import type { Furniture, FurnitureId } from './furniture';
 import { allocateId, type IdSequence } from './ids';
@@ -35,6 +36,11 @@ export type GameState = DeepReadonly<{
     report: DayReport | null;
   };
   finance: Finance;
+  staff: {
+    employees: Record<EmployeeId, Employee>;
+    // EMP-03: rynek kandydatów — zawsze każda specjalizacja w każdym seniority.
+    candidates: Candidate[];
+  };
   world: {
     furniture: Record<FurnitureId, Furniture>;
     // T:MOVE-03–09: pozycje, przejścia, trasy, kolejki i rezerwacje postaci (SAVE-T02).
@@ -55,6 +61,8 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
     furniture[allocated.id] = { ...placement, id: allocated.id };
   }
 
+  const market = generateMarket(ids, seedRng(seed), config.staff.dailyWage);
+
   return {
     mission: {
       status: 'active',
@@ -70,8 +78,9 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       ledger: [],
       wagesDueToday: {},
     },
+    staff: { employees: {}, candidates: market.candidates },
     world: { furniture, movement: createMovementState([]) },
-    ids,
-    rng: seedRng(seed),
+    ids: market.ids,
+    rng: market.rng,
   };
 }

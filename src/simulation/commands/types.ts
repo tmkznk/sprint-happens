@@ -1,4 +1,5 @@
 import type { BalanceConfig } from '../../domain/config';
+import type { CandidateId } from '../../domain/employees';
 import type { GameState, Speed } from '../../domain/state';
 import type { FinanceRejection } from '../finance';
 import type { CommandCategory } from './phases';
@@ -6,8 +7,10 @@ import type { CommandCategory } from './phases';
 export type SetSpeedCommand = { type: 'SetSpeed'; speed: Speed };
 export type SettleDayCommand = { type: 'SettleDay' };
 export type StartNextDayCommand = { type: 'StartNextDay' };
+export type HireCandidateCommand = { type: 'HireCandidate'; candidateId: CandidateId };
 
-export type Command = SetSpeedCommand | SettleDayCommand | StartNextDayCommand;
+export type Command =
+  SetSpeedCommand | SettleDayCommand | StartNextDayCommand | HireCandidateCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -15,6 +18,9 @@ export type RejectionCode =
   | 'missionEnded'
   | 'phaseNotAllowed'
   | 'invalidSpeed'
+  | 'unknownCandidate'
+  // Brak wolnego pola przy wejściu (biuro pełne postaci).
+  | 'noRoomToEnter'
   // SH-027: operacje finansowe.
   | FinanceRejection;
 

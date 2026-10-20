@@ -11,6 +11,7 @@ import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
 import { NewGameButton } from './NewGameButton';
+import { RecruitmentButton } from './RecruitmentButton';
 import { SaveIndicator } from './SaveIndicator';
 import { SelectionPanel } from './SelectionPanel';
 import { SpeedControls } from './SpeedControls';
@@ -65,7 +66,10 @@ export function App({
             <FinanceSummary />
             <SpeedControls />
             <DayControls />
-            <NewGameButton onConfirm={onNewGame} />
+            <div className="panel-actions">
+              <RecruitmentButton />
+              <NewGameButton onConfirm={onNewGame} />
+            </div>
           </div>
         </div>
       </SelectionContext>

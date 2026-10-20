@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Furniture, FurnitureId } from '../domain/furniture';
 import { FURNITURE_STYLE } from './placeholderStyle';
-import { pickFurniture, pointInPolygon } from './picking';
+import { createAgent } from '../domain/movement';
+import { pickAgent, pickFurniture, pointInPolygon } from './picking';
 import { cellCenter, gridToScreen } from './projection';
 
 const desk: Furniture = {
@@ -44,6 +45,32 @@ describe('pickFurniture', () => {
     const raised = { x: point.x, y: point.y - FURNITURE_STYLE.coffeeMachine.height + 2 };
 
     expect(pickFurniture(raised, [desk, front])).toBe(front.id);
+  });
+});
+
+describe('pickAgent', () => {
+  const front = createAgent('employee-1', { x: 4, y: 4 });
+  const behind = createAgent('employee-2', { x: 3, y: 3 });
+
+  it('trafia postać w jej sylwetkę, także w głowę', () => {
+    const feet = gridToScreen(cellCenter({ x: 4, y: 4 }));
+
+    expect(pickAgent(feet, [front], 0, 4)).toBe('employee-1');
+    expect(pickAgent({ x: feet.x, y: feet.y - 44 }, [front], 0, 4)).toBe('employee-1');
+    expect(pickAgent({ x: feet.x + 30, y: feet.y }, [front], 0, 4)).toBeNull();
+  });
+
+  it('przy nakładaniu wybiera postać bliższą kamerze', () => {
+    const point = gridToScreen(cellCenter({ x: 4, y: 4 }));
+
+    expect(pickAgent({ x: point.x, y: point.y - 30 }, [behind, front], 0, 4)).toBe('employee-1');
+  });
+
+  it('uwzględnia pozycję w trakcie przejścia', () => {
+    const walking = { ...front, move: { to: { x: 5, y: 4 }, elapsed: 2 } };
+    const halfway = gridToScreen({ x: 5, y: 4.5 });
+
+    expect(pickAgent(halfway, [walking], 0, 4)).toBe('employee-1');
   });
 });
 
