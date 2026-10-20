@@ -1,9 +1,12 @@
 import type { BalanceConfig } from '../../domain/config';
-import type { DayPhase, GameState, Speed } from '../../domain/state';
+import type { GameState, Speed } from '../../domain/state';
+import type { CommandCategory } from './phases';
 
 export type SetSpeedCommand = { type: 'SetSpeed'; speed: Speed };
+export type SettleDayCommand = { type: 'SettleDay' };
+export type StartNextDayCommand = { type: 'StartNextDay' };
 
-export type Command = SetSpeedCommand;
+export type Command = SetSpeedCommand | SettleDayCommand | StartNextDayCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -16,7 +19,8 @@ export type CommandResult = { ok: true } | { ok: false; rejection: Rejection };
 export type HandlerOutcome = { ok: true; state: GameState } | { ok: false; rejection: Rejection };
 
 export type CommandHandler<C extends Command> = {
-  allowedPhases: readonly DayPhase[];
+  // Kategoria wyznacza fazy dnia, w których polecenie jest dozwolone (phases.ts).
+  category: CommandCategory;
   // Handler nie mutuje stanu; zwraca nowy albo odmowę.
   execute(state: GameState, command: C, config: BalanceConfig): HandlerOutcome;
 };

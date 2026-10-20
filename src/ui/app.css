@@ -137,3 +137,64 @@ body,
 .movement-demo nav a[aria-current='page'] {
   color: #f2c14e;
 }
+
+.speed-controls button:disabled {
+  opacity: 0.4;
+}
+
+.day-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.day-controls button,
+.modal button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid #f2c14e;
+  border-radius: 4px;
+  background: #f2c14e;
+  color: #1d1f2b;
+  font: inherit;
+  font-weight: bold;
+}
+
+/* T:VIEW-03: okno modalne przechwytuje dotyk — nic nie trafia do sceny pod spodem. */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 55%);
+}
+
+.modal {
+  width: 100%;
+  max-width: 360px;
+  padding: 16px;
+  background: #2a2d3d;
+  border: 2px solid #4a4f6a;
+  border-radius: 4px;
+}
+
+.modal h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.modal dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  margin: 0 0 16px;
+}
+
+.modal dd {
+  margin: 0;
+  text-align: right;
+}

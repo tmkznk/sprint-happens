@@ -16,6 +16,7 @@ describe('createInitialState', () => {
       phase: 'working',
       speed: 0,
       timeInDayMs: 0,
+      report: null,
     });
     expect(state.finance.cash).toBe(1234);
   });

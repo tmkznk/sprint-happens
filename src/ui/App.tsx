@@ -8,6 +8,8 @@ import { createInitialState } from '../domain/state';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import { createEngine } from '../simulation/engine';
 import { DayClock } from './DayClock';
+import { DayControls } from './DayControls';
+import { DayReportDialog } from './DayReportDialog';
 import { SelectionPanel } from './SelectionPanel';
 import { SpeedControls } from './SpeedControls';
 
@@ -44,10 +46,12 @@ export function App() {
           <div className="scene-area">
             <div ref={sceneRef} className="scene" />
             <SelectionPanel />
+            <DayReportDialog />
           </div>
           <div className="panel">
             <DayClock />
             <SpeedControls />
+            <DayControls />
           </div>
         </div>
       </SelectionContext>

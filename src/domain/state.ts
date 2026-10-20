@@ -10,8 +10,13 @@ export const SPEEDS = [0, 1, 2, 4] as const;
 export type Speed = (typeof SPEEDS)[number];
 
 // TIME-08 (Z): dzień pracy → koniec pracy (przegląd i oddania) → po rozliczeniu (raport).
-// Przejścia między fazami realizuje SH-008.
 export type DayPhase = 'working' | 'workEnded' | 'settled';
+
+// TIME-03 (Z): podsumowanie dnia. Koszty, przychody i terminy dochodzą w SH-029.
+export type DayReport = {
+  day: number;
+  cashAfterSettlement: number;
+};
 
 // MIS-03 (Z): zwycięstwo i bankructwo kończą misję.
 export type MissionStatus = 'active' | 'won' | 'bankrupt';
@@ -24,6 +29,8 @@ export type GameState = DeepReadonly<{
     speed: Speed;
     // Upływ bieżącego dnia w ms czasu gry; rośnie wyłącznie o pełne kroki symulacji.
     timeInDayMs: number;
+    // Raport rozliczenia bieżącego dnia; w stanie, aby przetrwał zapis (SAVE-T04).
+    report: DayReport | null;
   };
   finance: {
     cash: number;
@@ -47,7 +54,14 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
   }
 
   return {
-    mission: { status: 'active', day: 1, phase: 'working', speed: 0, timeInDayMs: 0 },
+    mission: {
+      status: 'active',
+      day: 1,
+      phase: 'working',
+      speed: 0,
+      timeInDayMs: 0,
+      report: null,
+    },
     finance: { cash: config.mission.startingCash },
     world: { furniture },
     ids,

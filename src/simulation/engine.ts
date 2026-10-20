@@ -1,5 +1,5 @@
 import type { BalanceConfig } from '../domain/config';
-import type { GameState } from '../domain/state';
+import type { DayPhase, GameState } from '../domain/state';
 import {
   commandHandlers,
   type Command,
@@ -7,6 +7,7 @@ import {
   type CommandResult,
   type HandlerOutcome,
 } from './commands';
+import { PHASES_BY_CATEGORY } from './commands/phases';
 import { advanceStep } from './step';
 import { assertValidStepMs } from './time';
 
@@ -43,7 +44,8 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
       return { ok: false, rejection: { code: 'missionEnded' } };
     }
     const handler = commandHandlers[command.type] as CommandHandler<Command>;
-    if (!handler.allowedPhases.includes(state.mission.phase)) {
+    const allowedPhases: readonly DayPhase[] = PHASES_BY_CATEGORY[handler.category];
+    if (!allowedPhases.includes(state.mission.phase)) {
       return { ok: false, rejection: { code: 'phaseNotAllowed' } };
     }
     return handler.execute(state, command, config);

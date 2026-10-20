@@ -13,6 +13,8 @@ const REJECTION_MESSAGES: Record<RejectionCode, string> = {
 
 export function SpeedControls() {
   const speed = useGameSelector((state) => state.mission.speed);
+  // TIME-08: poza dniem pracy symulacja stoi — tempo nie jest dostępne.
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ export function SpeedControls() {
           key={value}
           type="button"
           aria-pressed={speed === value}
+          disabled={!isWorking}
           aria-label={value === 0 ? 'Pauza' : `Tempo ${LABELS[value]}`}
           onClick={() => select(value)}
         >
