@@ -375,3 +375,58 @@ body,
   color: inherit;
   font-weight: normal;
 }
+
+.selection-panel .panel-actions {
+  margin-top: 8px;
+}
+
+.selection-panel .warning {
+  margin: 4px 0 0;
+  color: #ffcf70;
+  font-size: 0.85rem;
+}
+
+.edit-bar p {
+  margin: 0 0 4px;
+}
+
+.primary-button {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 16px;
+  border: 2px solid #f2c14e;
+  border-radius: 4px;
+  background: #f2c14e;
+  color: #1d1f2b;
+  font: inherit;
+  font-weight: bold;
+}
+
+.primary-button:disabled {
+  opacity: 0.4;
+}
+
+.selection-panel select {
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid #4a4f6a;
+  border-radius: 4px;
+  background: #1d1f2b;
+  color: inherit;
+  font: inherit;
+}
+
+/* Przyciski akcji w dolnym panelu — silniejsze od ogólnego stylu przycisku zamknięcia. */
+.selection-panel .secondary-button {
+  min-width: 0;
+  border: 2px solid #4a4f6a;
+  font-size: inherit;
+}
+
+.selection-panel .primary-button {
+  min-width: 0;
+  border: 2px solid #f2c14e;
+  background: #f2c14e;
+  color: #1d1f2b;
+  font-size: inherit;
+}

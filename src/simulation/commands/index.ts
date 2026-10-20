@@ -1,4 +1,7 @@
+import { assignDesk } from './assignDesk';
 import { hireCandidate } from './hireCandidate';
+import { moveFurniture } from './moveFurniture';
+import { sellFurniture } from './sellFurniture';
 import { setSpeed } from './setSpeed';
 import { settleDay } from './settleDay';
 import { startNextDay } from './startNextDay';
@@ -13,4 +16,7 @@ export const commandHandlers: HandlerRegistry = {
   SettleDay: settleDay,
   StartNextDay: startNextDay,
   HireCandidate: hireCandidate,
+  AssignDesk: assignDesk,
+  MoveFurniture: moveFurniture,
+  SellFurniture: sellFurniture,
 };

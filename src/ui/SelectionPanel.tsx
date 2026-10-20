@@ -1,8 +1,16 @@
-import { useGameSelector } from '../application/engineHooks';
+import { useState } from 'react';
+import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
+import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
 import type { EmployeeId } from '../domain/employees';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
+import type { GameState } from '../domain/state';
+import { furnitureUsers, salePrice } from '../simulation/furniture';
+import { compareIds } from '../simulation/staff';
+import { ConfirmDialog } from './ConfirmDialog';
+import { FurnitureEditBar } from './FurnitureEditBar';
 import { AGENT_STATUS_LABELS, money, SENIORITY_LABELS, SPECIALIZATION_LABELS } from './labels';
+import { REJECTION_MESSAGES } from './rejectionMessages';
 
 const FURNITURE_NAMES: Record<FurnitureType, string> = {
   desk: 'Stanowisko pracy',
@@ -13,12 +21,22 @@ const FURNITURE_NAMES: Record<FurnitureType, string> = {
 // UX-01 (Z): dotknięcie pracownika lub mebla otwiera dolny panel szczegółów.
 export function SelectionPanel() {
   const selection = useSelection();
+  const edit = useFurnitureEdit();
+  if (edit) return <FurnitureEditBar />;
   if (selection?.kind === 'furniture') return <FurnitureDetails id={selection.id} />;
   if (selection?.kind === 'employee') return <EmployeeDetails id={selection.id} />;
   return null;
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+  actions,
+}: {
+  title: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
   const clear = useClearSelection();
   return (
     <section className="selection-panel" aria-label={title}>
@@ -29,7 +47,18 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
         </button>
       </header>
       <dl>{children}</dl>
+      {actions && <div className="panel-actions">{actions}</div>}
     </section>
+  );
+}
+
+// Biurka numerowane w kolejności ID — czytelna nazwa zamiast identyfikatora.
+function deskLabels(state: GameState): Map<string, string> {
+  return new Map(
+    Object.values(state.world.furniture)
+      .filter((item) => item.type === 'desk')
+      .sort((a, b) => compareIds(a.id, b.id))
+      .map((desk, index) => [desk.id, `Stanowisko ${index + 1}`]),
   );
 }
 
@@ -38,9 +67,63 @@ function FurnitureDetails({ id }: { id: FurnitureId }) {
   const owner = useGameSelector(
     (state) => Object.values(state.staff.employees).find((e) => e.deskId === id)?.name,
   );
+  const usersCount = useGameSelector((state) => furnitureUsers(state, id).users.length);
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const speed = useGameSelector((state) => state.mission.speed);
+  const editStore = useFurnitureEditStore();
+  const clear = useClearSelection();
+  const dispatch = useDispatch();
+  const [confirmingSale, setConfirmingSale] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   if (!furniture) return null;
+
+  // OFF-07 (Z): edycja mebli pauzuje symulację.
+  const pause = () => {
+    if (speed !== 0) dispatch({ type: 'SetSpeed', speed: 0 });
+  };
+  const startMove = () => {
+    pause();
+    clear();
+    editStore.set({ furnitureId: id, origin: furniture.origin, rotation: furniture.rotation });
+  };
+  const sell = () => {
+    pause();
+    const result = dispatch({ type: 'SellFurniture', furnitureId: id });
+    setConfirmingSale(false);
+    if (result.ok) clear();
+    else setMessage(REJECTION_MESSAGES[result.rejection.code]);
+  };
+  const used = owner !== undefined || usersCount > 0;
+  const effects = [
+    owner &&
+      `${owner} straci stanowisko i nie będzie mógł pracować do przydzielenia innego biurka.`,
+    usersCount > 0 && 'Osoby korzystające z mebla przerwą korzystanie.',
+  ].filter(Boolean);
+
   return (
-    <Panel title={FURNITURE_NAMES[furniture.type]}>
+    <Panel
+      title={FURNITURE_NAMES[furniture.type]}
+      actions={
+        isWorking && (
+          <>
+            <button type="button" className="secondary-button" onClick={startMove}>
+              Przenieś
+            </button>
+            <SaleButton item={furniture} onSell={() => (used ? setConfirmingSale(true) : sell())} />
+            {message && <p className="warning">{message}</p>}
+            {confirmingSale && (
+              <ConfirmDialog
+                title="Sprzedać używany mebel?"
+                message={effects.join(' ')}
+                confirmLabel="Sprzedaj"
+                onCancel={() => setConfirmingSale(false)}
+                onConfirm={sell}
+              />
+            )}
+          </>
+        )
+      }
+    >
       {furniture.type === 'desk' && (
         <>
           <dt>Przypisane do</dt>
@@ -53,6 +136,78 @@ function FurnitureDetails({ id }: { id: FurnitureId }) {
       <dd>{furniture.rotation}°</dd>
     </Panel>
   );
+}
+
+function SaleButton({ item, onSell }: { item: { type: FurnitureType }; onSell(): void }) {
+  const price = useSalePrice(item.type);
+  return (
+    <button type="button" className="secondary-button" onClick={onSell}>
+      Sprzedaj (+{money.format(price)})
+    </button>
+  );
+}
+
+function useSalePrice(type: FurnitureType): number {
+  const config = useBalanceConfig();
+  return salePrice({ type }, config);
+}
+
+function DeskSelect({
+  employeeId,
+  deskId,
+}: {
+  employeeId: EmployeeId;
+  deskId: FurnitureId | null;
+}) {
+  const labels = useGameSelector(deskLabelsKey);
+  const takenBy = useGameSelector(takenDesksKey);
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const dispatch = useDispatch();
+  const [message, setMessage] = useState<string | null>(null);
+  const options = labels
+    .split('|')
+    .filter(Boolean)
+    .map((entry) => entry.split('=') as [string, string]);
+  const taken = new Set(takenBy.split('|'));
+
+  return (
+    <>
+      <select
+        aria-label="Biurko"
+        value={deskId ?? ''}
+        disabled={!isWorking}
+        onChange={(event) => {
+          const value = event.target.value;
+          const result = dispatch({
+            type: 'AssignDesk',
+            employeeId,
+            deskId: value === '' ? null : (value as FurnitureId),
+          });
+          setMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
+        }}
+      >
+        <option value="">Brak — nie może pracować</option>
+        {options.map(([id, label]) => (
+          <option key={id} value={id} disabled={id !== deskId && taken.has(id)}>
+            {label}
+            {id !== deskId && taken.has(id) ? ' (zajęte)' : ''}
+          </option>
+        ))}
+      </select>
+      {message && <span className="warning">{message}</span>}
+    </>
+  );
+}
+
+// Selektory zwracają tekst — stabilną wartość dla useSyncExternalStore.
+function deskLabelsKey(state: GameState): string {
+  return [...deskLabels(state)].map(([id, label]) => `${id}=${label}`).join('|');
+}
+
+function takenDesksKey(state: GameState): string {
+  return Object.values(state.staff.employees)
+    .map((e) => e.deskId ?? '')
+    .join('|');
 }
 
 function EmployeeDetails({ id }: { id: EmployeeId }) {
@@ -70,7 +225,9 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
       <dt>Pensja</dt>
       <dd>{money.format(employee.dailyWage)} / dzień</dd>
       <dt>Biurko</dt>
-      <dd>{employee.deskId ? 'Przydzielone' : 'Brak — nie może pracować'}</dd>
+      <dd>
+        <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
+      </dd>
       {status && (
         <>
           <dt>Teraz</dt>

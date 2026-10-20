@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { EngineContext } from '../application/engineHooks';
 import { browserEnvironment, startGameLoop, type FrameClock } from '../application/gameLoop';
 import { attachAutosave, type SaveManager } from '../application/saveManager';
+import { createFurnitureEditStore } from '../application/furnitureEdit';
+import { FurnitureEditContext } from '../application/furnitureEditHooks';
 import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
@@ -31,6 +33,7 @@ export function App({
   onNewGame(): void;
 }) {
   const [selection] = useState(createSelectionStore);
+  const [edit] = useState(createFurnitureEditStore);
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const sceneRef = useRef<HTMLDivElement>(null);
 
@@ -43,35 +46,36 @@ export function App({
 
   useEffect(() => {
     if (!sceneRef.current) return;
-    const game = createOfficeGame(sceneRef.current, engine, selection, frameClock, {
-      occlusionTest,
-    });
+    const presentation = { selection, edit, frameClock };
+    const game = createOfficeGame(sceneRef.current, engine, presentation, { occlusionTest });
     return () => game.destroy(true);
-  }, [engine, selection, frameClock]);
+  }, [engine, selection, edit, frameClock]);
 
   return (
     <EngineContext value={engine}>
       <SelectionContext value={selection}>
-        <div className="app">
-          <div className="scene-area">
-            <div ref={sceneRef} className="scene" />
-            <SelectionPanel />
-            <DayReportDialog />
-          </div>
-          <div className="panel">
-            <div className="panel-header">
-              <DayClock />
-              <SaveIndicator manager={saveManager} />
+        <FurnitureEditContext value={edit}>
+          <div className="app">
+            <div className="scene-area">
+              <div ref={sceneRef} className="scene" />
+              <SelectionPanel />
+              <DayReportDialog />
             </div>
-            <FinanceSummary />
-            <SpeedControls />
-            <DayControls />
-            <div className="panel-actions">
-              <RecruitmentButton />
-              <NewGameButton onConfirm={onNewGame} />
+            <div className="panel">
+              <div className="panel-header">
+                <DayClock />
+                <SaveIndicator manager={saveManager} />
+              </div>
+              <FinanceSummary />
+              <SpeedControls />
+              <DayControls />
+              <div className="panel-actions">
+                <RecruitmentButton />
+                <NewGameButton onConfirm={onNewGame} />
+              </div>
             </div>
           </div>
-        </div>
+        </FurnitureEditContext>
       </SelectionContext>
     </EngineContext>
   );

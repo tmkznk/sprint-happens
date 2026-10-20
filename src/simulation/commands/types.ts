@@ -1,16 +1,37 @@
 import type { BalanceConfig } from '../../domain/config';
-import type { CandidateId } from '../../domain/employees';
+import type { CandidateId, EmployeeId } from '../../domain/employees';
+import type { FurnitureId, Rotation } from '../../domain/furniture';
+import type { GridPoint } from '../../domain/grid';
 import type { GameState, Speed } from '../../domain/state';
 import type { FinanceRejection } from '../finance';
+import type { PlacementRejection } from '../furniture';
 import type { CommandCategory } from './phases';
 
 export type SetSpeedCommand = { type: 'SetSpeed'; speed: Speed };
 export type SettleDayCommand = { type: 'SettleDay' };
 export type StartNextDayCommand = { type: 'StartNextDay' };
 export type HireCandidateCommand = { type: 'HireCandidate'; candidateId: CandidateId };
+export type AssignDeskCommand = {
+  type: 'AssignDesk';
+  employeeId: EmployeeId;
+  deskId: FurnitureId | null;
+};
+export type MoveFurnitureCommand = {
+  type: 'MoveFurniture';
+  furnitureId: FurnitureId;
+  origin: GridPoint;
+  rotation: Rotation;
+};
+export type SellFurnitureCommand = { type: 'SellFurniture'; furnitureId: FurnitureId };
 
 export type Command =
-  SetSpeedCommand | SettleDayCommand | StartNextDayCommand | HireCandidateCommand;
+  | SetSpeedCommand
+  | SettleDayCommand
+  | StartNextDayCommand
+  | HireCandidateCommand
+  | AssignDeskCommand
+  | MoveFurnitureCommand
+  | SellFurnitureCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -21,6 +42,14 @@ export type RejectionCode =
   | 'unknownCandidate'
   // Brak wolnego pola przy wejściu (biuro pełne postaci).
   | 'noRoomToEnter'
+  | 'unknownEmployee'
+  | 'unknownFurniture'
+  | 'notADesk'
+  | 'deskTaken'
+  // OFF-07: edycja mebli wymaga pauzy.
+  | 'notPaused'
+  // OFF-05: niedozwolone ustawienie mebla.
+  | PlacementRejection
   // SH-027: operacje finansowe.
   | FinanceRejection;
 

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import type { FurnitureEdit, FurnitureEditStore } from '../application/furnitureEdit';
 import type { FrameClock } from '../application/gameLoop';
 import type { Selection, SelectionStore } from '../application/selection';
 import type { EmployeeId } from '../domain/employees';
@@ -7,6 +8,9 @@ import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
+import { rotatedSize } from '../world/geometry';
+import { FURNITURE_CATALOG } from '../domain/furniture';
+import { validatePlacement } from '../simulation/furniture';
 import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
@@ -15,6 +19,8 @@ import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
 import { furnitureRect, pickAgent, pickFurniture, prismSilhouette } from './picking';
 import {
   ACTOR_COLOR,
+  EDIT_INVALID_COLOR,
+  EDIT_VALID_COLOR,
   ACTOR_HEIGHT,
   BACK_WALL_HEIGHT,
   DOOR_COLOR,
@@ -27,6 +33,7 @@ import {
   WINDOW_COLOR,
 } from './placeholderStyle';
 import {
+  cellAtScreen,
   cellCenter,
   depthOfFootprint,
   depthOfPoint,
@@ -34,6 +41,13 @@ import {
   interpolate,
   type ScreenPoint,
 } from './projection';
+
+// Stan prezentacji współdzielony z panelami React (T:ARCH-02) — nie jest stanem gry.
+export type Presentation = {
+  selection: SelectionStore;
+  edit: FurnitureEditStore;
+  frameClock: FrameClock;
+};
 
 export type OfficeSceneOptions = {
   // Scena testowa okluzji: postać na stałej trasie i znaczniki punktów interakcji (SH-002).
@@ -48,7 +62,9 @@ const TEST_STEPS_PER_CELL = 4;
 export class OfficeScene extends Phaser.Scene {
   private readonly engine: Engine;
   private readonly selection: SelectionStore;
+  private readonly edit: FurnitureEditStore;
   private readonly frameClock: FrameClock;
+  private renderedEdit: FurnitureEdit | null = null;
   private readonly options: OfficeSceneOptions;
   private readonly agentSprites = new Map<string, AgentSprite>();
   private furnitureGraphics: Phaser.GameObjects.Graphics[] = [];
@@ -59,16 +75,12 @@ export class OfficeScene extends Phaser.Scene {
   private actorStep = 0;
   private actorAccumulatorMs = 0;
 
-  constructor(
-    engine: Engine,
-    selection: SelectionStore,
-    frameClock: FrameClock,
-    options: OfficeSceneOptions,
-  ) {
+  constructor(engine: Engine, presentation: Presentation, options: OfficeSceneOptions) {
     super('office');
     this.engine = engine;
-    this.selection = selection;
-    this.frameClock = frameClock;
+    this.selection = presentation.selection;
+    this.edit = presentation.edit;
+    this.frameClock = presentation.frameClock;
     this.options = options;
   }
 
@@ -78,6 +90,7 @@ export class OfficeScene extends Phaser.Scene {
     this.syncFurniture();
     const unsubscribeEngine = this.engine.subscribe(() => this.syncFurniture());
     const unsubscribeSelection = this.selection.subscribe(() => this.syncFurniture());
+    const unsubscribeEdit = this.edit.subscribe(() => this.syncFurniture());
 
     if (this.options.occlusionTest) this.createTestActor();
 
@@ -94,6 +107,7 @@ export class OfficeScene extends Phaser.Scene {
       cleanedUp = true;
       unsubscribeEngine();
       unsubscribeSelection();
+      unsubscribeEdit();
       detachCamera();
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUp);
@@ -102,6 +116,22 @@ export class OfficeScene extends Phaser.Scene {
 
   // UX-01 (Z): dotknięcie mebla otwiera panel szczegółów; dotknięcie pustego miejsca go zamyka.
   private select(world: ScreenPoint): void {
+    // UX-04: w trybie „Urządź” dotknięcie przestawia podgląd mebla zamiast wybierać obiekty.
+    const edit = this.edit.get();
+    if (edit) {
+      const item = this.engine.getState().world.furniture[edit.furnitureId];
+      if (!item) return;
+      const size = rotatedSize(FURNITURE_CATALOG[item.type].footprint, edit.rotation);
+      const cell = cellAtScreen(world);
+      this.edit.set({
+        ...edit,
+        origin: {
+          x: cell.x - Math.floor((size.width - 1) / 2),
+          y: cell.y - Math.floor((size.height - 1) / 2),
+        },
+      });
+      return;
+    }
     const state = this.engine.getState();
     const agentId = pickAgent(
       world,
@@ -202,11 +232,20 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private syncFurniture(): void {
-    const { furniture: allFurniture } = this.engine.getState().world;
+    const state = this.engine.getState();
+    const { furniture: allFurniture } = state.world;
     const selection = this.selection.get();
-    if (allFurniture === this.renderedFurniture && selection === this.renderedSelection) return;
+    const edit = this.edit.get();
+    if (
+      allFurniture === this.renderedFurniture &&
+      selection === this.renderedSelection &&
+      edit === this.renderedEdit
+    ) {
+      return;
+    }
     this.renderedFurniture = allFurniture;
     this.renderedSelection = selection;
+    this.renderedEdit = edit;
     for (const graphics of this.furnitureGraphics) graphics.destroy();
     this.furnitureGraphics = [];
 
@@ -215,7 +254,9 @@ export class OfficeScene extends Phaser.Scene {
       const style = FURNITURE_STYLE[furniture.type];
       const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
       drawPrism(graphics, rect, style.height, style.color);
-      if (selection?.kind === 'furniture' && selection.id === furniture.id) {
+      // Edytowany mebel zostaje w starym miejscu jako cień — anulowanie przywraca ten stan.
+      if (edit?.furnitureId === furniture.id) graphics.setAlpha(0.3);
+      if (!edit && selection?.kind === 'furniture' && selection.id === furniture.id) {
         graphics.lineStyle(3, SELECTION_COLOR, 1);
         graphics.strokePoints(toVectors(prismSilhouette(rect, style.height)), true);
       }
@@ -230,6 +271,29 @@ export class OfficeScene extends Phaser.Scene {
         this.furnitureGraphics.push(markers);
       }
     }
+    if (edit) this.drawEditPreview(edit);
+  }
+
+  // Podgląd ustawienia: zielony — dozwolone, czerwony — odrzucone (powód pokazuje panel).
+  private drawEditPreview(edit: FurnitureEdit): void {
+    const state = this.engine.getState();
+    const item = state.world.furniture[edit.furnitureId];
+    if (!item) return;
+    const candidate = { ...item, origin: edit.origin, rotation: edit.rotation };
+    const valid = validatePlacement(state, item.id, edit.origin, edit.rotation) === null;
+    const rect = furnitureRect(candidate);
+    const style = FURNITURE_STYLE[item.type];
+    const ghost = this.add
+      .graphics()
+      .setDepth(depthOfFootprint(rect, rect) + 0.02)
+      .setAlpha(0.85);
+    drawPrism(ghost, rect, style.height, valid ? EDIT_VALID_COLOR : EDIT_INVALID_COLOR);
+    const markers = this.add.graphics().setDepth(FLOOR_DEPTH + 1);
+    for (const point of interactionCells(candidate)) {
+      const inset = { x: point.x + 0.3, y: point.y + 0.3, width: 0.4, height: 0.4 };
+      fillPolygon(markers, MARKER_COLOR, rectCorners(inset));
+    }
+    this.furnitureGraphics.push(ghost, markers);
   }
 
   private createTestActor(): void {

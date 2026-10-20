@@ -1,14 +1,11 @@
 import * as Phaser from 'phaser';
-import type { FrameClock } from '../application/gameLoop';
-import type { SelectionStore } from '../application/selection';
 import type { Engine } from '../simulation/engine';
-import { OfficeScene, type OfficeSceneOptions } from './OfficeScene';
+import { OfficeScene, type OfficeSceneOptions, type Presentation } from './OfficeScene';
 
 export function createOfficeGame(
   parent: HTMLElement,
   engine: Engine,
-  selection: SelectionStore,
-  frameClock: FrameClock,
+  presentation: Presentation,
   options: OfficeSceneOptions,
 ): Phaser.Game {
   return new Phaser.Game({
@@ -19,6 +16,6 @@ export function createOfficeGame(
     scale: { mode: Phaser.Scale.RESIZE },
     // Dwa wskaźniki dotykowe dla gestu przybliżania (UX-02).
     input: { activePointers: 2 },
-    scene: [new OfficeScene(engine, selection, frameClock, options)],
+    scene: [new OfficeScene(engine, presentation, options)],
   });
 }
