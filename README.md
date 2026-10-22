@@ -14,19 +14,19 @@ Mobilna gra przeglądarkowa (PWA) o prowadzeniu software house'u. Zatrudniasz ze
 ```bash
 nvm use        # przełącza na Node 24
 npm install
-npm run dev    # serwer deweloperski Vite
+npm run dev    # serwer deweloperski Vite: http://localhost:1234/
 ```
 
 Sceny pomocnicze:
 
-- `http://localhost:5173/?scene=occlusion` — zasłanianie (postać na stałej trasie, punkty interakcji),
-- `http://localhost:5173/?scene=movement` — scenariusze ruchu postaci bez przenikania.
+- `http://localhost:1234/?scene=occlusion` — zasłanianie (postać na stałej trasie, punkty interakcji),
+- `http://localhost:1234/?scene=movement` — scenariusze ruchu postaci bez przenikania.
 
 ## Skrypty
 
 | Komenda                                       | Opis                                                |
 | --------------------------------------------- | --------------------------------------------------- |
-| `npm run dev`                                 | Serwer deweloperski                                 |
+| `npm run dev`                                 | Serwer deweloperski (port 1234)                     |
 | `npm run build`                               | Sprawdzenie typów i build produkcyjny               |
 | `npm run preview`                             | Podgląd buildu produkcyjnego                        |
 | `npm run typecheck`                           | Sprawdzenie typów (aplikacja, silnik, konfiguracja) |

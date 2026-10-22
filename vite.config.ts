@@ -41,6 +41,10 @@ export default defineConfig({
   plugins: [react(), precacheManifest()],
   // Wersja buildu w kopercie zapisu (T:SAVE-T06).
   define: { __APP_VERSION__: JSON.stringify(version) },
+  // Stały port; zajęty port to błąd zamiast cichego przejścia na inny (pomyłki z innymi
+  // projektami na domyślnym 5173).
+  server: { port: 1234, strictPort: true },
+  preview: { port: 1234, strictPort: true },
   build: {
     rolldownOptions: {
       input: { main: 'index.html', sw: 'src/pwa/serviceWorker.ts' },
