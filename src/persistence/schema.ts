@@ -130,6 +130,7 @@ const missionSchema = z.strictObject({
       rescueDeadlineDay: z.int().min(1).nullable(),
     })
     .nullable(),
+  reputation: z.int().min(0).max(100),
 });
 
 const financeSchema = z.strictObject({

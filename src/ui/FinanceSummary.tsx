@@ -10,6 +10,7 @@ export function FinanceSummary() {
   const cash = useGameSelector((state) => state.finance.cash);
   const forecast = useGameSelector((state) => forecastCash(state, config).afterSettlement);
   const rescueDeadline = useGameSelector((state) => state.finance.rescueDeadlineDay);
+  const reputation = useGameSelector((state) => state.mission.reputation);
 
   return (
     <div className="finance-summary">
@@ -19,6 +20,10 @@ export function FinanceSummary() {
       <span title="Saldo po dzisiejszych pensjach i kosztach biura">
         Po rozliczeniu{' '}
         <strong className={forecast < 0 ? 'negative' : undefined}>{money.format(forecast)}</strong>
+      </span>
+      {/* REP-01: jeden wskaźnik 0–100. */}
+      <span>
+        Reputacja <strong>{reputation}</strong>/100
       </span>
       {rescueDeadline !== null && (
         <span className="negative" role="status">

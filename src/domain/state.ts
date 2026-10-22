@@ -46,6 +46,8 @@ export type GameState = DeepReadonly<{
     timeInDayMs: number;
     // Raport rozliczenia bieżącego dnia; w stanie, aby przetrwał zapis (SAVE-T04).
     report: DayReport | null;
+    // REP-01 (Z): jeden wskaźnik 0–100; nie odblokowuje ofert (CON-04).
+    reputation: number;
   };
   finance: Finance;
   contracts: {
@@ -93,6 +95,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       speed: 0,
       timeInDayMs: 0,
       report: null,
+      reputation: config.reputation.initial,
     },
     finance: {
       openingCash: config.mission.startingCash,

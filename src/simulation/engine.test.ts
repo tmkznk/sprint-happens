@@ -17,6 +17,7 @@ describe('createInitialState', () => {
       speed: 0,
       timeInDayMs: 0,
       report: null,
+      reputation: 50,
     });
     expect(state.finance.cash).toBe(1234);
   });

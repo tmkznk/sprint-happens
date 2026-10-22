@@ -39,6 +39,7 @@ describe('cykl dnia (TIME-08)', () => {
       speed: 0,
       timeInDayMs: 0,
       report: null,
+      reputation: 50,
     });
   });
 

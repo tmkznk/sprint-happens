@@ -60,6 +60,18 @@ export type BalanceConfig = DeepReadonly<{
     // PROJ-11, decyzja SH-032 B6 (B): premia PM-a do wydajności całego zespołu projektu.
     pmBonus: WageTable;
   };
+  // REP-01–04, BUG-04, PROJ-10, decyzja SH-032 B7 (B): ocena oddanego projektu.
+  reputation: {
+    initial: number;
+    // Terminowość: premia za oddanie w terminie, kara za każdy rozpoczęty dzień opóźnienia.
+    onTimeBonus: number;
+    latePenaltyPerDay: number;
+    // Jakość = max(0, 1 − gęstość / bugsPer100ForZero); gęstość = błędy na 100 pp zakresu.
+    bugsPer100ForZero: number;
+    // Składnik jakości = round(qualityWeight × (jakość − qualityPivot)).
+    qualityWeight: number;
+    qualityPivot: number;
+  };
   furniture: {
     // FIN-02 (B): cena zakupu wyposażenia (SH-032).
     prices: Record<FurnitureType, number>;
@@ -104,6 +116,14 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     latePenaltyRatio: 0.1,
     designPointsPerImportance: 20,
     pmBonus: { junior: 0.1, mid: 0.15, senior: 0.2 },
+  },
+  reputation: {
+    initial: 50,
+    onTimeBonus: 4,
+    latePenaltyPerDay: 3,
+    bugsPer100ForZero: 5,
+    qualityWeight: 20,
+    qualityPivot: 0.8,
   },
   furniture: {
     prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800 },
