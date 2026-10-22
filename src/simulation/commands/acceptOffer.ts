@@ -23,6 +23,7 @@ export const acceptOffer: CommandHandler<AcceptOfferCommand> = {
       fragments: [],
       fragmentRisk: {},
       priority: 'features',
+      designProgress: 0,
     };
     const paid = recordOperation(
       { ...state, ids: allocated.sequence },

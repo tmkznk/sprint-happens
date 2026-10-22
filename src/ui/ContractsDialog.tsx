@@ -9,7 +9,7 @@ import {
   type ReadonlyProject,
 } from '../domain/contracts';
 import { detectedBugCount, testCoverage } from '../simulation/qa';
-import { progressPercent } from '../simulation/work';
+import { designPercent, pmBonusPermille, progressPercent } from '../simulation/work';
 import { money, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
@@ -102,7 +102,16 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                     <span>{progressPercent(project, s)}%</span>
                   </li>
                 ))}
+                {/* PROJ-10: opcjonalny zakres designu — nie blokuje oddania. */}
+                {project.designScope > 0 && (
+                  <li>
+                    <span>Design</span>
+                    <progress max={100} value={designPercent(project)} />
+                    <span>{designPercent(project)}%</span>
+                  </li>
+                )}
               </ul>
+              <PmBonusLine project={project} />
               <QualityLine project={project} />
               <PrioritySwitch project={project} onMessage={setMessage} />
               <Terms
@@ -195,4 +204,12 @@ function PrioritySwitch({
       ))}
     </div>
   );
+}
+
+// PROJ-11 (Z): premia PM-a widoczna na karcie projektu.
+function PmBonusLine({ project }: { project: ReadonlyProject }) {
+  const config = useBalanceConfig();
+  const bonus = useGameSelector((state) => pmBonusPermille(state, project.id, config));
+  if (bonus === 0) return null;
+  return <p className="hint">Premia PM-a: +{bonus / 10}% wydajności zespołu</p>;
 }

@@ -92,6 +92,7 @@ const contractsSchema = z.strictObject({
       ),
       fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
       priority: z.enum(PROJECT_PRIORITIES),
+      designProgress: z.int().min(0),
     }),
   ),
   deliveredCount: z.int().min(0),
@@ -349,6 +350,10 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     // BUG-05: test fragmentu nie przekracza jego rozmiaru.
     if (project.fragments.some((f) => f.testProgress > fragmentPoints)) {
       issues.push({ path, message: 'Postęp testów ponad rozmiar fragmentu' });
+    }
+    // PROJ-10: design nie przekracza zakresu designu.
+    if (project.designProgress > project.designScope * POINT_SCALE) {
+      issues.push({ path, message: 'Postęp designu ponad zakres' });
     }
     // BUG-06: naprawiać można tylko wykryty błąd i nie ponad stały koszt naprawy.
     const repairPoints = config.bugs.repairPoints * POINT_SCALE;

@@ -66,6 +66,8 @@ export type Project = ContractTerms & {
   // (Σ milionowe pp × ryzyko w promilach) — rozstrzygane przy ukończeniu fragmentu.
   fragmentRisk: Partial<Record<TechSpecialization, number>>;
   priority: ProjectPriority;
+  // PROJ-10 (Z): wykonana praca Designera (milionowe pp), do `designScope`; nie generuje błędów.
+  designProgress: number;
 };
 
 export type ReadonlyProject = DeepReadonly<Project>;

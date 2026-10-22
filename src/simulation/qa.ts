@@ -6,7 +6,7 @@ import { fragmentSize, isDetected, isFixed } from './bugs';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
-import { isAtOwnDesk } from './work';
+import { applyBonus, isAtOwnDesk, pmBonusPermille } from './work';
 
 // BUG-03, BUG-05, PROJ-04 (Z), decyzje SH-004 B2 i SH-032 B6: QA testuje wykonaną pracę.
 // Kolejka projektu to fragmenty w kolejności ukończenia (bez względu na specjalizację).
@@ -49,12 +49,12 @@ export function isTesting(state: GameState, employee: Employee, config: BalanceC
 }
 
 // SH-032 B6: tempo testów na krok w milionowych pp (× energia jak praca — SH-032 B2).
-export function testPerStep(employee: Employee, config: BalanceConfig): number {
+export function testPerStep(employee: Employee, config: BalanceConfig, bonusPermille = 0): number {
   const stepsPerDay = DAY_LENGTH_MS / config.simulation.stepMs;
   const base = Math.floor(
     (config.bugs.testPointsPerDay[employee.seniority] * POINT_SCALE) / stepsPerDay,
   );
-  return Math.floor(base * energyFactor(employee));
+  return applyBonus(Math.floor(base * energyFactor(employee)), bonusPermille);
 }
 
 export function doTesting(state: GameState, config: BalanceConfig): GameState {
@@ -71,10 +71,12 @@ export function doTesting(state: GameState, config: BalanceConfig): GameState {
     if (testers.length === 0) continue;
 
     const progress = project.fragments.map((f) => f.testProgress);
+    // PROJ-11: premia PM-a obejmuje także QA.
+    const bonus = pmBonusPermille(state, projectId, config);
     // Tester k zaczyna od k-tego fragmentu kolejki; kolejne wolne fragmenty — od `nextFree`.
     let nextFree = testers.length;
     testers.forEach((tester, k) => {
-      let amount = testPerStep(tester, config);
+      let amount = testPerStep(tester, config, bonus);
       let index: number | undefined = queue[k];
       while (amount > 0 && index !== undefined) {
         const taken = Math.min(amount, size - (progress[index] ?? 0));

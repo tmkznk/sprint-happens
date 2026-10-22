@@ -57,6 +57,8 @@ export type BalanceConfig = DeepReadonly<{
     latePenaltyRatio: number;
     // PROJ-10, decyzja SH-032 B6 (B): punkty designu na jeden stopień znaczenia.
     designPointsPerImportance: number;
+    // PROJ-11, decyzja SH-032 B6 (B): premia PM-a do wydajności całego zespołu projektu.
+    pmBonus: WageTable;
   };
   furniture: {
     // FIN-02 (B): cena zakupu wyposażenia (SH-032).
@@ -101,6 +103,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     advanceRatio: 0.3,
     latePenaltyRatio: 0.1,
     designPointsPerImportance: 20,
+    pmBonus: { junior: 0.1, mid: 0.15, senior: 0.2 },
   },
   furniture: {
     prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800 },

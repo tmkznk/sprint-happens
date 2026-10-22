@@ -4,7 +4,7 @@ import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { openBugs } from './bugs';
 import { testQueue } from './qa';
-import { isTechSpecialization, remainingPoints } from './work';
+import { isTechSpecialization, remainingDesign, remainingPoints } from './work';
 
 // EMP-07 (Z): interfejs sygnalizuje, dlaczego osoba nie pracuje. Pracownik nie zmienia
 // projektu samodzielnie — to wyłącznie decyzja gracza.
@@ -38,6 +38,8 @@ export function workStatus(
   ) {
     return 'scopeDone';
   }
+  // PROJ-10: Designer kończy po wykonaniu zakresu designu.
+  if (specialization === 'designer' && remainingDesign(project) <= 0) return 'scopeDone';
   if (specialization === 'qa' && testQueue(project, config).length === 0) return 'nothingToTest';
   return 'ready';
 }

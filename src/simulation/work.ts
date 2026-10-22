@@ -45,23 +45,68 @@ export function workPerStep(employee: Employee, config: BalanceConfig): number {
   );
 }
 
-// NEED-01, SH-032 B2: wydajność rzeczywista z uwzględnieniem energii (przy zerze — 0).
-// Premia PM-a (SH-025) dołączy jako kolejny mnożnik.
-export function effectiveWorkPerStep(employee: Employee, config: BalanceConfig): number {
-  return Math.floor(workPerStep(employee, config) * energyFactor(employee));
+// NEED-01, SH-032 B2: wydajność rzeczywista z uwzględnieniem energii (przy zerze — 0)
+// i premii PM-a projektu w promilach (PROJ-11).
+export function effectiveWorkPerStep(
+  employee: Employee,
+  config: BalanceConfig,
+  bonusPermille = 0,
+): number {
+  return applyBonus(
+    Math.floor(workPerStep(employee, config) * energyFactor(employee)),
+    bonusPermille,
+  );
 }
 
-// Zadanie developera w bieżącym kroku: nowa funkcja albo naprawa konkretnego błędu.
-export type WorkTask = { kind: 'feature' } | { kind: 'repair'; fragment: number };
+export function applyBonus(amount: number, bonusPermille: number): number {
+  return Math.floor((amount * (1000 + bonusPermille)) / 1000);
+}
+
+// PROJ-11 (Z): premia wymaga aktywnego przydziału PM-a i przypisanego biurka, nie obecności
+// przy nim — działa na przerwie i przy zerowej energii. Zależy tylko od seniority; drugi PM
+// (niedozwolony poleceniem) nie kumuluje premii — liczy się najwyższa.
+export function pmBonusPermille(
+  state: GameState,
+  projectId: ProjectId,
+  config: BalanceConfig,
+): number {
+  if (state.contracts.projects[projectId]?.status !== 'active') return 0;
+  let best = 0;
+  for (const employee of Object.values(state.staff.employees)) {
+    if (employee.specialization !== 'pm' || employee.projectId !== projectId || !employee.deskId) {
+      continue;
+    }
+    best = Math.max(best, Math.round(config.contracts.pmBonus[employee.seniority] * 1000));
+  }
+  return best;
+}
+
+// PROJ-10 (Z): pozostały zakres designu projektu.
+export function remainingDesign(project: ReadonlyProject): number {
+  return project.designScope * POINT_SCALE - project.designProgress;
+}
+
+// Zadanie w bieżącym kroku: nowa funkcja, naprawa konkretnego błędu, design albo koordynacja PM-a.
+export type WorkTask =
+  | { kind: 'feature' }
+  | { kind: 'repair'; fragment: number }
+  | { kind: 'design' }
+  | { kind: 'coordinate' };
 export type WorkPlan = ReadonlyMap<EmployeeId, WorkTask>;
 
 // Developer gotowy do pracy: przy własnym biurku, z przydziałem do aktywnego projektu, który ma
 // zakres jego roli, nie na przerwie i z energią > 0 (NEED-01: przy zerze praca stoi).
 function isReadyDeveloper(state: GameState, employee: Employee): boolean {
   const { specialization, projectId } = employee;
-  if (!projectId || !isTechSpecialization(specialization) || employee.energy <= 0) return false;
+  if (!projectId || !isTechSpecialization(specialization)) return false;
   const project = state.contracts.projects[projectId];
-  if (project?.status !== 'active' || project.scopes[specialization] === undefined) return false;
+  return project?.scopes[specialization] !== undefined && isPresentAtWork(state, employee);
+}
+
+// Przy własnym biurku, z przydziałem do aktywnego projektu, nie na przerwie, z energią > 0.
+function isPresentAtWork(state: GameState, employee: Employee): boolean {
+  if (!employee.projectId || employee.energy <= 0) return false;
+  if (state.contracts.projects[employee.projectId]?.status !== 'active') return false;
   return isAtOwnDesk(state, employee) && !isOnBreak(state, employee);
 }
 
@@ -77,6 +122,16 @@ export function planWork(state: GameState, config: BalanceConfig): WorkPlan {
     groups.set(key, [...(groups.get(key) ?? []), employee]);
   }
   const plan = new Map<EmployeeId, WorkTask>();
+  for (const employee of Object.values(state.staff.employees)) {
+    const project = employee.projectId ? state.contracts.projects[employee.projectId] : undefined;
+    if (!project || !isPresentAtWork(state, employee)) continue;
+    // PROJ-10: Designer pracuje równolegle, także po ukończeniu techniki — do oddania.
+    if (employee.specialization === 'designer' && remainingDesign(project) > 0) {
+      plan.set(employee.id, { kind: 'design' });
+    }
+    // PROJ-11: PM nie ma własnego zakresu; przy biurku koordynuje (zużywa energię jak praca).
+    if (employee.specialization === 'pm') plan.set(employee.id, { kind: 'coordinate' });
+  }
   for (const [key, members] of groups) {
     const [projectId, specialization] = key.split('|') as [ProjectId, TechSpecialization];
     const project = state.contracts.projects[projectId];
@@ -110,7 +165,11 @@ export function doWork(state: GameState, config: BalanceConfig, plan: WorkPlan):
     const { specialization, projectId } = employee;
     if (!projectId || !isTechSpecialization(specialization)) continue;
     const key = `${projectId}|${specialization}`;
-    const amount = effectiveWorkPerStep(employee, config);
+    const amount = effectiveWorkPerStep(
+      employee,
+      config,
+      pmBonusPermille(state, projectId, config),
+    );
     const current = contributions.get(key) ?? { amount: 0, weightedRisk: 0 };
     contributions.set(key, {
       amount: current.amount + amount,
@@ -173,7 +232,7 @@ export function doRepairs(state: GameState, config: BalanceConfig, plan: WorkPla
     if (task?.kind !== 'repair' || !projectId || !project) continue;
     const specialization = employee.specialization as TechSpecialization;
     const progress = project.fragments.map((f) => f.repairProgress);
-    let amount = effectiveWorkPerStep(employee, config);
+    let amount = effectiveWorkPerStep(employee, config, pmBonusPermille(state, projectId, config));
     let index: number | undefined = task.fragment;
     while (amount > 0 && index !== undefined) {
       const taken = Math.min(amount, cost - (progress[index] ?? 0));
@@ -204,6 +263,40 @@ export function doRepairs(state: GameState, config: BalanceConfig, plan: WorkPla
   };
 }
 
+// PROJ-10, PROJ-11, SH-004 B4: design po naprawach; koordynacja PM-a zużywa jego energię.
+// Kilku Designerów sumuje wydajność do pułapu zakresu — seniority zmienia tempo, nie pułap.
+export function doDesign(state: GameState, config: BalanceConfig, plan: WorkPlan): GameState {
+  let projects = state.contracts.projects;
+  let employees = state.staff.employees;
+  let changed = false;
+  for (const employee of Object.values(state.staff.employees).sort((a, b) =>
+    compareIds(a.id, b.id),
+  )) {
+    const kind = plan.get(employee.id)?.kind;
+    if (kind !== 'design' && kind !== 'coordinate') continue;
+    const projectId = employee.projectId;
+    const project = projectId ? projects[projectId] : undefined;
+    if (!projectId || !project) continue;
+    if (kind === 'design') {
+      const amount = effectiveWorkPerStep(
+        employee,
+        config,
+        pmBonusPermille(state, projectId, config),
+      );
+      const designProgress = project.designProgress + Math.min(amount, remainingDesign(project));
+      projects = { ...projects, [projectId]: { ...project, designProgress } };
+    }
+    employees = { ...employees, [employee.id]: drainEnergy(employee, config) };
+    changed = true;
+  }
+  if (!changed) return state;
+  return {
+    ...state,
+    staff: { ...state.staff, employees },
+    contracts: { ...state.contracts, projects },
+  };
+}
+
 function compareContributionKeys(a: string, b: string): number {
   const [projectA = '', specA = ''] = a.split('|');
   const [projectB = '', specB = ''] = b.split('|');
@@ -214,7 +307,7 @@ function compareContributionKeys(a: string, b: string): number {
   );
 }
 
-// Praca aktywna developera (funkcja albo naprawa) w bieżącym stanie.
+// Praca aktywna (funkcja, naprawa, design, koordynacja) w bieżącym stanie.
 export function isWorking(state: GameState, employee: Employee, config: BalanceConfig): boolean {
   return planWork(state, config).has(employee.id);
 }
@@ -227,4 +320,10 @@ export function progressPercent(
   const scope = project.scopes[specialization];
   if (!scope) return 0;
   return Math.floor(((project.progress[specialization] ?? 0) * 100) / (scope * POINT_SCALE));
+}
+
+// PROJ-10: procent ukończenia designu (w dół).
+export function designPercent(project: ReadonlyProject): number {
+  if (project.designScope === 0) return 0;
+  return Math.floor((project.designProgress * 100) / (project.designScope * POINT_SCALE));
 }

@@ -38,6 +38,7 @@ function emptyProject(scope: number): Project {
     fragments: [],
     fragmentRisk: {},
     priority: 'features',
+    designProgress: 0,
   };
 }
 

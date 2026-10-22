@@ -285,6 +285,15 @@ describe('fragmenty i ukryte błędy w zapisie (SH-022)', () => {
     repairedHidden.state.contracts.projects['project-1'].fragments[0].repairProgress = 1;
     const hidden = parseSnapshot(JSON.stringify(repairedHidden), context);
     expect(hidden.ok ? '' : hidden.error.issues.join('\n')).toContain('Naprawa niewykrytego');
+
+    // PROJ-10: design ponad zakres jest niespójny.
+    const overDesigned = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    const saved = overDesigned.state.contracts.projects['project-1'];
+    saved.designProgress = saved.designScope * POINT_SCALE + 1;
+    const design = parseSnapshot(JSON.stringify(overDesigned), context);
+    expect(design.ok ? '' : design.error.issues.join('\n')).toContain('Postęp designu');
   });
 });
 
