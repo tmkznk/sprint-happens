@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "gameBuildVersion": "0.0.1",
+  "revision": 3,
+  "savedAt": "2026-10-01T12:00:00.000Z",
+  "state": {
+    "mission": {
+      "status": "active",
+      "day": 1,
+      "phase": "working",
+      "speed": 1,
+      "timeInDayMs": 20000,
+      "report": null,
+      "reputation": 50
+    },
+    "finance": {
+      "openingCash": 15000,
+      "cash": 17100,
+      "ledger": [
+        {
+          "key": "advance:project-1",
+          "day": 1,
+          "kind": "advance",
+          "amount": 2100,
+          "ref": "project-1"
+        }
+      ],
+      "wagesDueToday": {
+        "employee-1": 300
+      },
+      "rescueDeadlineDay": null
+    },
+    "contracts": {
+      "offers": [
+        {
+          "id": "offer-2",
+          "templateId": "dog-blockchain",
+          "name": "Landing page startupu „AI na blockchainie dla psów”",
+          "description": "Inwestorzy przychodzą w czwartek. Produktu jeszcze nie ma, ale strona ma wyglądać, jakby był od dawna.",
+          "scopes": {
+            "frontend": 80
+          },
+          "designImportance": 4,
+          "designScope": 80,
+          "deadlineDays": 3,
+          "reward": 7500,
+          "advance": 2250,
+          "latePenaltyPerDay": 750
+        },
+        {
+          "id": "offer-3",
+          "templateId": "contact-form",
+          "name": "Formularz kontaktowy, który „ma po prostu działać”",
+          "description": "Trzy pola, jeden przycisk i dwanaście integracji, o których klient przypomni sobie w trakcie.",
+          "scopes": {
+            "frontend": 40,
+            "backend": 60
+          },
+          "designImportance": 0,
+          "designScope": 0,
+          "deadlineDays": 3,
+          "reward": 7000,
+          "advance": 2100,
+          "latePenaltyPerDay": 700
+        }
+      ],
+      "projects": {
+        "project-1": {
+          "id": "project-1",
+          "templateId": "turbo-zenek",
+          "name": "Strona-wizytówka dla mechanika „Turbo-Zenek”",
+          "description": "Zenek chce „coś jak u konkurencji, tylko lepiej”. Logo przyśle faksem. Godziny otwarcia: „jak przyjadę”.",
+          "scopes": {
+            "frontend": 60,
+            "backend": 40
+          },
+          "designImportance": 1,
+          "designScope": 20,
+          "deadlineDays": 3,
+          "reward": 7000,
+          "advance": 2100,
+          "latePenaltyPerDay": 700,
+          "acceptedOnDay": 1,
+          "deadlineDay": 4,
+          "status": "active",
+          "progress": {
+            "frontend": 0,
+            "backend": 0
+          },
+          "fragments": [],
+          "fragmentRisk": {},
+          "designProgress": 0,
+          "delivery": null
+        }
+      },
+      "deliveredCount": 0
+    },
+    "staff": {
+      "employees": {
+        "employee-1": {
+          "id": "employee-1",
+          "name": "Szymon Refaktor",
+          "specialization": "frontend",
+          "seniority": "junior",
+          "dailyWage": 300,
+          "hiredOnDay": 1,
+          "deskId": "furniture-1",
+          "projectId": null,
+          "energy": 100000
+        }
+      },
+      "candidates": [
+        {
+          "id": "candidate-22",
+          "name": "Jacek Stackowski",
+          "specialization": "frontend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-2",
+          "name": "Nikodem Refaktor",
+          "specialization": "frontend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-3",
+          "name": "Kasia Pushowski",
+          "specialization": "frontend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-4",
+          "name": "Hubert Deployer",
+          "specialization": "backend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-5",
+          "name": "Jacek Refaktor",
+          "specialization": "backend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-6",
+          "name": "Nikodem Sprintowska",
+          "specialization": "backend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-7",
+          "name": "Kasia Commitowski",
+          "specialization": "mobile",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-8",
+          "name": "Jacek Kodowska",
+          "specialization": "mobile",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-9",
+          "name": "Wiktor Deployer",
+          "specialization": "mobile",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-10",
+          "name": "Ada Mergowska",
+          "specialization": "devops",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-11",
+          "name": "Zuza Tasiemiec",
+          "specialization": "devops",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-12",
+          "name": "Filip Tasiemiec",
+          "specialization": "devops",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-13",
+          "name": "Ada Hotfixowski",
+          "specialization": "qa",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-14",
+          "name": "Hubert Lintowski",
+          "specialization": "qa",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-15",
+          "name": "Hubert Sprintowska",
+          "specialization": "qa",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-16",
+          "name": "Bartek Pushowski",
+          "specialization": "designer",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-17",
+          "name": "Nikodem Sprintowska",
+          "specialization": "designer",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-18",
+          "name": "Gosia Deployer",
+          "specialization": "designer",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-19",
+          "name": "Filip Hotfixowski",
+          "specialization": "pm",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-20",
+          "name": "Ola Mergowska",
+          "specialization": "pm",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-21",
+          "name": "Jacek Refaktor",
+          "specialization": "pm",
+          "seniority": "senior",
+          "dailyWage": 800
+        }
+      ]
+    },
+    "world": {
+      "furniture": {
+        "furniture-1": {
+          "type": "desk",
+          "origin": {
+            "x": 2,
+            "y": 2
+          },
+          "rotation": 0,
+          "id": "furniture-1"
+        },
+        "furniture-2": {
+          "type": "desk",
+          "origin": {
+            "x": 6,
+            "y": 2
+          },
+          "rotation": 0,
+          "id": "furniture-2"
+        },
+        "furniture-3": {
+          "type": "sofa",
+          "origin": {
+            "x": 13,
+            "y": 9
+          },
+          "rotation": 0,
+          "id": "furniture-3"
+        },
+        "furniture-4": {
+          "type": "coffeeMachine",
+          "origin": {
+            "x": 17,
+            "y": 8
+          },
+          "rotation": 0,
+          "id": "furniture-4"
+        }
+      },
+      "movement": {
+        "step": 200,
+        "agents": [
+          {
+            "id": "employee-1",
+            "cell": {
+              "x": 3,
+              "y": 4
+            },
+            "move": null,
+            "tasks": [
+              {
+                "kind": "goTo",
+                "cell": {
+                  "x": 3,
+                  "y": 4
+                }
+              }
+            ],
+            "reservedDestination": null,
+            "queuedSince": null,
+            "usedSteps": 0,
+            "path": [],
+            "status": "arrived",
+            "waitedSteps": 0,
+            "yieldingTo": null,
+            "yieldHeldSteps": 0
+          }
+        ],
+        "reservations": {}
+      }
+    },
+    "ids": {
+      "furniture": 4,
+      "candidate": 22,
+      "offer": 3,
+      "project": 1,
+      "employee": 1
+    },
+    "rng": 2647650798
+  }
+}

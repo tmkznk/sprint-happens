@@ -171,7 +171,63 @@ describe('loadGame', () => {
 
     const result = await loadGame(memory.store, context);
 
-    expect(result).toMatchObject({ kind: 'error', error: { code: 'invalidJson' } });
+    expect(result).toMatchObject({ kind: 'error', error: { code: 'invalidJson' }, backup: null });
     expect(memory.saves.current).toBe('{zepsute');
+  });
+});
+
+describe('kopia awaryjna i odzyskiwanie (SH-039, SH-004 A6)', () => {
+  async function savedTwice() {
+    const { engine, memory, manager } = setup();
+    await manager.save();
+    engine.dispatch({ type: 'SetSpeed', speed: 2 });
+    await manager.save();
+    return { engine, memory };
+  }
+
+  it('uszkodzony bieżący zapis + poprawna kopia → błąd z kopią do wyboru, bez automatu', async () => {
+    const { memory } = await savedTwice();
+    const backupText = memory.saves.previous;
+    memory.saves.current = '{zepsute';
+
+    const result = await loadGame(memory.store, context);
+    if (result.kind !== 'error') throw new Error('oczekiwano błędu');
+    expect(result.error.code).toBe('invalidJson');
+    expect(result.backup).toMatchObject({ day: 1, savedAt: '2026-10-20T10:00:00.000Z' });
+    expect(result.backup?.state.mission.speed).toBe(0);
+    expect(memory.saves).toEqual({ current: '{zepsute', previous: backupText });
+  });
+
+  it('zapis z nowszej wersji: brak kopii do wczytania i brak nadpisania (A6b)', async () => {
+    const { memory } = await savedTwice();
+    const newer = JSON.stringify({ ...JSON.parse(memory.saves.current ?? ''), schemaVersion: 99 });
+    memory.saves.current = newer;
+    const result = await loadGame(memory.store, context);
+    expect(result).toMatchObject({ kind: 'error', error: { code: 'newerVersion' }, backup: null });
+    expect(memory.saves.current).toBe(newer);
+  });
+
+  it('gra z kopii: pierwszy zapis zastępuje uszkodzony bez niszczenia kopii, kolejne rotują', async () => {
+    const { memory } = await savedTwice();
+    const backupText = memory.saves.previous;
+    memory.saves.current = '{zepsute';
+    const result = await loadGame(memory.store, context);
+    if (result.kind !== 'error' || !result.backup) throw new Error('oczekiwano kopii');
+
+    const engine = testEngine();
+    const manager = createSaveManager({
+      engine: { ...engine, getState: () => result.backup?.state ?? engine.getState() } as never,
+      store: memory.store,
+      context,
+      buildVersion: '1.2.3',
+      storedRevision: result.revision,
+      savedState: null,
+      keepPreviousOnFirstWrite: true,
+      now: () => '2026-10-21T10:00:00.000Z',
+    });
+    await manager.save();
+    expect(manager.getStatus()).toMatchObject({ kind: 'saved' });
+    expect(memory.saves.previous).toBe(backupText);
+    expect(parseSnapshot(memory.saves.current ?? '', context).ok).toBe(true);
   });
 });

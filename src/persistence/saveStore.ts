@@ -13,7 +13,13 @@ export type SaveStore = {
   read(): Promise<StoredSaves>;
   // W jednej transakcji: sprawdzenie rewizji bieżącego zapisu, previous ← current, current ← json.
   // `expectedRevision` to rewizja ostatniego zapisu znanego wywołującemu (null — brak zapisu).
-  write(json: string, expectedRevision: number | null): Promise<WriteResult>;
+  // `keepPrevious` — bieżący zapis jest uszkodzony lub zastępowany po odzyskaniu: nie przesuwamy
+  // go do kopii, aby nie zniszczyć ostatniej poprawnej kopii awaryjnej (SAVE-T01, SH-039).
+  write(
+    json: string,
+    expectedRevision: number | null,
+    options?: { keepPrevious?: boolean },
+  ): Promise<WriteResult>;
 };
 
 // Rewizja bez pełnej walidacji — wystarczy do kontroli konfliktu zapisu.
@@ -59,7 +65,7 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
       });
     },
 
-    async write(json, expectedRevision) {
+    async write(json, expectedRevision, options) {
       let db: IDBDatabase;
       try {
         db = await open();
@@ -89,7 +95,7 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
             transaction.abort();
             return;
           }
-          if (current !== null) store.put(current, PREVIOUS);
+          if (current !== null && !options?.keepPrevious) store.put(current, PREVIOUS);
           store.put(json, CURRENT);
         };
         transaction.oncomplete = () => resolve({ ok: true });
@@ -105,7 +111,7 @@ export function createMemorySaveStore(initial: StoredSaves = { current: null, pr
   let failNext: string | null = null;
   const store: SaveStore = {
     read: () => Promise.resolve({ ...saves }),
-    write(json, expectedRevision) {
+    write(json, expectedRevision, options) {
       if (failNext !== null) {
         const message = failNext;
         failNext = null;
@@ -119,7 +125,7 @@ export function createMemorySaveStore(initial: StoredSaves = { current: null, pr
           message: `Zapis ma rewizję ${String(stored)}, oczekiwano ${String(expectedRevision)}`,
         });
       }
-      saves.previous = saves.current;
+      if (!options?.keepPrevious) saves.previous = saves.current;
       saves.current = json;
       return Promise.resolve({ ok: true });
     },

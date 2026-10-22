@@ -12,6 +12,14 @@ describe.each([
     expect(await create().read()).toEqual({ current: null, previous: null });
   });
 
+  it('keepPrevious: uszkodzony bieżący zapis nie niszczy poprawnej kopii (SH-039)', async () => {
+    const store = create();
+    await store.write(save(1), null);
+    await store.write(save(2), 1);
+    expect(await store.write(save(3), 2, { keepPrevious: true })).toEqual({ ok: true });
+    expect(await store.read()).toEqual({ current: save(3), previous: save(1) });
+  });
+
   it('kolejny zapis przenosi bieżący do kopii awaryjnej (B6)', async () => {
     const store = create();
     expect(await store.write(save(1), null)).toEqual({ ok: true });

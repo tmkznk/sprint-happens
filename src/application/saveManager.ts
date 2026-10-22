@@ -33,6 +33,9 @@ export type SaveManagerOptions = {
   storedRevision: number | null;
   // Stan odpowiadający zapisowi w magazynie — pozwala pominąć zbędny zapis.
   savedState: GameState | null;
+  // SH-039: zapis w magazynie jest uszkodzony (gra z kopii lub nowa misja po potwierdzeniu) —
+  // pierwszy zapis nie przesuwa go do kopii awaryjnej, aby jej nie zniszczyć.
+  keepPreviousOnFirstWrite?: boolean;
   now(): string;
 };
 
@@ -40,6 +43,7 @@ export function createSaveManager(options: SaveManagerOptions): SaveManager {
   const { engine, store, context } = options;
   let revision = options.storedRevision;
   let lastSaved = options.savedState;
+  let keepPrevious = options.keepPreviousOnFirstWrite ?? false;
   let status: SaveStatus = { kind: 'idle' };
   let running: Promise<void> | null = null;
   let again = false;
@@ -68,8 +72,9 @@ export function createSaveManager(options: SaveManagerOptions): SaveManager {
       return;
     }
     setStatus({ kind: 'saving' });
-    const result = await store.write(serialized.json, revision);
+    const result = await store.write(serialized.json, revision, { keepPrevious });
     if (result.ok) {
+      keepPrevious = false;
       revision = nextRevision;
       lastSaved = state;
       setStatus({ kind: 'saved', revision });
@@ -145,24 +150,43 @@ export function attachAutosave(
   };
 }
 
+// Poprawna kopia awaryjna gotowa do wczytania na ekranie odzyskiwania.
+export type Backup = { state: GameState; day: number; savedAt: string };
+
 export type LoadResult =
   | { kind: 'empty' }
-  | { kind: 'loaded'; state: GameState; savedState: GameState; revision: number | null }
-  | { kind: 'error'; error: SnapshotError; revision: number | null };
+  // `savedState` null — stan zmigrowany w pamięci; pierwszy zapis utrwali nowy format,
+  // a oryginał trafi do kopii awaryjnej (SAVE-T05).
+  | { kind: 'loaded'; state: GameState; savedState: GameState | null; revision: number | null }
+  // `backup` — poprawna kopia; null, gdy jej brak albo zapis jest z nowszej wersji (A6b).
+  | { kind: 'error'; error: SnapshotError; revision: number | null; backup: Backup | null };
 
 // SAVE-03 (Z): wznowienie w zapisanym momencie, na pauzie, bez nadrabiania czasu poza grą.
+// T:SAVE-T05, decyzja SH-004 A6: uszkodzony zapis nigdy nie uruchamia nowej misji ani kopii
+// automatycznie — wynik opisuje błąd i dostępną kopię, a decyzję podejmuje gracz.
 export async function loadGame(store: SaveStore, context: ValidationContext): Promise<LoadResult> {
-  const { current } = await store.read();
+  const { current, previous } = await store.read();
   if (current === null) return { kind: 'empty' };
   const parsed = parseSnapshot(current, context);
-  if (!parsed.ok) return { kind: 'error', error: parsed.error, revision: revisionOf(current) };
+  if (!parsed.ok) {
+    const backup = parsed.error.code === 'newerVersion' ? null : readBackup(previous, context);
+    return { kind: 'error', error: parsed.error, revision: revisionOf(current), backup };
+  }
   const savedState = parsed.envelope.state;
   return {
     kind: 'loaded',
     state: pausedForResume(savedState),
-    savedState,
+    savedState: parsed.migratedFrom === null ? savedState : null,
     revision: parsed.envelope.revision,
   };
+}
+
+function readBackup(previous: string | null, context: ValidationContext): Backup | null {
+  if (previous === null) return null;
+  const parsed = parseSnapshot(previous, context);
+  if (!parsed.ok) return null;
+  const { state, savedAt } = parsed.envelope;
+  return { state: pausedForResume(state), day: state.mission.day, savedAt };
 }
 
 export function pausedForResume(state: GameState): GameState {

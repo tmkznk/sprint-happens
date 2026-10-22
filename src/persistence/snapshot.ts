@@ -3,8 +3,20 @@ import type { GameState } from '../domain/state';
 import { gameStateSchema, type ValidationContext } from './schema';
 
 // T:SAVE-T05, SAVE-T06 — wersja formatu zapisu. Zmiana kształtu stanu wymaga podniesienia
-// wersji i migracji (SH-039).
+// wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039). Do pierwszego
+// wydania format pozostaje w wersji 1 (zapisy deweloperskie mogą przestać się wczytywać).
 export const SCHEMA_VERSION = 1;
+
+// T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
+// i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
+export type Migration = (state: unknown) => unknown;
+
+// Klucz — wersja źródłowa. Pusty do pierwszego wydania.
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+
+export type FormatOptions = { version: number; migrations: Readonly<Record<number, Migration>> };
+
+const CURRENT_FORMAT: FormatOptions = { version: SCHEMA_VERSION, migrations: MIGRATIONS };
 
 // T:SAVE-T06 (decyzja SH-004 B7): koperta zapisu.
 export type SaveEnvelope = {
@@ -24,14 +36,19 @@ export type SnapshotErrorCode =
   | 'invalidEnvelope'
   // SH-004 A6b: zapis z nowszej wersji gry — nie wczytywać i nie nadpisywać.
   | 'newerVersion'
-  // Starszy format wymaga migracji (SH-039).
+  // Starszy format bez ścieżki migracji do bieżącej wersji.
   | 'needsMigration'
+  // Migracja zgłosiła błąd albo jej wynik nie przeszedł walidacji — oryginał pozostaje nietknięty.
+  | 'migrationFailed'
   | 'invalidState';
 
 export type SnapshotError = { code: SnapshotErrorCode; issues: string[] };
 
 export type ParseResult =
-  { ok: true; envelope: SaveEnvelope } | { ok: false; error: SnapshotError };
+  // `migratedFrom` — wersja źródłowa, gdy zapis zmigrowano w pamięci (zapis w magazynie bez zmian
+  // do pierwszego udanego zapisu, który przesunie oryginał do kopii awaryjnej).
+  | { ok: true; envelope: SaveEnvelope; migratedFrom: number | null }
+  | { ok: false; error: SnapshotError };
 
 export type SerializeResult = { ok: true; json: string } | { ok: false; error: SnapshotError };
 
@@ -57,7 +74,11 @@ export function serializeSnapshot(
   return check.ok ? { ok: true, json } : check;
 }
 
-export function parseSnapshot(json: string, context: ValidationContext): ParseResult {
+export function parseSnapshot(
+  json: string,
+  context: ValidationContext,
+  format: FormatOptions = CURRENT_FORMAT,
+): ParseResult {
   let raw: unknown;
   try {
     raw = JSON.parse(json);
@@ -69,17 +90,40 @@ export function parseSnapshot(json: string, context: ValidationContext): ParseRe
   if (!envelope.success) return failure('invalidEnvelope', describe(envelope.error));
 
   const { schemaVersion } = envelope.data;
-  if (schemaVersion > SCHEMA_VERSION) {
-    return failure('newerVersion', [`Format ${schemaVersion}, obsługiwany ${SCHEMA_VERSION}`]);
-  }
-  if (schemaVersion < SCHEMA_VERSION) {
-    return failure('needsMigration', [`Format ${schemaVersion}, wymagany ${SCHEMA_VERSION}`]);
+  if (schemaVersion > format.version) {
+    return failure('newerVersion', [`Format ${schemaVersion}, obsługiwany ${format.version}`]);
   }
 
-  const state = gameStateSchema(context).safeParse(envelope.data.state);
-  if (!state.success) return failure('invalidState', describe(state.error));
+  let data: unknown = envelope.data.state;
+  if (schemaVersion < format.version) {
+    // Migracja na kopii w pamięci (SAVE-T05): oryginalny tekst zapisu nie jest modyfikowany.
+    data = structuredClone(data);
+    for (let version = schemaVersion; version < format.version; version++) {
+      const migrate = format.migrations[version];
+      if (!migrate) {
+        return failure('needsMigration', [`Brak migracji z formatu ${version} do ${version + 1}`]);
+      }
+      try {
+        data = migrate(data);
+      } catch (error) {
+        return failure('migrationFailed', [
+          `Migracja ${version} → ${version + 1}: ${String(error)}`,
+        ]);
+      }
+    }
+  }
 
-  return { ok: true, envelope: { ...envelope.data, state: state.data as GameState } };
+  const state = gameStateSchema(context).safeParse(data);
+  if (!state.success) {
+    const code = schemaVersion < format.version ? 'migrationFailed' : 'invalidState';
+    return failure(code, describe(state.error));
+  }
+
+  return {
+    ok: true,
+    envelope: { ...envelope.data, schemaVersion: format.version, state: state.data as GameState },
+    migratedFrom: schemaVersion < format.version ? schemaVersion : null,
+  };
 }
 
 function failure(code: SnapshotErrorCode, issues: string[]): ParseResult {

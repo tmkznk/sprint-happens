@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createSaveManager, loadGame, type SaveManager } from '../application/saveManager';
+import {
+  createSaveManager,
+  loadGame,
+  type Backup,
+  type SaveManager,
+} from '../application/saveManager';
 import {
   createBrowserTabEnvironment,
   createTabCoordinator,
@@ -22,7 +27,7 @@ type Session = { id: number; engine: Engine; manager: SaveManager };
 type View =
   | { kind: 'starting' }
   | { kind: 'otherTab' }
-  | { kind: 'loadError'; error: SnapshotError }
+  | { kind: 'loadError'; error: SnapshotError; revision: number | null; backup: Backup | null }
   | { kind: 'playing'; session: Session }
   | { kind: 'yielded' };
 
@@ -59,7 +64,7 @@ function randomSeed(): number {
 function createSession(
   store: SaveStore,
   state: GameState,
-  saved: { revision: number | null; state: GameState | null },
+  saved: { revision: number | null; state: GameState | null; keepPrevious?: boolean },
 ): Session {
   const engine = createEngine({ config: DEFAULT_BALANCE, initialState: state });
   const manager = createSaveManager({
@@ -69,6 +74,7 @@ function createSession(
     buildVersion: __APP_VERSION__,
     storedRevision: saved.revision,
     savedState: saved.state,
+    keepPreviousOnFirstWrite: saved.keepPrevious ?? false,
     now: () => new Date().toISOString(),
   });
   return { id: Date.now(), engine, manager };
@@ -89,7 +95,12 @@ export function GameRoot() {
   const startSession = useCallback(async () => {
     const result = await loadGame(store, CONTEXT);
     if (result.kind === 'error') {
-      setView({ kind: 'loadError', error: result.error });
+      setView({
+        kind: 'loadError',
+        error: result.error,
+        revision: result.revision,
+        backup: result.backup,
+      });
       return;
     }
     if (result.kind === 'loaded') {
@@ -107,15 +118,36 @@ export function GameRoot() {
   }, [store, play]);
 
   // SAVE-04: nowa misja zastępuje zapis — wywoływana dopiero po potwierdzeniu gracza.
-  const startNewMission = useCallback(async () => {
-    const { current } = await store.read();
-    const session = createSession(store, createInitialState(DEFAULT_BALANCE, randomSeed()), {
-      revision: revisionOf(current),
-      state: null,
-    });
-    play(session);
-    await session.manager.save();
-  }, [store, play]);
+  // `keepPrevious` — bieżący zapis jest uszkodzony: nie przesuwamy go nad poprawną kopię (SH-039).
+  const startNewMission = useCallback(
+    async (keepPrevious = false) => {
+      const { current } = await store.read();
+      const session = createSession(store, createInitialState(DEFAULT_BALANCE, randomSeed()), {
+        revision: revisionOf(current),
+        state: null,
+        keepPrevious,
+      });
+      play(session);
+      await session.manager.save();
+    },
+    [store, play],
+  );
+
+  // Decyzja SH-004 A6a: gra z poprawnej kopii awaryjnej — tylko na wyraźny wybór gracza.
+  // Uszkodzony bieżący zapis zostanie zastąpiony, a kopia zachowana do pierwszego zapisu.
+  const loadBackup = useCallback(
+    (backup: Backup, revision: number | null) => {
+      const session = createSession(store, backup.state, {
+        revision,
+        state: null,
+        keepPrevious: true,
+      });
+      play(session);
+      // Od razu zastępujemy uszkodzony bieżący zapis wczytaną kopią (kopia zostaje w `previous`).
+      void session.manager.save();
+    },
+    [store, play],
+  );
 
   useEffect(() => {
     let active = true;
@@ -180,7 +212,14 @@ export function GameRoot() {
         />
       );
     case 'loadError':
-      return <LoadErrorScreen error={view.error} onNewMission={() => void startNewMission()} />;
+      return (
+        <LoadErrorScreen
+          error={view.error}
+          backup={view.backup}
+          onLoadBackup={(backup) => loadBackup(backup, view.revision)}
+          onNewMission={() => void startNewMission(view.error.code !== 'newerVersion')}
+        />
+      );
     case 'playing':
       return (
         <App
@@ -198,24 +237,59 @@ const LOAD_ERROR_MESSAGES: Record<SnapshotError['code'], string> = {
   invalidEnvelope: 'Zapis gry jest uszkodzony.',
   invalidState: 'Zapis gry jest uszkodzony lub niespójny.',
   newerVersion: 'Zapis pochodzi z nowszej wersji gry. Zaktualizuj grę, aby go wczytać.',
-  needsMigration: 'Zapis pochodzi ze starszej wersji gry i wymaga aktualizacji formatu.',
+  needsMigration: 'Zapis pochodzi ze starszej wersji gry, której ta wersja nie potrafi przenieść.',
+  migrationFailed:
+    'Nie udało się przenieść zapisu ze starszej wersji gry. Oryginalny zapis pozostał nietknięty.',
 };
 
-// T:SAVE-T05 — błąd odczytu nie usuwa misji i nie rozpoczyna nowej bez zgody gracza.
-// Odzyskiwanie z kopii awaryjnej i migracje — SH-039.
-function LoadErrorScreen({ error, onNewMission }: { error: SnapshotError; onNewMission(): void }) {
+const savedAtFormat = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+
+function backupLabel(backup: Backup): string {
+  const date = new Date(backup.savedAt);
+  const when = Number.isNaN(date.getTime()) ? backup.savedAt : savedAtFormat.format(date);
+  return `Wczytaj kopię z ${when}, dzień misji ${backup.day}`;
+}
+
+// T:SAVE-T05, decyzja SH-004 A6: błąd odczytu nie usuwa misji i nie rozpoczyna nowej ani nie
+// wczytuje kopii bez decyzji gracza. Zapis z nowszej wersji nie jest ani wczytywany, ani
+// nadpisywany — nowa misja tylko po potwierdzeniu zastąpienia (A6b).
+function LoadErrorScreen({
+  error,
+  backup,
+  onLoadBackup,
+  onNewMission,
+}: {
+  error: SnapshotError;
+  backup: Backup | null;
+  onLoadBackup(backup: Backup): void;
+  onNewMission(): void;
+}) {
   const [asking, setAsking] = useState(false);
+  const message = backup
+    ? `${LOAD_ERROR_MESSAGES[error.code]} Dostępna jest poprzednia poprawna kopia gry.`
+    : LOAD_ERROR_MESSAGES[error.code];
   return (
     <>
-      <Screen
-        title="Nie można wczytać gry"
-        message={LOAD_ERROR_MESSAGES[error.code]}
-        action={{ label: 'Rozpocznij nową misję', onClick: () => setAsking(true) }}
-      />
+      <main className="screen">
+        <h1>Nie można wczytać gry</h1>
+        <p>{message}</p>
+        {backup && (
+          <button type="button" onClick={() => onLoadBackup(backup)}>
+            {backupLabel(backup)}
+          </button>
+        )}
+        <button type="button" className="secondary-button" onClick={() => setAsking(true)}>
+          Rozpocznij nową misję
+        </button>
+      </main>
       {asking && (
         <ConfirmDialog
           title="Rozpocząć nową misję?"
-          message="Istniejący zapis zostanie zastąpiony i nie będzie można go odzyskać."
+          message={
+            backup
+              ? 'Uszkodzony zapis zostanie zastąpiony nową misją. Kopia z poprzedniej gry przepadnie przy kolejnych zapisach.'
+              : 'Istniejący zapis zostanie zastąpiony i nie będzie można go odzyskać.'
+          }
           confirmLabel="Nowa misja"
           onCancel={() => setAsking(false)}
           onConfirm={onNewMission}
