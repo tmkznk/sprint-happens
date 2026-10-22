@@ -2,13 +2,15 @@ import type { BalanceConfig } from '../domain/config';
 import {
   POINT_SCALE,
   TECH_SPECIALIZATIONS,
-  type Project,
+  type ReadonlyProject,
   type TechSpecialization,
 } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { interactionCells } from '../world/geometry';
+import { addWork, riskPermille } from './bugs';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
+import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
 
 // PROJ-09 (Z): praca aktywna — osoba siedzi w punkcie korzystania z własnego biurka (nie w ruchu),
@@ -25,7 +27,10 @@ export function isTechSpecialization(value: string): value is TechSpecialization
   return (TECH_SPECIALIZATIONS as readonly string[]).includes(value);
 }
 
-export function remainingPoints(project: Project, specialization: TechSpecialization): number {
+export function remainingPoints(
+  project: ReadonlyProject,
+  specialization: TechSpecialization,
+): number {
   const scope = project.scopes[specialization];
   if (scope === undefined) return 0;
   return scope * POINT_SCALE - (project.progress[specialization] ?? 0);
@@ -48,41 +53,65 @@ export function effectiveWorkPerStep(employee: Employee, config: BalanceConfig):
 // PROJ-02, EMP-06 (Z): specjalizacje pracują równolegle i bez zależności ticketów; wydajność
 // kilku osób tej samej roli sumuje się, ale nie przekracza zakresu.
 export function doWork(state: GameState, config: BalanceConfig): GameState {
-  const contributions = new Map<string, number>();
+  // Suma wydajności i ryzyka ważonego wydajnością dla każdej pary projekt × specjalizacja.
+  const contributions = new Map<string, { amount: number; weightedRisk: number }>();
   const employees = { ...state.staff.employees };
   for (const employee of Object.values(state.staff.employees)) {
     if (!isWorking(state, employee)) continue;
     const { specialization, projectId } = employee;
     if (!projectId || !isTechSpecialization(specialization)) continue;
     const key = `${projectId}|${specialization}`;
-    contributions.set(key, (contributions.get(key) ?? 0) + effectiveWorkPerStep(employee, config));
+    const amount = effectiveWorkPerStep(employee, config);
+    const current = contributions.get(key) ?? { amount: 0, weightedRisk: 0 };
+    contributions.set(key, {
+      amount: current.amount + amount,
+      weightedRisk: current.weightedRisk + amount * riskPermille(employee, config),
+    });
     // NEED-01: energia maleje wyłącznie podczas faktycznej pracy.
     employees[employee.id] = drainEnergy(employee, config);
   }
   if (contributions.size === 0) return state;
 
+  // Stała kolejność (projekt, specjalizacja) — losowania błędów są deterministyczne.
+  const order = [...contributions.keys()].sort(compareContributionKeys);
   const projects = { ...state.contracts.projects };
-  for (const [key, amount] of contributions) {
+  let rng = state.rng;
+  for (const key of order) {
+    const { amount, weightedRisk } = contributions.get(key) ?? { amount: 0, weightedRisk: 0 };
     const [projectId, specialization] = key.split('|') as [
       keyof typeof projects,
       TechSpecialization,
     ];
     const project = projects[projectId];
-    if (!project) continue;
+    if (!project || amount <= 0) continue;
     const added = Math.min(amount, remainingPoints(project, specialization));
-    projects[projectId] = {
-      ...project,
-      progress: {
-        ...project.progress,
-        [specialization]: (project.progress[specialization] ?? 0) + added,
-      },
-    };
+    const result = addWork(
+      project,
+      specialization,
+      added,
+      Math.round(weightedRisk / amount),
+      rng,
+      config,
+    );
+    projects[projectId] = result.project;
+    rng = result.rng;
   }
   return {
     ...state,
+    rng,
     staff: { ...state.staff, employees },
     contracts: { ...state.contracts, projects },
   };
+}
+
+function compareContributionKeys(a: string, b: string): number {
+  const [projectA = '', specA = ''] = a.split('|');
+  const [projectB = '', specB = ''] = b.split('|');
+  if (projectA !== projectB) return compareIds(projectA, projectB);
+  return (
+    TECH_SPECIALIZATIONS.indexOf(specA as TechSpecialization) -
+    TECH_SPECIALIZATIONS.indexOf(specB as TechSpecialization)
+  );
 }
 
 // Praca aktywna: przy własnym biurku, z przydziałem i niedokończonym zakresem roli, nie na przerwie
@@ -96,7 +125,10 @@ export function isWorking(state: GameState, employee: Employee): boolean {
 }
 
 // PROJ-09: procent ukończenia zakresu roli (zaokrąglony w dół — 100% tylko po faktycznym końcu).
-export function progressPercent(project: Project, specialization: TechSpecialization): number {
+export function progressPercent(
+  project: ReadonlyProject,
+  specialization: TechSpecialization,
+): number {
   const scope = project.scopes[specialization];
   if (!scope) return 0;
   return Math.floor(((project.progress[specialization] ?? 0) * 100) / (scope * POINT_SCALE));

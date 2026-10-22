@@ -95,6 +95,8 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                   </li>
                 ))}
               </ul>
+              {/* BUG-03: ukryte błędy nie są widoczne przed testami QA (SH-023). */}
+              {project.fragments.length > 0 && <p className="hint">Jakość: niezweryfikowana</p>}
               <Terms
                 terms={project}
                 deadline={

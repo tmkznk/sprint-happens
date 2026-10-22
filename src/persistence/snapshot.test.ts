@@ -237,6 +237,41 @@ describe('odrzucanie zapisu', () => {
   });
 });
 
+describe('fragmenty i ukryte błędy w zapisie (SH-022)', () => {
+  it('fragmenty z błędami przetrwają zapis; niezgodna liczba fragmentów jest odrzucana', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 8),
+    });
+    const offer = engine.getState().contracts.offers[0];
+    if (!offer) throw new Error('brak oferty');
+    engine.dispatch({ type: 'AcceptOffer', offerId: offer.id });
+    const senior = engine
+      .getState()
+      .staff.candidates.find((c) => c.specialization === 'frontend' && c.seniority === 'senior');
+    if (!senior) throw new Error('brak kandydata');
+    engine.dispatch({ type: 'HireCandidate', candidateId: senior.id });
+    engine.dispatch({
+      type: 'AssignProject',
+      employeeId: 'employee-1' as never,
+      projectId: 'project-1' as never,
+    });
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    for (let i = 0; i < 2000; i++) engine.step();
+    const state = engine.getState();
+    expect(state.contracts.projects['project-1' as never]?.fragments.length).toBeGreaterThan(0);
+
+    expect(roundTrip(state)).toEqual(state);
+
+    const envelope = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    envelope.state.contracts.projects['project-1'].fragments.pop();
+    const result = parseSnapshot(JSON.stringify(envelope), context);
+    expect(result.ok ? '' : result.error.issues.join('\n')).toContain('Fragmenty frontend');
+  });
+});
+
 describe('kontrakty w zapisie (SH-020)', () => {
   it('przyjęty kontrakt i uzupełniona tablica przetrwają zapis', () => {
     const engine = createEngine({

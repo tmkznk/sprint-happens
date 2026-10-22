@@ -20,6 +20,8 @@ export const acceptOffer: CommandHandler<AcceptOfferCommand> = {
       deadlineDay: state.mission.day + offer.deadlineDays,
       status: 'active',
       progress: Object.fromEntries(Object.keys(offer.scopes).map((spec) => [spec, 0])),
+      fragments: [],
+      fragmentRisk: {},
     };
     const paid = recordOperation(
       { ...state, ids: allocated.sequence },

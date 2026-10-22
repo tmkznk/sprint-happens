@@ -81,6 +81,10 @@ const contractsSchema = z.strictObject({
       deadlineDay: z.int().min(2),
       status: z.enum(['active', 'delivered']),
       progress: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
+      fragments: z.array(
+        z.strictObject({ specialization: z.enum(TECH_SPECIALIZATIONS), hasBug: z.boolean() }),
+      ),
+      fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
     }),
   ),
   deliveredCount: z.int().min(0),
@@ -324,6 +328,16 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     }
     if (project.deadlineDay !== project.acceptedOnDay + project.deadlineDays) {
       issues.push({ path, message: 'Termin niezgodny z dniem przyjęcia (TIME-08)' });
+    }
+    // BUG-01, SH-004 B1: każdy ukończony fragment ma rozstrzygnięty błąd — liczba fragmentów
+    // każdej specjalizacji odpowiada pełnym fragmentom wykonanej pracy.
+    const fragmentPoints = config.bugs.fragmentPoints * POINT_SCALE;
+    for (const specialization of TECH_SPECIALIZATIONS) {
+      const expected = Math.floor((project.progress[specialization] ?? 0) / fragmentPoints);
+      const actual = project.fragments.filter((f) => f.specialization === specialization).length;
+      if (expected !== actual) {
+        issues.push({ path, message: `Fragmenty ${specialization} niezgodne z postępem` });
+      }
     }
     // PROJ-09: postęp tylko w zakresach projektu i nie ponad zakres.
     for (const [specialization, done] of Object.entries(project.progress)) {

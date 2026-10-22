@@ -1,4 +1,4 @@
-import type { Project } from '../domain/contracts';
+import type { Project, ReadonlyProject } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { isTechSpecialization, remainingPoints } from './work';
@@ -28,7 +28,7 @@ export function workStatus(state: GameState, employee: Employee): WorkStatus {
 }
 
 // Czy projekt w ogóle przewiduje pracę dla tej roli.
-function hasRoleInProject(employee: Employee, project: Project): boolean {
+function hasRoleInProject(employee: Employee, project: ReadonlyProject): boolean {
   switch (employee.specialization) {
     case 'frontend':
     case 'backend':

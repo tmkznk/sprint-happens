@@ -26,6 +26,12 @@ export type BalanceConfig = DeepReadonly<{
     // EMP-02, PROJ-09, decyzja SH-032 B1 (B): punkty pracy na pełny dzień aktywnej pracy.
     workPointsPerDay: WageTable;
   };
+  // BUG-01, BUG-06, decyzje SH-004 B1 i SH-032 B1/B2 (B): fragment pracy i ryzyko ukrytego błędu
+  // na fragment przy pełnej energii; ryzyko × (1 + (1 − energia)).
+  bugs: {
+    fragmentPoints: number;
+    riskPerFragment: WageTable;
+  };
   // NEED-01, NEED-02, decyzje SH-004 A3/A4 i SH-032 B2 (B). Energia w skali 0–100, czas w sekundach gry.
   energy: {
     drainPerSecond: number;
@@ -70,6 +76,10 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   staff: {
     dailyWage: { junior: 300, mid: 500, senior: 800 },
     workPointsPerDay: { junior: 60, mid: 90, senior: 120 },
+  },
+  bugs: {
+    fragmentPoints: 10,
+    riskPerFragment: { junior: 0.3, mid: 0.18, senior: 0.08 },
   },
   energy: {
     drainPerSecond: 0.15,

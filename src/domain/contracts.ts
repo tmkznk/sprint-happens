@@ -1,4 +1,5 @@
 import type { EntityId } from './ids';
+import type { DeepReadonly } from './readonly';
 
 // PROJ-01, PROJ-02 (Z): zakresy pracy mają tylko specjalizacje techniczne; QA, Designer i PM
 // są opcjonalni (PROJ-03).
@@ -35,6 +36,14 @@ export type ProjectStatus = 'active' | 'delivered';
 // nie gubią wydajności na zaokrągleniach: junior to 10 000 jednostek na krok).
 export const POINT_SCALE = 1_000_000;
 
+// BUG-01, BUG-06 (Z), decyzja SH-004 B1: ukończony fragment pracy technicznej. Fragmenty są
+// dopisywane w kolejności ukończenia — to kolejka FIFO testów QA (SH-004 B2, SH-023).
+// Błąd ma jeden poziom ważności i specjalizację fragmentu; przed testami jest ukryty (BUG-03).
+export type Fragment = {
+  specialization: TechSpecialization;
+  hasBug: boolean;
+};
+
 export type Project = ContractTerms & {
   id: ProjectId;
   acceptedOnDay: number;
@@ -43,4 +52,10 @@ export type Project = ContractTerms & {
   status: ProjectStatus;
   // Wykonana praca każdej specjalizacji (milionowe pp); nigdy nie maleje (PROJ-09).
   progress: Partial<Record<TechSpecialization, number>>;
+  fragments: Fragment[];
+  // Ryzyko ważone pracą w bieżącym, nieukończonym fragmencie każdej specjalizacji
+  // (Σ milionowe pp × ryzyko w promilach) — rozstrzygane przy ukończeniu fragmentu.
+  fragmentRisk: Partial<Record<TechSpecialization, number>>;
 };
+
+export type ReadonlyProject = DeepReadonly<Project>;
