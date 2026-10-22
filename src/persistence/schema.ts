@@ -93,6 +93,24 @@ const contractsSchema = z.strictObject({
       fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
       priority: z.enum(PROJECT_PRIORITIES),
       designProgress: z.int().min(0),
+      delivery: z
+        .strictObject({
+          day: z.int().min(1),
+          daysLate: z.int().min(0),
+          penalty: z.int().min(0),
+          payment: z.int().min(0),
+          remainingBugs: z.int().min(0),
+          qualityPermille: z.int().min(0).max(1000),
+          designPermille: z.int().min(0).max(1000),
+          reputation: z.strictObject({
+            punctuality: z.int(),
+            quality: z.int(),
+            design: z.int(),
+            total: z.int(),
+          }),
+          reputationAfter: z.int().min(0).max(100),
+        })
+        .nullable(),
     }),
   ),
   deliveredCount: z.int().min(0),
@@ -351,6 +369,17 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     // BUG-05: test fragmentu nie przekracza jego rozmiaru.
     if (project.fragments.some((f) => f.testProgress > fragmentPoints)) {
       issues.push({ path, message: 'Postęp testów ponad rozmiar fragmentu' });
+    }
+    // PROJ-07: raport oddania istnieje dokładnie dla oddanych projektów; reszta wypłaty
+    // nie przekracza wynagrodzenia pomniejszonego o zaliczkę (FIN-01, FIN-04).
+    if ((project.status === 'delivered') !== (project.delivery !== null)) {
+      issues.push({ path, message: 'Raport oddania niezgodny ze statusem' });
+    }
+    if (
+      project.delivery &&
+      project.delivery.payment + project.delivery.penalty > project.reward - project.advance
+    ) {
+      issues.push({ path, message: 'Wypłata przy oddaniu ponad resztę wynagrodzenia' });
     }
     // PROJ-10: design nie przekracza zakresu designu.
     if (project.designProgress > project.designScope * POINT_SCALE) {

@@ -43,6 +43,7 @@ function project(scope: number, bugs: number, patch: Partial<Project> = {}): Pro
     fragmentRisk: {},
     priority: 'features',
     designProgress: 0,
+    delivery: null,
     ...patch,
   };
 }

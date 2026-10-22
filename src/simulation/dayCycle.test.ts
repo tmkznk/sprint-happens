@@ -132,6 +132,7 @@ describe('polityka faz poleceń (TIME-08)', () => {
       AcceptOffer: 'workDay',
       AssignProject: 'workDay',
       SetProjectPriority: 'workDay',
+      DeliverProject: 'delivery',
     };
     const actual = Object.fromEntries(
       Object.entries(commandHandlers).map(([type, handler]) => [type, handler.category]),

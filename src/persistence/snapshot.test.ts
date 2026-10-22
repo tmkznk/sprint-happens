@@ -297,6 +297,56 @@ describe('fragmenty i ukryte błędy w zapisie (SH-022)', () => {
   });
 });
 
+describe('oddanie projektu w zapisie (SH-026)', () => {
+  it('oddany projekt przetrwa zapis; raport bez statusu „oddany” jest odrzucany', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 8),
+    });
+    const offer = engine.getState().contracts.offers[0];
+    if (!offer) throw new Error('brak oferty');
+    engine.dispatch({ type: 'AcceptOffer', offerId: offer.id });
+    const accepted = engine.getState();
+    const project = accepted.contracts.projects['project-1' as never];
+    if (!project) throw new Error('brak projektu');
+    const scopes = Object.entries(project.scopes) as [string, number][];
+    const done = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: {
+        ...accepted,
+        contracts: {
+          ...accepted.contracts,
+          projects: {
+            ...accepted.contracts.projects,
+            [project.id]: {
+              ...project,
+              progress: Object.fromEntries(scopes.map(([s, pp]) => [s, pp * POINT_SCALE])),
+              fragments: scopes.flatMap(([s, pp]) =>
+                Array.from({ length: pp / 10 }, (_, i) => ({
+                  specialization: s as never,
+                  hasBug: i === 0,
+                  testProgress: 0,
+                  repairProgress: 0,
+                })),
+              ),
+            },
+          },
+        },
+      },
+    });
+    expect(done.dispatch({ type: 'DeliverProject', projectId: project.id })).toEqual({ ok: true });
+    const state = done.getState();
+    expect(roundTrip(state)).toEqual(state);
+
+    const envelope = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    envelope.state.contracts.projects['project-1'].status = 'active';
+    const result = parseSnapshot(JSON.stringify(envelope), context);
+    expect(result.ok ? '' : result.error.issues.join('\n')).toContain('Raport oddania');
+  });
+});
+
 describe('kontrakty w zapisie (SH-020)', () => {
   it('przyjęty kontrakt i uzupełniona tablica przetrwają zapis', () => {
     const engine = createEngine({

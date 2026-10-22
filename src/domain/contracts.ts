@@ -68,6 +68,22 @@ export type Project = ContractTerms & {
   priority: ProjectPriority;
   // PROJ-10 (Z): wykonana praca Designera (milionowe pp), do `designScope`; nie generuje błędów.
   designProgress: number;
+  // PROJ-07, BUG-04 (Z): raport rozliczenia oddania; null, dopóki projekt jest aktywny.
+  delivery: DeliveryReport | null;
+};
+
+// PROJ-07, FIN-04, BUG-04, REP-04 (Z): raport rozdziela terminowość, jakość techniczną, design
+// i pieniądze. Kwoty w jednostkach waluty, jakość i design w promilach.
+export type DeliveryReport = {
+  day: number;
+  daysLate: number;
+  penalty: number;
+  payment: number;
+  remainingBugs: number;
+  qualityPermille: number;
+  designPermille: number;
+  reputation: { punctuality: number; quality: number; design: number; total: number };
+  reputationAfter: number;
 };
 
 export type ReadonlyProject = DeepReadonly<Project>;

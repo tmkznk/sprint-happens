@@ -35,6 +35,7 @@ export type SetProjectPriorityCommand = {
   projectId: ProjectId;
   priority: ProjectPriority;
 };
+export type DeliverProjectCommand = { type: 'DeliverProject'; projectId: ProjectId };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -53,7 +54,8 @@ export type Command =
   | BuyFurnitureCommand
   | AcceptOfferCommand
   | AssignProjectCommand
-  | SetProjectPriorityCommand;
+  | SetProjectPriorityCommand
+  | DeliverProjectCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -69,6 +71,7 @@ export type RejectionCode =
   | 'projectClosed'
   | 'pmAlreadyAssigned'
   | 'invalidPriority'
+  | 'projectIncomplete'
   | 'unknownEmployee'
   | 'unknownFurniture'
   | 'notADesk'

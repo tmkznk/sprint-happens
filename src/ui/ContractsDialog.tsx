@@ -5,10 +5,13 @@ import {
   type ContractTerms,
   PROJECT_PRIORITIES,
   type Offer,
+  type ProjectId,
   type ProjectPriority,
   type ReadonlyProject,
 } from '../domain/contracts';
+import { isReadyForDelivery, paymentPreview } from '../simulation/delivery';
 import { detectedBugCount, testCoverage } from '../simulation/qa';
+import { ConfirmDialog } from './ConfirmDialog';
 import { designPercent, pmBonusPermille, progressPercent } from '../simulation/work';
 import { money, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
@@ -27,7 +30,8 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
   const projects = useGameSelector((state) => state.contracts.projects);
   const employees = useGameSelector((state) => state.staff.employees);
   const day = useGameSelector((state) => state.mission.day);
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const phase = useGameSelector((state) => state.mission.phase);
+  const isWorking = phase === 'working';
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -40,6 +44,9 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
     );
   };
   const active = Object.values(projects).filter((project) => project.status === 'active');
+  const delivered = Object.values(projects).filter((project) => project.status === 'delivered');
+  const [reportFor, setReportFor] = useState<ProjectId | null>(null);
+  const reportProject = reportFor ? projects[reportFor] : undefined;
 
   return (
     <div className="modal-backdrop fullscreen">
@@ -55,7 +62,12 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
             ✕
           </button>
         </header>
-        {!isWorking && <p className="warning">{REJECTION_MESSAGES.phaseNotAllowed}</p>}
+        {phase === 'workEnded' && (
+          <p className="warning">
+            Dzień pracy się skończył — przed rozliczeniem możesz jeszcze oddać gotowe projekty.
+          </p>
+        )}
+        {phase === 'settled' && <p className="warning">{REJECTION_MESSAGES.phaseNotAllowed}</p>}
         {message && (
           <p role="status" className="hint">
             {message}
@@ -122,9 +134,140 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                     : `minął w dniu ${project.deadlineDay}`
                 }
               />
+              <DeliverySection project={project} onDelivered={setReportFor} />
             </article>
           );
         })}
+
+        {delivered.length > 0 && <h3>Oddane projekty</h3>}
+        {delivered.map((project) => (
+          <article key={project.id} className="contract-card">
+            <h4>{project.name}</h4>
+            <p className="hint">
+              Oddany w dniu {project.delivery?.day} · wypłata{' '}
+              {money.format(project.delivery?.payment ?? 0)} · reputacja{' '}
+              {signed(project.delivery?.reputation.total ?? 0)}
+            </p>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setReportFor(project.id)}
+            >
+              Raport
+            </button>
+          </article>
+        ))}
+      </section>
+      {reportProject?.delivery && (
+        <DeliveryReportDialog project={reportProject} onClose={() => setReportFor(null)} />
+      )}
+    </div>
+  );
+}
+
+const signed = (value: number) => (value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '0');
+const percent = (permille: number) => `${Math.floor(permille / 10)}%`;
+
+// PROJ-06, FIN-04 (Z): oddanie ręcznie, po ukończeniu techniki; panel pokazuje bieżące potrącenie.
+// Podgląd nie ujawnia jakości — ukryte błędy są widoczne dopiero w raporcie (BUG-03).
+function DeliverySection({
+  project,
+  onDelivered,
+}: {
+  project: ReadonlyProject;
+  onDelivered: (id: ProjectId) => void;
+}) {
+  const dispatch = useDispatch();
+  const day = useGameSelector((state) => state.mission.day);
+  const canDeliverNow = useGameSelector(
+    (state) => state.mission.phase === 'working' || state.mission.phase === 'workEnded',
+  );
+  const [confirming, setConfirming] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const preview = paymentPreview(project, day);
+  const ready = isReadyForDelivery(project);
+
+  const deliver = () => {
+    setConfirming(false);
+    const result = dispatch({ type: 'DeliverProject', projectId: project.id });
+    if (result.ok) onDelivered(project.id);
+    else setMessage(REJECTION_MESSAGES[result.rejection.code]);
+  };
+
+  return (
+    <>
+      {preview.daysLate > 0 && (
+        <p className="warning">
+          Opóźnienie: {preview.daysLate} dni · potrącenie {money.format(preview.penalty)}
+        </p>
+      )}
+      <button type="button" disabled={!ready || !canDeliverNow} onClick={() => setConfirming(true)}>
+        Oddaj projekt
+      </button>
+      {!ready && <p className="hint">Oddanie po ukończeniu wszystkich części technicznych.</p>}
+      {message && <p className="warning">{message}</p>}
+      {confirming && (
+        <ConfirmDialog
+          title={`Oddać „${project.name}”?`}
+          message={`Wypłata ${money.format(preview.payment)}${
+            preview.penalty > 0 ? ` (potrącenie ${money.format(preview.penalty)})` : ''
+          }. Nienaprawione błędy obniżą jakość i reputację, nie wypłatę. Projektu nie będzie można już rozwijać.`}
+          confirmLabel="Oddaj"
+          onConfirm={deliver}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// PROJ-07, BUG-04, REP-04 (Z): raport rozdziela terminowość, jakość techniczną, design i pieniądze.
+function DeliveryReportDialog({
+  project,
+  onClose,
+}: {
+  project: ReadonlyProject;
+  onClose: () => void;
+}) {
+  const report = project.delivery;
+  if (!report) return null;
+  return (
+    <div className="modal-backdrop fullscreen">
+      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="delivery-title">
+        <h2 id="delivery-title">Oddano: {project.name}</h2>
+        <dl>
+          <dt>Terminowość</dt>
+          <dd>
+            {report.daysLate === 0 ? 'w terminie' : `opóźnienie ${report.daysLate} dni`} (
+            {signed(report.reputation.punctuality)})
+          </dd>
+          <dt>Jakość techniczna</dt>
+          <dd>
+            {percent(report.qualityPermille)} · pozostałe błędy: {report.remainingBugs} (
+            {signed(report.reputation.quality)})
+          </dd>
+          <dt>Design</dt>
+          <dd>
+            {project.designScope === 0
+              ? 'nie dotyczy'
+              : `${percent(report.designPermille)} ukończenia`}{' '}
+            ({signed(report.reputation.design)})
+          </dd>
+          <dt>Reputacja</dt>
+          <dd>
+            {signed(report.reputation.total)} → {report.reputationAfter}/100
+          </dd>
+          <dt>Wypłata</dt>
+          <dd>
+            +{money.format(report.payment)}
+            {report.penalty > 0 && ` (kara −${money.format(report.penalty)})`}
+          </dd>
+        </dl>
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>
+            Zamknij
+          </button>
+        </div>
       </section>
     </div>
   );
