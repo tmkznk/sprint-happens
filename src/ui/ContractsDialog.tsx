@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { useDispatch, useGameSelector } from '../application/engineHooks';
-import { TECH_SPECIALIZATIONS, type ContractTerms, type Offer } from '../domain/contracts';
+import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
+import {
+  TECH_SPECIALIZATIONS,
+  type ContractTerms,
+  type Offer,
+  type ReadonlyProject,
+} from '../domain/contracts';
+import { detectedBugCount, testCoverage } from '../simulation/qa';
 import { progressPercent } from '../simulation/work';
 import { money, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
@@ -95,8 +101,7 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                   </li>
                 ))}
               </ul>
-              {/* BUG-03: ukryte błędy nie są widoczne przed testami QA (SH-023). */}
-              {project.fragments.length > 0 && <p className="hint">Jakość: niezweryfikowana</p>}
+              <QualityLine project={project} />
               <Terms
                 terms={project}
                 deadline={
@@ -136,5 +141,19 @@ function Terms({ terms, deadline }: { terms: ContractTerms; deadline: string }) 
       <dt>Kara za dzień opóźnienia</dt>
       <dd>{money.format(terms.latePenaltyPerDay)}</dd>
     </dl>
+  );
+}
+
+// BUG-03 (Z): widoczne są tylko wykryte błędy i zakres testów, nigdy liczba ukrytych.
+// Zero wykrytych błędów nie jest deklaracją bezbłędności (BUG-06: bez pracy — brak procentu).
+function QualityLine({ project }: { project: ReadonlyProject }) {
+  const config = useBalanceConfig();
+  const coverage = testCoverage(project, config);
+  if (coverage === null) return null;
+  if (coverage === 0) return <p className="hint">Jakość niezweryfikowana</p>;
+  return (
+    <p className="hint">
+      Przetestowano {coverage}% wykonanej pracy · wykryte błędy: {detectedBugCount(project, config)}
+    </p>
   );
 }

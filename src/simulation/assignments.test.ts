@@ -132,14 +132,14 @@ describe('workStatus (EMP-07, EMP-04)', () => {
     const state = engine.getState();
     expect(employee(state, deskless).deskId).toBeNull();
 
-    expect(workStatus(state, employee(state, frontend))).toBe('ready');
-    expect(workStatus(state, employee(state, mobile))).toBe('noWorkForRole');
-    expect(workStatus(state, employee(state, deskless))).toBe('noDesk');
-    expect(workStatus(state, employee(state, qa))).toBe('noDesk');
+    expect(workStatus(state, employee(state, frontend), DEFAULT_BALANCE)).toBe('ready');
+    expect(workStatus(state, employee(state, mobile), DEFAULT_BALANCE)).toBe('noWorkForRole');
+    expect(workStatus(state, employee(state, deskless), DEFAULT_BALANCE)).toBe('noDesk');
+    expect(workStatus(state, employee(state, qa), DEFAULT_BALANCE)).toBe('noDesk');
 
     engine.dispatch({ type: 'AssignProject', employeeId: frontend, projectId: null });
-    expect(workStatus(engine.getState(), employee(engine.getState(), frontend))).toBe(
-      'noAssignment',
-    );
+    expect(
+      workStatus(engine.getState(), employee(engine.getState(), frontend), DEFAULT_BALANCE),
+    ).toBe('noAssignment');
   });
 });

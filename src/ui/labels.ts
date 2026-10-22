@@ -45,6 +45,7 @@ export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
   noDesk: 'Brak biurka — nie może pracować',
   noWorkForRole: 'Projekt nie ma pracy dla tej roli',
   scopeDone: 'Swoja część ukończona — brak pracy',
+  nothingToTest: 'Brak pracy do testowania',
   ready: 'Gotowy do pracy nad projektem',
 };
 

@@ -82,7 +82,11 @@ const contractsSchema = z.strictObject({
       status: z.enum(['active', 'delivered']),
       progress: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
       fragments: z.array(
-        z.strictObject({ specialization: z.enum(TECH_SPECIALIZATIONS), hasBug: z.boolean() }),
+        z.strictObject({
+          specialization: z.enum(TECH_SPECIALIZATIONS),
+          hasBug: z.boolean(),
+          testProgress: z.int().min(0),
+        }),
       ),
       fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
     }),
@@ -338,6 +342,10 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
       if (expected !== actual) {
         issues.push({ path, message: `Fragmenty ${specialization} niezgodne z postępem` });
       }
+    }
+    // BUG-05: test fragmentu nie przekracza jego rozmiaru.
+    if (project.fragments.some((f) => f.testProgress > fragmentPoints)) {
+      issues.push({ path, message: 'Postęp testów ponad rozmiar fragmentu' });
     }
     // PROJ-09: postęp tylko w zakresach projektu i nie ponad zakres.
     for (const [specialization, done] of Object.entries(project.progress)) {

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- testy celowo psują surowy JSON zapisu */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
+import { POINT_SCALE } from '../domain/contracts';
 import type { FurnitureId } from '../domain/furniture';
 import { createAgent } from '../domain/movement';
 import { createInitialState, type GameState } from '../domain/state';
@@ -269,6 +270,13 @@ describe('fragmenty i ukryte błędy w zapisie (SH-022)', () => {
     envelope.state.contracts.projects['project-1'].fragments.pop();
     const result = parseSnapshot(JSON.stringify(envelope), context);
     expect(result.ok ? '' : result.error.issues.join('\n')).toContain('Fragmenty frontend');
+
+    const overTested = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    overTested.state.contracts.projects['project-1'].fragments[0].testProgress = 11 * POINT_SCALE;
+    const rejected = parseSnapshot(JSON.stringify(overTested), context);
+    expect(rejected.ok ? '' : rejected.error.issues.join('\n')).toContain('Postęp testów');
   });
 });
 

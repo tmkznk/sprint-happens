@@ -31,6 +31,8 @@ export type BalanceConfig = DeepReadonly<{
   bugs: {
     fragmentPoints: number;
     riskPerFragment: WageTable;
+    // BUG-05, SH-032 B6 (B): tempo testów QA w punktach pracy na pełny dzień.
+    testPointsPerDay: WageTable;
   };
   // NEED-01, NEED-02, decyzje SH-004 A3/A4 i SH-032 B2 (B). Energia w skali 0–100, czas w sekundach gry.
   energy: {
@@ -80,6 +82,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   bugs: {
     fragmentPoints: 10,
     riskPerFragment: { junior: 0.3, mid: 0.18, senior: 0.08 },
+    testPointsPerDay: { junior: 80, mid: 120, senior: 160 },
   },
   energy: {
     drainPerSecond: 0.15,

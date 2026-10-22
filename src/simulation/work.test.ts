@@ -88,7 +88,9 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     hire(engine, 'mobile', 'junior', false);
     hire(engine, 'devops', 'junior', false);
     const deskless = hire(engine, 'backend', 'senior');
-    expect(workStatus(engine.getState(), employeeOf(engine, deskless))).toBe('noDesk');
+    expect(workStatus(engine.getState(), employeeOf(engine, deskless), DEFAULT_BALANCE)).toBe(
+      'noDesk',
+    );
     engine.dispatch({ type: 'SetSpeed', speed: 1 });
 
     steps(engine, 300);
@@ -106,7 +108,9 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     const project = engine.getState().contracts.projects[P1];
     expect(progress(engine, 'frontend')).toBe(60 * POINT_SCALE);
     expect(project && progressPercent(project, 'frontend')).toBe(100);
-    expect(workStatus(engine.getState(), employeeOf(engine, senior))).toBe('scopeDone');
+    expect(workStatus(engine.getState(), employeeOf(engine, senior), DEFAULT_BALANCE)).toBe(
+      'scopeDone',
+    );
   });
 
   it('zmiana przydziału zachowuje postęp; bez przydziału nie ma pracy (EMP-05)', () => {
@@ -143,7 +147,9 @@ describe('postęp prac (PROJ-02, PROJ-09, EMP-06)', () => {
     runUntilAtDesk(engine, [mobile]);
     steps(engine, 200);
 
-    expect(workStatus(engine.getState(), employeeOf(engine, mobile))).toBe('noWorkForRole');
+    expect(workStatus(engine.getState(), employeeOf(engine, mobile), DEFAULT_BALANCE)).toBe(
+      'noWorkForRole',
+    );
     expect(engine.getState().contracts.projects[P1]?.progress).toEqual({ frontend: 0, backend: 0 });
   });
 });

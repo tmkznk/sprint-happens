@@ -1,6 +1,8 @@
+import type { BalanceConfig } from '../domain/config';
 import type { Project, ReadonlyProject } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
+import { testQueue } from './qa';
 import { isTechSpecialization, remainingPoints } from './work';
 
 // EMP-07 (Z): interfejs sygnalizuje, dlaczego osoba nie pracuje. Pracownik nie zmienia
@@ -13,9 +15,15 @@ export type WorkStatus =
   | 'noWorkForRole'
   // EMP-07 (Z): własna część ukończona — osoba pozostaje przypisana, interfejs to sygnalizuje.
   | 'scopeDone'
+  // BUG-05 (Z): tester pozostaje przypisany, gdy kolejka testów jest pusta.
+  | 'nothingToTest'
   | 'ready';
 
-export function workStatus(state: GameState, employee: Employee): WorkStatus {
+export function workStatus(
+  state: GameState,
+  employee: Employee,
+  config: BalanceConfig,
+): WorkStatus {
   const project = employee.projectId ? state.contracts.projects[employee.projectId] : undefined;
   if (!project || project.status !== 'active') return 'noAssignment';
   if (!employee.deskId) return 'noDesk';
@@ -24,6 +32,7 @@ export function workStatus(state: GameState, employee: Employee): WorkStatus {
   if (isTechSpecialization(specialization) && remainingPoints(project, specialization) <= 0) {
     return 'scopeDone';
   }
+  if (specialization === 'qa' && testQueue(project, config).length === 0) return 'nothingToTest';
   return 'ready';
 }
 

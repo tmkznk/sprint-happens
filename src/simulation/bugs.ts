@@ -50,7 +50,11 @@ export function addWork(
     if (position === boundary) {
       const draw = nextRandom(random);
       random = draw.state;
-      fragments.push({ specialization, hasBug: draw.value * 1000 < risk / size });
+      fragments.push({
+        specialization,
+        hasBug: draw.value * 1000 < risk / size,
+        testProgress: 0,
+      });
       risk = 0;
     }
   }

@@ -42,6 +42,8 @@ export const POINT_SCALE = 1_000_000;
 export type Fragment = {
   specialization: TechSpecialization;
   hasBug: boolean;
+  // BUG-05: postęp testów QA (milionowe pp, do rozmiaru fragmentu). Pełny test ujawnia błąd.
+  testProgress: number;
 };
 
 export type Project = ContractTerms & {

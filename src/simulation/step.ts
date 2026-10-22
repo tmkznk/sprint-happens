@@ -4,6 +4,7 @@ import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
+import { doTesting } from './qa';
 import { doWork } from './work';
 
 // Jeden stały krok symulacji. Kolejność systemów (decyzja SH-004 B4): ruch i rezerwacje →
@@ -15,8 +16,9 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
     return current;
   }
 
-  // Decyzja SH-004 B4: ruch → czynności i potrzeby → praca.
-  const state = doWork(updateNeeds(moveCharacters(current, config), config), config);
+  // Decyzja SH-004 B4: ruch → czynności i potrzeby → praca → testy.
+  const worked = doWork(updateNeeds(moveCharacters(current, config), config), config);
+  const state = doTesting(worked, config);
 
   const timeInDayMs = mission.timeInDayMs + config.simulation.stepMs;
 

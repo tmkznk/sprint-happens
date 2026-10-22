@@ -8,6 +8,7 @@ import type { GameState } from '../domain/state';
 import { ENERGY_SCALE, type EmployeeId } from '../domain/employees';
 import { workStatus } from '../simulation/assignments';
 import { activityOf } from '../simulation/needs';
+import { isTesting } from '../simulation/qa';
 import { isWorking } from '../simulation/work';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
@@ -264,17 +265,23 @@ function ProjectSelect({
 }
 
 function EmployeeDetails({ id }: { id: EmployeeId }) {
+  const config = useBalanceConfig();
   const employee = useGameSelector((state) => state.staff.employees[id]);
   const status = useGameSelector(
     (state) => state.world.movement.agents.find((agent) => agent.id === id)?.status,
   );
   const work = useGameSelector((state) => {
     const current = state.staff.employees[id];
-    return current ? workStatus(state, current) : null;
+    return current ? workStatus(state, current, config) : null;
   });
   const activity = useGameSelector((state) => {
     const current = state.staff.employees[id];
-    return current ? activityOf(state, current, isWorking(state, current)) : null;
+    if (!current) return null;
+    return activityOf(
+      state,
+      current,
+      isWorking(state, current) || isTesting(state, current, config),
+    );
   });
   const energy = useGameSelector((state) =>
     Math.round((state.staff.employees[id]?.energy ?? 0) / ENERGY_SCALE),
