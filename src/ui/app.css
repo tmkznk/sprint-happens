@@ -14,10 +14,13 @@ body,
   height: 100%;
 }
 
+/* Panel może urosnąć (alerty, baner aktualizacji) szybciej, niż Phaser dopasuje canvas —
+   scena nie może wtedy wychodzić poza swój obszar i przechwytywać dotyku panelu. */
 .scene-area {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Gesty na scenie obsługuje gra; przeglądarka nie przewija ani nie powiększa strony. */
@@ -71,6 +74,8 @@ body,
 }
 
 .panel {
+  position: relative;
+  z-index: 1;
   padding: 12px 16px;
   background: #2a2d3d;
 }
@@ -130,6 +135,17 @@ body,
   background: rgba(29, 31, 43, 0.9);
   font-size: 0.85em;
   pointer-events: none;
+}
+
+.update-banner {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 2px solid #f2c14e;
+  border-radius: 4px;
+}
+
+.update-banner p {
+  margin: 0 0 8px;
 }
 
 .offline-badge {

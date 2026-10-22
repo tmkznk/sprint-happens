@@ -15,6 +15,7 @@ import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
 import { EventDialog } from './EventDialog';
 import { MissionGoals } from './MissionGoals';
+import { UpdateBanner } from './UpdateBanner';
 import { OfflineBadge } from './OfflineBadge';
 import { OfficeSceneBubble } from './OfficeSceneBubble';
 import { StaffAlerts } from './StaffAlerts';
@@ -76,6 +77,7 @@ export function App({
                 <SaveIndicator manager={saveManager} />
                 <OfflineBadge />
               </div>
+              <UpdateBanner engine={engine} manager={saveManager} />
               <FinanceSummary />
               <MissionGoals />
               <StaffAlerts />

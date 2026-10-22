@@ -20,6 +20,9 @@ export type SaveStatus =
 export type SaveManager = {
   // Zapisuje bieżący stan, jeśli zmienił się od ostatniego udanego zapisu.
   save(): Promise<void>;
+  // Zapisuje i potwierdza, że bieżący stan jest utrwalony (T:PWA-T02 — warunek aktualizacji).
+  // false: błąd zapisu, konflikt z inną kartą albo stan zmienił się w trakcie zapisu.
+  flush(): Promise<boolean>;
   getStatus(): SaveStatus;
   subscribe(listener: () => void): () => void;
 };
@@ -101,6 +104,10 @@ export function createSaveManager(options: SaveManagerOptions): SaveManager {
         running = null;
       });
       return running;
+    },
+    async flush() {
+      await this.save();
+      return !lostWriterRole() && status.kind !== 'error' && lastSaved === engine.getState();
     },
     getStatus: () => status,
     subscribe(listener) {

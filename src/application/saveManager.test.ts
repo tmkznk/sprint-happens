@@ -97,6 +97,23 @@ describe('createSaveManager', () => {
   });
 });
 
+describe('flush (SH-041)', () => {
+  it('potwierdza utrwalenie bieżącego stanu; błąd zapisu lub konflikt → false', async () => {
+    const { engine, memory, manager } = setup();
+    expect(await manager.flush()).toBe(true);
+    expect(await manager.flush()).toBe(true);
+
+    engine.dispatch({ type: 'SetSpeed', speed: 2 });
+    memory.failNextWrite('dysk pełny');
+    expect(await manager.flush()).toBe(false);
+    expect(await manager.flush()).toBe(true);
+
+    memory.saves.current = JSON.stringify({ revision: 999 });
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    expect(await manager.flush()).toBe(false);
+  });
+});
+
 describe('attachAutosave', () => {
   function fakeTimers() {
     let tick: (() => void) | null = null;

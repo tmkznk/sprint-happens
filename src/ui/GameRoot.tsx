@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   createSaveManager,
   loadGame,
@@ -16,6 +16,7 @@ import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persist
 import type { ValidationContext } from '../persistence/schema';
 import type { SnapshotError } from '../persistence/snapshot';
 import { createEngine, type Engine } from '../simulation/engine';
+import { pwa } from '../pwa/register';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import { App } from './App';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -273,6 +274,7 @@ function LoadErrorScreen({
       <main className="screen">
         <h1>Nie można wczytać gry</h1>
         <p>{message}</p>
+        {error.code === 'newerVersion' && <UpdateNowButton />}
         {backup && (
           <button type="button" onClick={() => onLoadBackup(backup)}>
             {backupLabel(backup)}
@@ -296,6 +298,23 @@ function LoadErrorScreen({
         />
       )}
     </>
+  );
+}
+
+// Decyzja SH-004 A6b: przy zapisie z nowszej wersji — aktualizacja, jeśli już pobrana.
+// Bez zapisu: gra nie działa, a nowszego zapisu nie wolno nadpisać.
+function UpdateNowButton() {
+  const instance = pwa();
+  const status = useSyncExternalStore(instance.subscribe, instance.getStatus);
+  if (!status.updateWaiting) {
+    return (
+      <p className="hint">Nowa wersja pobierze się automatycznie przy dostępie do internetu.</p>
+    );
+  }
+  return (
+    <button type="button" onClick={() => instance.applyUpdate()}>
+      Zaktualizuj grę
+    </button>
   );
 }
 
