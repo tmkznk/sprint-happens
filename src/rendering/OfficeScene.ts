@@ -36,6 +36,8 @@ import {
   SELECTION_COLOR,
   WALL_COLOR,
   WINDOW_COLOR,
+  WINDOW_FRAME_COLOR,
+  WINDOW_SHINE_COLOR,
 } from './placeholderStyle';
 import {
   cellAtScreen,
@@ -234,15 +236,19 @@ export class OfficeScene extends Phaser.Scene {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         if (cellKindAt(OFFICE_LAYOUT, { x, y }) !== 'wall') continue;
-        // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
-        const wallHeight = x === 0 || y === 0 ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
-        const hasWindow = OFFICE_LAYOUT.windows.some((w) => w.x === x && w.y === y);
-        for (const { rect, axis } of wallBands(OFFICE_LAYOUT, { x, y })) {
+        for (const { rect, axis, back } of wallBands(OFFICE_LAYOUT, { x, y })) {
+          // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
+          const wallHeight = back ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
           const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
           drawPrism(graphics, rect, wallHeight, WALL_COLOR);
-          // Okno na tafli równoległej do ściany zewnętrznej (y = 0 → oś X, x = 0 → oś Y).
-          if (hasWindow && (axis === 'x') === (y === 0))
-            drawWindow(graphics, rect, wallHeight, axis);
+          // Okno (dwa pola) rysowane częściami razem z taflą pola, na którym leży — ta sama
+          // głębokość co ściana, więc postać przy ścianie zawsze jest przed oknem.
+          if (back) {
+            for (const span of windowSpans()) {
+              const part = spanPart(span, { x, y }, axis);
+              if (part) drawWindow(graphics, span.rect, BACK_WALL_HEIGHT, span.axis, part);
+            }
+          }
         }
       }
     }
@@ -340,6 +346,7 @@ function drawWindow(
   rect: Rect,
   height: number,
   axis: 'x' | 'y',
+  range: [number, number] = [0, 1],
 ): void {
   const [, right, bottom, left] = rectCorners(rect);
   if (!right || !bottom || !left) return;
@@ -349,10 +356,63 @@ function drawWindow(
     x: start.x + (end.x - start.x) * t,
     y: start.y + (end.y - start.y) * t - height * lift,
   });
-  fillPolygon(graphics, WINDOW_COLOR, [
-    along(0.25, 0.35),
-    along(0.75, 0.35),
-    along(0.75, 0.8),
-    along(0.25, 0.8),
-  ]);
+  // Duże okno: rama na prawie całą długość, słupki dzielące szyby (po dwie na pole).
+  // Wielokąt części okna przycięty do zakresu [range] długości (część na danym polu).
+  const pane = (from: number, to: number, lift0: number, lift1: number) => {
+    const t0 = Math.max(from, range[0]);
+    const t1 = Math.min(to, range[1]);
+    if (t1 <= t0) return [];
+    return [along(t0, lift0), along(t1, lift0), along(t1, lift1), along(t0, lift1)];
+  };
+  const cells = axis === 'x' ? rect.width : rect.height;
+  const margin = 0.06 / cells;
+  fillPolygon(graphics, WINDOW_FRAME_COLOR, pane(margin, 1 - margin, 0.16, 0.9));
+  const panes = Math.max(2, Math.round(cells * 2));
+  const inner = 0.04 / cells;
+  const width = (1 - 2 * margin) / panes;
+  for (let i = 0; i < panes; i++) {
+    const t0 = margin + i * width + inner;
+    const t1 = margin + (i + 1) * width - inner;
+    fillPolygon(graphics, WINDOW_COLOR, pane(t0, t1, 0.22, 0.84));
+    // Odblask na szybie.
+    fillPolygon(graphics, WINDOW_SHINE_COLOR, pane(t0 + inner, t0 + 3 * inner, 0.5, 0.8));
+  }
+}
+
+type WindowSpan = { rect: Rect; axis: 'x' | 'y'; cells: GridPoint[] };
+
+// Okno na tylnej ścianie (y = 0 wzdłuż X, x = 0 wzdłuż Y) rozciągnięte na następne pole,
+// jeśli to nadal prosta ściana tylna; tafla o grubości ściany.
+function windowSpan(window: GridPoint): WindowSpan | null {
+  const axis = window.y === 0 ? 'x' : window.x === 0 ? 'y' : null;
+  if (!axis) return null;
+  const next = axis === 'x' ? { x: window.x + 1, y: 0 } : { x: 0, y: window.y + 1 };
+  const own = wallBands(OFFICE_LAYOUT, window).find((b) => b.axis === axis);
+  if (!own) return null;
+  const following = wallBands(OFFICE_LAYOUT, next);
+  const wide = following.length === 1 && following[0]?.axis === axis;
+  const length = wide ? 2 : 1;
+  const rect =
+    axis === 'x'
+      ? { ...own.rect, x: window.x, width: length }
+      : { ...own.rect, y: window.y, height: length };
+  return { rect, axis, cells: wide ? [window, next] : [window] };
+}
+
+let cachedSpans: WindowSpan[] | null = null;
+function windowSpans(): WindowSpan[] {
+  cachedSpans ??= OFFICE_LAYOUT.windows.flatMap((w) => windowSpan(w) ?? []);
+  return cachedSpans;
+}
+
+// Zakres długości okna przypadający na pole `cell` (tylko tafla wzdłuż osi okna).
+function spanPart(span: WindowSpan, cell: GridPoint, axis: 'x' | 'y'): [number, number] | null {
+  if (axis !== span.axis) return null;
+  const index = span.cells.findIndex((c) => c.x === cell.x && c.y === cell.y);
+  if (index < 0) return null;
+  const share = 1 / span.cells.length;
+  // Wzdłuż Y okno rysowane jest od końca pola (róg „bottom” → „right”) — zakres odwrócony.
+  return axis === 'x'
+    ? [index * share, (index + 1) * share]
+    : [1 - (index + 1) * share, 1 - index * share];
 }

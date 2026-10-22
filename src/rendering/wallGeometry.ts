@@ -14,29 +14,60 @@ const isWallOrDoor = (layout: OfficeLayout, point: GridPoint) => {
   return kind === 'wall' || kind === 'door';
 };
 
-export type WallBand = { rect: Rect; axis: 'x' | 'y' };
+export type WallBand = {
+  rect: Rect;
+  axis: 'x' | 'y';
+  // OFF-08 (O): wysokie są tylko odcinki leżące wzdłuż tylnych krawędzi (y = 0 wzdłuż X,
+  // x = 0 wzdłuż Y); odnogi wchodzące do pokojów i ściany od strony kamery są niskie.
+  back: boolean;
+};
 
-// Do dwóch tafli na pole: wzdłuż osi X (łączy sąsiadów lewo/prawo) i osi Y (góra/dół).
-// Pole bez sąsiadów-ścian dostaje słupek o przekroju grubości ściany.
+// Prosta ściana — jedna tafla przez całe pole (okna rysowane bez przerwy). Narożnik lub
+// rozgałęzienie — rozłączne części: słupek i ramiona; bryły nie nachodzą na siebie, więc
+// sortowanie według środka bryły rysuje je w poprawnej kolejności (bez „wcięć” na stykach).
 export function wallBands(layout: OfficeLayout, cell: GridPoint): WallBand[] {
   if (!isWall(layout, cell)) return [];
   const t = WALL_THICKNESS;
   const low = 0.5 - t / 2;
   const high = 0.5 + t / 2;
-  const left = isWallOrDoor(layout, { x: cell.x - 1, y: cell.y });
-  const right = isWallOrDoor(layout, { x: cell.x + 1, y: cell.y });
-  const up = isWallOrDoor(layout, { x: cell.x, y: cell.y - 1 });
-  const down = isWallOrDoor(layout, { x: cell.x, y: cell.y + 1 });
-  const bands: WallBand[] = [];
-  if (left || right || (!up && !down)) {
-    const x0 = cell.x + (left ? 0 : low);
-    const x1 = cell.x + (right ? 1 : high);
-    bands.push({ axis: 'x', rect: { x: x0, y: cell.y + low, width: x1 - x0, height: t } });
+  const { x, y } = cell;
+  const left = isWallOrDoor(layout, { x: x - 1, y });
+  const right = isWallOrDoor(layout, { x: x + 1, y });
+  const up = isWallOrDoor(layout, { x, y: y - 1 });
+  const down = isWallOrDoor(layout, { x, y: y + 1 });
+  const alongX = left || right;
+  const alongY = up || down;
+  const backX = y === 0;
+  const backY = x === 0;
+
+  if (!alongY) {
+    const x0 = x + (left ? 0 : low);
+    const x1 = x + (right ? 1 : high);
+    return [{ axis: 'x', back: backX, rect: { x: x0, y: y + low, width: x1 - x0, height: t } }];
   }
-  if (up || down) {
-    const y0 = cell.y + (up ? 0 : low);
-    const y1 = cell.y + (down ? 1 : high);
-    bands.push({ axis: 'y', rect: { x: cell.x + low, y: y0, width: t, height: y1 - y0 } });
+  if (!alongX) {
+    const y0 = y + (up ? 0 : low);
+    const y1 = y + (down ? 1 : high);
+    return [{ axis: 'y', back: backY, rect: { x: x + low, y: y0, width: t, height: y1 - y0 } }];
+  }
+  const bands: WallBand[] = [
+    { axis: 'y', back: backX || backY, rect: { x: x + low, y: y + low, width: t, height: t } },
+  ];
+  if (left) bands.push({ axis: 'x', back: backX, rect: { x, y: y + low, width: low, height: t } });
+  if (right) {
+    bands.push({
+      axis: 'x',
+      back: backX,
+      rect: { x: x + high, y: y + low, width: low, height: t },
+    });
+  }
+  if (up) bands.push({ axis: 'y', back: backY, rect: { x: x + low, y, width: t, height: low } });
+  if (down) {
+    bands.push({
+      axis: 'y',
+      back: backY,
+      rect: { x: x + low, y: y + high, width: t, height: low },
+    });
   }
   return bands;
 }

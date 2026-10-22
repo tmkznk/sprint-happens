@@ -4,20 +4,54 @@ import { doorThreshold, WALL_THICKNESS, wallBands, wallFloorQuarters } from './w
 
 const t = WALL_THICKNESS;
 const low = 0.5 - t / 2;
+const high = 0.5 + t / 2;
 
 describe('cienkie ściany (prezentacja)', () => {
-  it('prosta ściana tylna: tafla wzdłuż X przez całe pole, grubość jak stała', () => {
+  it('prosta ściana tylna: jedna wysoka tafla wzdłuż X przez całe pole', () => {
     expect(wallBands(OFFICE_LAYOUT, { x: 3, y: 0 })).toEqual([
-      { axis: 'x', rect: { x: 3, y: low, width: 1, height: t } },
+      { axis: 'x', back: true, rect: { x: 3, y: low, width: 1, height: t } },
     ]);
   });
 
-  it('narożnik (0,0): tafle od środka w prawo i w dół', () => {
+  it('narożnik (0,0): rozłączny słupek i ramiona, wszystkie wysokie', () => {
     const bands = wallBands(OFFICE_LAYOUT, { x: 0, y: 0 });
     expect(bands).toEqual([
-      { axis: 'x', rect: { x: low, y: low, width: 1 - low, height: t } },
-      { axis: 'y', rect: { x: low, y: low, width: t, height: 1 - low } },
+      { axis: 'y', back: true, rect: { x: low, y: low, width: t, height: t } },
+      { axis: 'x', back: true, rect: { x: high, y: low, width: low, height: t } },
+      { axis: 'y', back: true, rect: { x: low, y: high, width: t, height: low } },
     ]);
+  });
+
+  it('części narożnika nie nachodzą na siebie', () => {
+    for (const cell of [
+      { x: 0, y: 0 },
+      { x: 0, y: 13 },
+      { x: 18, y: 0 },
+      { x: 11, y: 0 },
+      { x: 11, y: 7 },
+    ]) {
+      const rects = wallBands(OFFICE_LAYOUT, cell).map((b) => b.rect);
+      for (const [i, a] of rects.entries()) {
+        for (const b of rects.slice(i + 1)) {
+          const overlapX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+          const overlapY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+          expect(overlapX > 1e-9 && overlapY > 1e-9).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('rozgałęzienie przy tylnej ścianie: odnoga do pokoju jest niska (bez wysokiego kikuta)', () => {
+    const bands = wallBands(OFFICE_LAYOUT, { x: 11, y: 0 });
+    expect(bands.filter((b) => b.axis === 'x').every((b) => b.back)).toBe(true);
+    const down = bands.find((b) => b.rect.y > low && b.axis === 'y');
+    expect(down?.back).toBe(false);
+  });
+
+  it('narożnik przód-lewy (0,13): ściana lewa wysoka, frontowa niska', () => {
+    const bands = wallBands(OFFICE_LAYOUT, { x: 0, y: 13 });
+    expect(bands.find((b) => b.axis === 'x')?.back).toBe(false);
+    expect(bands.filter((b) => b.axis === 'y').every((b) => b.back)).toBe(true);
   });
 
   it('ściana przy drzwiach dochodzi do krawędzi drzwi', () => {

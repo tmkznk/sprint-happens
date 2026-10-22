@@ -11,6 +11,8 @@ export const FLOOR_COLORS: Record<RoomId, number> = {
 export const DOOR_COLOR = 0x6b5a3e;
 export const WALL_COLOR = 0xc9c3b6;
 export const WINDOW_COLOR = 0x9fd3ff;
+export const WINDOW_FRAME_COLOR = 0xe9e4d8;
+export const WINDOW_SHINE_COLOR = 0xd4ecff;
 export const FURNITURE_STYLE: Record<FurnitureType, { color: number; height: number }> = {
   desk: { color: 0xb07a45, height: 22 },
   sofa: { color: 0x6a4fa3, height: 18 },

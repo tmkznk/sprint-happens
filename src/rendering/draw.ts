@@ -33,6 +33,7 @@ export function fillPolygon(
   color: number,
   points: ScreenPoint[],
 ): void {
+  if (points.length < 3) return;
   graphics.fillStyle(color, 1);
   graphics.fillPoints(toVectors(points), true);
 }
