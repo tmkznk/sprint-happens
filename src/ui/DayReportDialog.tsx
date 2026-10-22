@@ -1,22 +1,28 @@
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
+import { NewGameButton } from './NewGameButton';
 
 // TIME-03, TIME-08 (Z): raport po rozliczeniu i przejście do następnego dnia.
 // FIN-05 (Z): ujemne saldo uruchamia ostrzeżenie z terminem odzyskania płynności; brak poprawy
 // kończy misję bankructwem. Okno modalne przechwytuje dotyk (T:VIEW-03).
-export function DayReportDialog() {
+export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
   const report = useGameSelector((state) => state.mission.report);
   const status = useGameSelector((state) => state.mission.status);
   const dispatch = useDispatch();
+  const delivered = useGameSelector((state) => state.contracts.deliveredCount);
+  const reputation = useGameSelector((state) => state.mission.reputation);
 
   if (!report) return null;
   const bankrupt = status === 'bankrupt';
+  const won = status === 'won';
   const daysLeft = report.rescueDeadlineDay === null ? null : report.rescueDeadlineDay - report.day;
 
   return (
     <div className="modal-backdrop">
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="day-report-title">
-        <h2 id="day-report-title">{bankrupt ? 'Bankructwo' : `Podsumowanie dnia ${report.day}`}</h2>
+        <h2 id="day-report-title">
+          {won ? 'Zwycięstwo!' : bankrupt ? 'Bankructwo' : `Podsumowanie dnia ${report.day}`}
+        </h2>
         <dl>
           <dt>Wpływy</dt>
           <dd>+{money.format(report.income)}</dd>
@@ -44,6 +50,25 @@ export function DayReportDialog() {
               zatrudniać ani kupować wyposażenia.
             </p>
           )
+        )}
+        {/* MIS-03 (Z): koniec misji — podsumowanie i nowa gra po potwierdzeniu; brak dalszej gry. */}
+        {status !== 'active' && (
+          <>
+            {won && (
+              <p role="status">
+                Software house przetrwał i zdobył renomę! Misja ukończona w {report.day} dni.
+              </p>
+            )}
+            <dl>
+              <dt>Dni misji</dt>
+              <dd>{report.day}</dd>
+              <dt>Oddane projekty</dt>
+              <dd>{delivered}</dd>
+              <dt>Reputacja</dt>
+              <dd>{reputation}/100</dd>
+            </dl>
+            <NewGameButton onConfirm={onNewGame} />
+          </>
         )}
         {status === 'active' && (
           <button type="button" onClick={() => dispatch({ type: 'StartNextDay' })}>

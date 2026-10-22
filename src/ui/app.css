@@ -96,6 +96,12 @@ body,
   color: #f2c14e;
 }
 
+.mission-goals {
+  margin: 4px 0 8px;
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
 .priority-switch {
   display: flex;
   gap: 8px;

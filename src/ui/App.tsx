@@ -13,6 +13,7 @@ import { DayClock } from './DayClock';
 import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
+import { MissionGoals } from './MissionGoals';
 import { NewGameButton } from './NewGameButton';
 import { RecruitmentButton } from './RecruitmentButton';
 import { SaveIndicator } from './SaveIndicator';
@@ -61,7 +62,7 @@ export function App({
             <div className="scene-area">
               <div ref={sceneRef} className="scene" />
               <SelectionPanel />
-              <DayReportDialog />
+              <DayReportDialog onNewGame={onNewGame} />
             </div>
             <div className="panel">
               <div className="panel-header">
@@ -69,6 +70,7 @@ export function App({
                 <SaveIndicator manager={saveManager} />
               </div>
               <FinanceSummary />
+              <MissionGoals />
               <SpeedControls />
               <DayControls />
               <div className="panel-actions">

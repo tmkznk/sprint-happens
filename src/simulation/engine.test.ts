@@ -7,7 +7,10 @@ import { DAY_LENGTH_MS } from './time';
 
 describe('createInitialState', () => {
   it('startuje misję pierwszego dnia, na pauzie, z budżetem z konfiguracji', () => {
-    const config: BalanceConfig = { ...DEFAULT_BALANCE, mission: { startingCash: 1234 } };
+    const config: BalanceConfig = {
+      ...DEFAULT_BALANCE,
+      mission: { ...DEFAULT_BALANCE.mission, startingCash: 1234 },
+    };
     const state = createInitialState(config, 1);
 
     expect(state.mission).toEqual({

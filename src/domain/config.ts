@@ -15,6 +15,8 @@ export type BalanceConfig = DeepReadonly<{
   mission: {
     // MIS-02 (B): kilka dni utrzymania małego zespołu — roboczo ustalone w SH-032.
     startingCash: number;
+    // MIS-03 (Z/B), decyzja SH-032 A2: trzy progi zwycięstwa spełnione jednocześnie.
+    victory: { deliveredProjects: number; cash: number; reputation: number };
   };
   finance: {
     // FIN-02 (B): stałe koszty biura za dzień (SH-032).
@@ -87,6 +89,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {
     startingCash: 15_000,
+    victory: { deliveredProjects: 6, cash: 60_000, reputation: 65 },
   },
   finance: {
     officeUpkeepPerDay: 1_000,

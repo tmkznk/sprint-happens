@@ -1,12 +1,13 @@
 import type { BalanceConfig } from '../domain/config';
 import type { DayReport, GameState } from '../domain/state';
 import { recordOperation } from './finance';
+import { isVictory } from './mission';
 
 // FIN-05 (Z): trzy kolejne dni robocze na odzyskanie salda ≥ 0 po rozliczeniu z długiem.
 export const RESCUE_DAYS = 3;
 
 // TIME-08 (Z): rozliczenie dnia w ustalonej kolejności: koszty → saldo i bankructwo →
-// (zwycięstwo — SH-030). Klucze operacji w księdze (`wages:day-N:…`, `upkeep:day-N`) są
+// zwycięstwo (MIS-03). Bankructwo ma pierwszeństwo. Klucze operacji w księdze (`wages:day-N:…`, `upkeep:day-N`) są
 // unikalne, więc dniówka i utrzymanie dnia nie mogą zostać pobrane drugi raz.
 export function settle(state: GameState, config: BalanceConfig): GameState {
   const { day } = state.mission;
@@ -29,16 +30,13 @@ export function settle(state: GameState, config: BalanceConfig): GameState {
     cashAfterSettlement: cash,
     rescueDeadlineDay,
   };
-  return {
+  const settled: GameState = {
     ...next,
     finance: { ...next.finance, wagesDueToday: {}, rescueDeadlineDay },
-    mission: {
-      ...next.mission,
-      phase: 'settled',
-      status: bankrupt ? 'bankrupt' : next.mission.status,
-      report,
-    },
+    mission: { ...next.mission, phase: 'settled', report },
   };
+  const status = bankrupt ? 'bankrupt' : isVictory(settled, config) ? 'won' : next.mission.status;
+  return { ...settled, mission: { ...settled.mission, status } };
 }
 
 // Decyzja SH-004 A1: wyjście z długu kasuje licznik; ponowny dług otwiera nowy, pełny okres.
