@@ -11,6 +11,7 @@ export const REJECTION_MESSAGES: Record<RejectionCode, string> = {
   unknownProject: 'Ten projekt nie istnieje.',
   projectClosed: 'Projekt został już oddany.',
   pmAlreadyAssigned: 'Projekt ma już Project Managera — najwyżej jeden na projekt.',
+  invalidPriority: 'Nieznany priorytet projektu.',
   unknownEmployee: 'Ten pracownik nie jest już zatrudniony.',
   unknownFurniture: 'Tego mebla już nie ma.',
   notADesk: 'To nie jest stanowisko pracy.',

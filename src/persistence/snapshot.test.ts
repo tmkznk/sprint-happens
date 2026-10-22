@@ -277,6 +277,14 @@ describe('fragmenty i ukryte błędy w zapisie (SH-022)', () => {
     overTested.state.contracts.projects['project-1'].fragments[0].testProgress = 11 * POINT_SCALE;
     const rejected = parseSnapshot(JSON.stringify(overTested), context);
     expect(rejected.ok ? '' : rejected.error.issues.join('\n')).toContain('Postęp testów');
+
+    // BUG-06: naprawa niewykrytego (nieprzetestowanego) błędu jest niespójna.
+    const repairedHidden = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    repairedHidden.state.contracts.projects['project-1'].fragments[0].repairProgress = 1;
+    const hidden = parseSnapshot(JSON.stringify(repairedHidden), context);
+    expect(hidden.ok ? '' : hidden.error.issues.join('\n')).toContain('Naprawa niewykrytego');
   });
 });
 

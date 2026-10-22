@@ -44,7 +44,14 @@ export type Fragment = {
   hasBug: boolean;
   // BUG-05: postęp testów QA (milionowe pp, do rozmiaru fragmentu). Pełny test ujawnia błąd.
   testProgress: number;
+  // BUG-06, SH-004 B3: postęp naprawy wykrytego błędu (milionowe pp). Zostaje przy błędzie,
+  // więc przeżywa zmianę wykonawcy; pełny koszt oznacza błąd naprawiony.
+  repairProgress: number;
 };
+
+// PROJ-05 (Z): „Najpierw funkcje” (domyślny) albo „Najpierw poprawki”.
+export const PROJECT_PRIORITIES = ['features', 'fixes'] as const;
+export type ProjectPriority = (typeof PROJECT_PRIORITIES)[number];
 
 export type Project = ContractTerms & {
   id: ProjectId;
@@ -58,6 +65,7 @@ export type Project = ContractTerms & {
   // Ryzyko ważone pracą w bieżącym, nieukończonym fragmencie każdej specjalizacji
   // (Σ milionowe pp × ryzyko w promilach) — rozstrzygane przy ukończeniu fragmentu.
   fragmentRisk: Partial<Record<TechSpecialization, number>>;
+  priority: ProjectPriority;
 };
 
 export type ReadonlyProject = DeepReadonly<Project>;

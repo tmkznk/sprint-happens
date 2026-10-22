@@ -280,7 +280,7 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
     return activityOf(
       state,
       current,
-      isWorking(state, current) || isTesting(state, current, config),
+      isWorking(state, current, config) || isTesting(state, current, config),
     );
   });
   const energy = useGameSelector((state) =>

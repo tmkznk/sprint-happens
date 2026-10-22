@@ -7,6 +7,7 @@ import {
   type TechSpecialization,
 } from '../domain/contracts';
 import { MAX_ENERGY, type Employee } from '../domain/employees';
+import type { DeepReadonly } from '../domain/readonly';
 import { nextRandom, type RngState } from '../domain/random';
 
 // BUG-01 (Z), decyzje SH-004 B1 i SH-032 B1/B2: ukryte błędy powstają wyłącznie z nowej pracy
@@ -54,6 +55,7 @@ export function addWork(
         specialization,
         hasBug: draw.value * 1000 < risk / size,
         testProgress: 0,
+        repairProgress: 0,
       });
       risk = 0;
     }
@@ -70,7 +72,40 @@ export function addWork(
   };
 }
 
-// BUG-03 (Z): przed testami gracz nie widzi ukrytych błędów. Liczba wykrytych dojdzie z QA (SH-023).
-export function hiddenBugCount(project: ReadonlyProject): number {
-  return project.fragments.filter((fragment) => fragment.hasBug).length;
+// BUG-05: pełny test fragmentu ujawnia jego błąd.
+export function isDetected(fragment: DeepReadonly<Fragment>, config: BalanceConfig): boolean {
+  return fragment.hasBug && fragment.testProgress >= fragmentSize(config);
+}
+
+export function repairSize(config: BalanceConfig): number {
+  return config.bugs.repairPoints * POINT_SCALE;
+}
+
+export function isFixed(fragment: DeepReadonly<Fragment>, config: BalanceConfig): boolean {
+  return fragment.hasBug && fragment.repairProgress >= repairSize(config);
+}
+
+// BUG-06: wykryte, nienaprawione błędy danej specjalizacji — indeksy fragmentów w kolejności FIFO.
+export function openBugs(
+  project: ReadonlyProject,
+  specialization: TechSpecialization,
+  config: BalanceConfig,
+): number[] {
+  const open: number[] = [];
+  project.fragments.forEach((fragment, index) => {
+    if (
+      fragment.specialization === specialization &&
+      isDetected(fragment, config) &&
+      !isFixed(fragment, config)
+    ) {
+      open.push(index);
+    }
+  });
+  return open;
+}
+
+// BUG-04: wszystkie nienaprawione błędy (ukryte i wykryte) — do oceny jakości (SH-028).
+// Nigdy nie pokazywane graczowi przed oddaniem (BUG-03).
+export function remainingBugCount(project: ReadonlyProject, config: BalanceConfig): number {
+  return project.fragments.filter((f) => f.hasBug && !isFixed(f, config)).length;
 }

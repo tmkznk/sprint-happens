@@ -5,6 +5,7 @@ import { buyFurniture } from './buyFurniture';
 import { hireCandidate } from './hireCandidate';
 import { moveFurniture } from './moveFurniture';
 import { sellFurniture } from './sellFurniture';
+import { setProjectPriority } from './setProjectPriority';
 import { setSpeed } from './setSpeed';
 import { settleDay } from './settleDay';
 import { startNextDay } from './startNextDay';
@@ -25,4 +26,5 @@ export const commandHandlers: HandlerRegistry = {
   BuyFurniture: buyFurniture,
   AcceptOffer: acceptOffer,
   AssignProject: assignProject,
+  SetProjectPriority: setProjectPriority,
 };

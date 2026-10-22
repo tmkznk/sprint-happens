@@ -100,7 +100,7 @@ describe('energia (NEED-01, SH-032 B2)', () => {
     expect(progress(tired) - before).toBeLessThan(fullRate);
 
     const empty = withEnergy(engine, { [worker]: 0 });
-    expect(isWorking(empty.getState(), employee(empty, worker))).toBe(false);
+    expect(isWorking(empty.getState(), employee(empty, worker), DEFAULT_BALANCE)).toBe(false);
     run(empty, 1);
     expect(progress(empty)).toBe(before);
     expect(isOnBreak(empty.getState(), employee(empty, worker))).toBe(true);
@@ -162,7 +162,9 @@ describe('przerwy (NEED-02, SH-004 A3/A4)', () => {
 
     const breaks = [a, b].filter((id) => isOnBreak(both.getState(), employee(both, id)));
     expect(breaks).toHaveLength(1);
-    expect(isWorking(both.getState(), employee(both, b === breaks[0] ? a : b))).toBe(true);
+    expect(
+      isWorking(both.getState(), employee(both, b === breaks[0] ? a : b), DEFAULT_BALANCE),
+    ).toBe(true);
   });
 
   it('przy wyczerpaniu preferowana kanapa; po wypoczęciu koniec odpoczynku', () => {

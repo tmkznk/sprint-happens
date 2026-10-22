@@ -2,6 +2,7 @@ import type { BalanceConfig } from '../domain/config';
 import type { Project, ReadonlyProject } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
+import { openBugs } from './bugs';
 import { testQueue } from './qa';
 import { isTechSpecialization, remainingPoints } from './work';
 
@@ -29,7 +30,12 @@ export function workStatus(
   if (!employee.deskId) return 'noDesk';
   if (!hasRoleInProject(employee, project)) return 'noWorkForRole';
   const { specialization } = employee;
-  if (isTechSpecialization(specialization) && remainingPoints(project, specialization) <= 0) {
+  // BUG-06: po ukończeniu zakresu developer naprawia wykryte błędy swojej specjalizacji.
+  if (
+    isTechSpecialization(specialization) &&
+    remainingPoints(project, specialization) <= 0 &&
+    openBugs(project, specialization, config).length === 0
+  ) {
     return 'scopeDone';
   }
   if (specialization === 'qa' && testQueue(project, config).length === 0) return 'nothingToTest';

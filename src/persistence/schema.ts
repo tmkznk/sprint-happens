@@ -9,6 +9,7 @@ import {
 } from '../domain/employees';
 import {
   POINT_SCALE,
+  PROJECT_PRIORITIES,
   TECH_SPECIALIZATIONS,
   type OfferId,
   type ProjectId,
@@ -86,9 +87,11 @@ const contractsSchema = z.strictObject({
           specialization: z.enum(TECH_SPECIALIZATIONS),
           hasBug: z.boolean(),
           testProgress: z.int().min(0),
+          repairProgress: z.int().min(0),
         }),
       ),
       fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
+      priority: z.enum(PROJECT_PRIORITIES),
     }),
   ),
   deliveredCount: z.int().min(0),
@@ -346,6 +349,14 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
     // BUG-05: test fragmentu nie przekracza jego rozmiaru.
     if (project.fragments.some((f) => f.testProgress > fragmentPoints)) {
       issues.push({ path, message: 'Postęp testów ponad rozmiar fragmentu' });
+    }
+    // BUG-06: naprawiać można tylko wykryty błąd i nie ponad stały koszt naprawy.
+    const repairPoints = config.bugs.repairPoints * POINT_SCALE;
+    for (const f of project.fragments) {
+      const detected = f.hasBug && f.testProgress >= fragmentPoints;
+      if (f.repairProgress > (detected ? repairPoints : 0)) {
+        issues.push({ path, message: 'Naprawa niewykrytego błędu lub ponad koszt' });
+      }
     }
     // PROJ-09: postęp tylko w zakresach projektu i nie ponad zakres.
     for (const [specialization, done] of Object.entries(project.progress)) {

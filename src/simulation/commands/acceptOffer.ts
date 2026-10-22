@@ -22,6 +22,7 @@ export const acceptOffer: CommandHandler<AcceptOfferCommand> = {
       progress: Object.fromEntries(Object.keys(offer.scopes).map((spec) => [spec, 0])),
       fragments: [],
       fragmentRisk: {},
+      priority: 'features',
     };
     const paid = recordOperation(
       { ...state, ids: allocated.sequence },

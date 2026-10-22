@@ -5,7 +5,7 @@ import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
 import { doTesting } from './qa';
-import { doWork } from './work';
+import { doRepairs, doWork, planWork } from './work';
 
 // Jeden stały krok symulacji. Kolejność systemów (decyzja SH-004 B4): ruch i rezerwacje →
 // czynności i potrzeby → praca/testy/naprawy → odejścia/zdarzenia → granica dnia.
@@ -16,9 +16,11 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
     return current;
   }
 
-  // Decyzja SH-004 B4: ruch → czynności i potrzeby → praca → testy.
-  const worked = doWork(updateNeeds(moveCharacters(current, config), config), config);
-  const state = doTesting(worked, config);
+  // Decyzja SH-004 B4: ruch → czynności i potrzeby → praca → testy → naprawy. Zadania
+  // developerów są planowane raz na początku fazy pracy — nikt nie pracuje podwójnie.
+  const rested = updateNeeds(moveCharacters(current, config), config);
+  const plan = planWork(rested, config);
+  const state = doRepairs(doTesting(doWork(rested, config, plan), config), config, plan);
 
   const timeInDayMs = mission.timeInDayMs + config.simulation.stepMs;
 

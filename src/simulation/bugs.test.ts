@@ -10,7 +10,7 @@ import {
 } from '../domain/employees';
 import { seedRng } from '../domain/random';
 import { testState } from '../test/engineFixture';
-import { addWork, fragmentSize, hiddenBugCount, riskPermille } from './bugs';
+import { addWork, fragmentSize, remainingBugCount, riskPermille } from './bugs';
 import { createEngine } from './engine';
 import { isAtOwnDesk } from './work';
 
@@ -37,6 +37,7 @@ function emptyProject(scope: number): Project {
     progress: { frontend: 0 },
     fragments: [],
     fragmentRisk: {},
+    priority: 'features',
   };
 }
 
@@ -52,7 +53,7 @@ function bugRate(seniority: Seniority, energy = MAX_ENERGY, fragments = 2000, se
     project = result.project as Project;
     rng = result.rng;
   }
-  return hiddenBugCount(project) / fragments;
+  return remainingBugCount(project, DEFAULT_BALANCE) / fragments;
 }
 
 describe('ryzyko błędu (BUG-01, SH-032 B1/B2)', () => {
@@ -101,7 +102,7 @@ describe('fragmenty pracy (SH-004 B1)', () => {
     for (let seed = 0; seed < 400; seed++) {
       const first = addWork(emptyProject(10), 'frontend', half, 0, seedRng(seed), DEFAULT_BALANCE);
       const second = addWork(first.project, 'frontend', half, 1000, first.rng, DEFAULT_BALANCE);
-      bugs += hiddenBugCount(second.project);
+      bugs += remainingBugCount(second.project, DEFAULT_BALANCE);
     }
     expect(bugs / 400).toBeGreaterThan(0.4);
     expect(bugs / 400).toBeLessThan(0.6);

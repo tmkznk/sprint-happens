@@ -2,7 +2,7 @@ import type { BalanceConfig } from '../domain/config';
 import { POINT_SCALE, TECH_SPECIALIZATIONS, type ReadonlyProject } from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
-import { fragmentSize } from './bugs';
+import { fragmentSize, isDetected, isFixed } from './bugs';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -101,10 +101,9 @@ export function doTesting(state: GameState, config: BalanceConfig): GameState {
   };
 }
 
-// BUG-03: wykryte (przetestowane) błędy; naprawy dojdą w SH-024.
+// BUG-03 (Z): liczba wykrytych, nienaprawionych błędów — jedyna liczba błędów widoczna przed oddaniem.
 export function detectedBugCount(project: ReadonlyProject, config: BalanceConfig): number {
-  const size = fragmentSize(config);
-  return project.fragments.filter((f) => f.hasBug && f.testProgress >= size).length;
+  return project.fragments.filter((f) => isDetected(f, config) && !isFixed(f, config)).length;
 }
 
 // BUG-05, BUG-06: pokrycie testami w procentach wykonanej pracy technicznej (w dół).

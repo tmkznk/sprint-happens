@@ -3,7 +3,9 @@ import { useBalanceConfig, useDispatch, useGameSelector } from '../application/e
 import {
   TECH_SPECIALIZATIONS,
   type ContractTerms,
+  PROJECT_PRIORITIES,
   type Offer,
+  type ProjectPriority,
   type ReadonlyProject,
 } from '../domain/contracts';
 import { detectedBugCount, testCoverage } from '../simulation/qa';
@@ -102,6 +104,7 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
                 ))}
               </ul>
               <QualityLine project={project} />
+              <PrioritySwitch project={project} onMessage={setMessage} />
               <Terms
                 terms={project}
                 deadline={
@@ -155,5 +158,41 @@ function QualityLine({ project }: { project: ReadonlyProject }) {
     <p className="hint">
       Przetestowano {coverage}% wykonanej pracy · wykryte błędy: {detectedBugCount(project, config)}
     </p>
+  );
+}
+
+const PRIORITY_LABELS: Record<ProjectPriority, string> = {
+  features: 'Najpierw funkcje',
+  fixes: 'Najpierw poprawki',
+};
+
+// PROJ-05 (Z): priorytet developerów projektu; QA testuje przy obu.
+function PrioritySwitch({
+  project,
+  onMessage,
+}: {
+  project: ReadonlyProject;
+  onMessage: (message: string | null) => void;
+}) {
+  const dispatch = useDispatch();
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const select = (priority: ProjectPriority) => {
+    const result = dispatch({ type: 'SetProjectPriority', projectId: project.id, priority });
+    onMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
+  };
+  return (
+    <div className="priority-switch" role="group" aria-label="Priorytet projektu">
+      {PROJECT_PRIORITIES.map((priority) => (
+        <button
+          key={priority}
+          type="button"
+          aria-pressed={project.priority === priority}
+          disabled={!isWorking}
+          onClick={() => select(priority)}
+        >
+          {PRIORITY_LABELS[priority]}
+        </button>
+      ))}
+    </div>
   );
 }
