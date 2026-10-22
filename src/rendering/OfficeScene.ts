@@ -18,6 +18,7 @@ import { FURNITURE_CATALOG } from '../domain/furniture';
 import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
+import { doorThreshold, wallBands, wallFloorQuarters } from './wallGeometry';
 import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
 import { furnitureRect, pickAgent, pickFurniture, prismSilhouette } from './picking';
@@ -207,13 +208,23 @@ export class OfficeScene extends Phaser.Scene {
       for (let x = 0; x < width; x++) {
         const cell = { x, y };
         const kind = cellKindAt(OFFICE_LAYOUT, cell);
-        if (kind === 'wall' || kind === null) continue;
+        if (kind !== 'floor') continue;
         const room = roomAt(OFFICE_LAYOUT, cell);
-        const color = kind === 'door' || !room ? DOOR_COLOR : FLOOR_COLORS[room.id];
+        const color = room ? FLOOR_COLORS[room.id] : DOOR_COLOR;
         const corners = rectCorners({ ...cell, width: 1, height: 1 });
         fillPolygon(graphics, color, corners);
         graphics.lineStyle(1, shade(color, 0.8), 1);
         graphics.strokePoints(toVectors(corners), true);
+      }
+    }
+    // Pola ścian i drzwi: podłoga przyległych pokojów aż do cienkiej tafli; w drzwiach próg.
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        for (const { rect, room } of wallFloorQuarters(OFFICE_LAYOUT, { x, y })) {
+          fillPolygon(graphics, FLOOR_COLORS[room.id], rectCorners(rect));
+        }
+        const threshold = doorThreshold(OFFICE_LAYOUT, { x, y });
+        if (threshold) fillPolygon(graphics, DOOR_COLOR, rectCorners(threshold));
       }
     }
   }
@@ -225,11 +236,13 @@ export class OfficeScene extends Phaser.Scene {
         if (cellKindAt(OFFICE_LAYOUT, { x, y }) !== 'wall') continue;
         // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
         const wallHeight = x === 0 || y === 0 ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
-        const rect = { x, y, width: 1, height: 1 };
-        const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
-        drawPrism(graphics, rect, wallHeight, WALL_COLOR);
-        if (OFFICE_LAYOUT.windows.some((window) => window.x === x && window.y === y)) {
-          drawWindow(graphics, rect, wallHeight);
+        const hasWindow = OFFICE_LAYOUT.windows.some((w) => w.x === x && w.y === y);
+        for (const { rect, axis } of wallBands(OFFICE_LAYOUT, { x, y })) {
+          const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
+          drawPrism(graphics, rect, wallHeight, WALL_COLOR);
+          // Okno na tafli równoległej do ściany zewnętrznej (y = 0 → oś X, x = 0 → oś Y).
+          if (hasWindow && (axis === 'x') === (y === 0))
+            drawWindow(graphics, rect, wallHeight, axis);
         }
       }
     }
@@ -322,11 +335,16 @@ function officeBounds(): Bounds {
 
 // Okno na ścianie zwróconej do pokoju: lewa ściana bryły, gdy pokój jest „pod” nią (y+1),
 // prawa, gdy pokój jest po jej prawej stronie (x+1).
-function drawWindow(graphics: Phaser.GameObjects.Graphics, rect: Rect, height: number): void {
+function drawWindow(
+  graphics: Phaser.GameObjects.Graphics,
+  rect: Rect,
+  height: number,
+  axis: 'x' | 'y',
+): void {
   const [, right, bottom, left] = rectCorners(rect);
   if (!right || !bottom || !left) return;
-  const facesDown = roomAt(OFFICE_LAYOUT, { x: rect.x, y: rect.y + 1 }) !== undefined;
-  const [start, end] = facesDown ? [left, bottom] : [bottom, right];
+  // Tafla wzdłuż X ma pokój „pod” sobą (lewa ściana bryły), wzdłuż Y — po prawej.
+  const [start, end] = axis === 'x' ? [left, bottom] : [bottom, right];
   const along = (t: number, lift: number) => ({
     x: start.x + (end.x - start.x) * t,
     y: start.y + (end.y - start.y) * t - height * lift,
