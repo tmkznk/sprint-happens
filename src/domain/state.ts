@@ -1,7 +1,13 @@
 import type { BalanceConfig } from './config';
 import { fillBoard } from './contractBoard';
 import type { Offer, Project, ProjectId } from './contracts';
-import { generateMarket, type Candidate, type Employee, type EmployeeId } from './employees';
+import {
+  generateMarket,
+  type Candidate,
+  type Departure,
+  type Employee,
+  type EmployeeId,
+} from './employees';
 import type { Finance } from './finance';
 import type { Furniture, FurnitureId } from './furniture';
 import { allocateId, type IdSequence } from './ids';
@@ -61,6 +67,8 @@ export type GameState = DeepReadonly<{
     employees: Record<EmployeeId, Employee>;
     // EMP-03: rynek kandydatów — zawsze każda specjalizacja w każdym seniority.
     candidates: Candidate[];
+    // EMP-08, NEED-05: historia odejść (do komunikatów w interfejsie).
+    departures: Departure[];
   };
   world: {
     furniture: Record<FurnitureId, Furniture>;
@@ -105,7 +113,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       rescueDeadlineDay: null,
     },
     contracts: { offers: board.offers, projects: {}, deliveredCount: 0 },
-    staff: { employees: {}, candidates: market.candidates },
+    staff: { employees: {}, candidates: market.candidates, departures: [] },
     world: { furniture, movement: createMovementState([]) },
     ids: board.ids,
     rng: board.rng,

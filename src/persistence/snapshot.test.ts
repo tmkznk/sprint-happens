@@ -347,6 +347,24 @@ describe('oddanie projektu w zapisie (SH-026)', () => {
   });
 });
 
+describe('zadowolenie i odejścia w zapisie (SH-019)', () => {
+  it('zadowolenie, liczniki i historia odejść przetrwają zapis', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 8),
+    });
+    for (const candidate of engine.getState().staff.candidates.slice(0, 2)) {
+      engine.dispatch({ type: 'HireCandidate', candidateId: candidate.id });
+    }
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    for (let i = 0; i < 300; i++) engine.step();
+    engine.dispatch({ type: 'FireEmployee', employeeId: 'employee-1' as never });
+    const state = engine.getState();
+    expect(state.staff.departures).toHaveLength(1);
+    expect(roundTrip(state)).toEqual(state);
+  });
+});
+
 describe('kontrakty w zapisie (SH-020)', () => {
   it('przyjęty kontrakt i uzupełniona tablica przetrwają zapis', () => {
     const engine = createEngine({

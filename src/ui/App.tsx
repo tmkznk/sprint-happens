@@ -14,6 +14,7 @@ import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
 import { MissionGoals } from './MissionGoals';
+import { StaffAlerts } from './StaffAlerts';
 import { NewGameButton } from './NewGameButton';
 import { RecruitmentButton } from './RecruitmentButton';
 import { SaveIndicator } from './SaveIndicator';
@@ -71,6 +72,7 @@ export function App({
               </div>
               <FinanceSummary />
               <MissionGoals />
+              <StaffAlerts />
               <SpeedControls />
               <DayControls />
               <div className="panel-actions">

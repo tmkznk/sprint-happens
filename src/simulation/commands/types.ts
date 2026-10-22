@@ -31,6 +31,7 @@ export type AssignProjectCommand = {
   projectId: ProjectId | null;
 };
 export type DeliverProjectCommand = { type: 'DeliverProject'; projectId: ProjectId };
+export type FireEmployeeCommand = { type: 'FireEmployee'; employeeId: EmployeeId };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -49,7 +50,8 @@ export type Command =
   | BuyFurnitureCommand
   | AcceptOfferCommand
   | AssignProjectCommand
-  | DeliverProjectCommand;
+  | DeliverProjectCommand
+  | FireEmployeeCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.

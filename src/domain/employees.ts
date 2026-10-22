@@ -43,10 +43,27 @@ export type Employee = {
   projectId: ProjectId | null;
   // NEED-01 (Z): energia w tysięcznych częściach (0–100 000 = 0–100).
   energy: number;
+  // NEED-03 (Z): zadowolenie w 1/60 000 punktu — przy kroku 100 ms tempo 1 pkt / min to
+  // dokładnie 100 jednostek na krok (bez dryfu zaokrągleń).
+  satisfaction: number;
+  // NEED-03: nieprzerwany czas złych warunków (ms czasu gry) — okres tolerancji.
+  badConditionsMs: number;
+  // NEED-05: nieprzerwany czas poniżej progu ostrzeżenia (ms czasu gry) — do odejścia.
+  lowSatisfactionMs: number;
 };
 
 export const ENERGY_SCALE = 1000;
 export const MAX_ENERGY = 100 * ENERGY_SCALE;
+export const SATISFACTION_SCALE = 60_000;
+export const MAX_SATISFACTION = 100 * SATISFACTION_SCALE;
+
+// EMP-08, NEED-05 (Z): odejście z firmy — zwolnienie przez gracza albo samodzielne.
+export type Departure = {
+  employeeId: EmployeeId;
+  name: string;
+  day: number;
+  reason: 'fired' | 'quit';
+};
 
 // Imiona i nazwiska kandydatów — neutralne, wyłącznie kosmetyczne.
 export const FIRST_NAMES = [

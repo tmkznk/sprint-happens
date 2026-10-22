@@ -1,12 +1,12 @@
 import type { BalanceConfig } from '../domain/config';
-import type { Employee, EmployeeId } from '../domain/employees';
+import type { Departure, Employee, EmployeeId } from '../domain/employees';
 import type { FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { createAgent, type Task } from '../domain/movement';
 import type { GameState } from '../domain/state';
 import { interactionCells } from '../world/geometry';
 import { cellKey, neighbours } from '../world/movement/grid';
-import { occupiedCellKeys } from '../world/movement/movement';
+import { occupiedCellKeys, removeAgent } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 
@@ -104,4 +104,32 @@ export function compareIds(a: string, b: string): number {
   const [kindA = '', numberA = '0'] = a.split('-');
   const [kindB = '', numberB = '0'] = b.split('-');
   return kindA === kindB ? Number(numberA) - Number(numberB) : kindA < kindB ? -1 : 1;
+}
+
+// EMP-08 (Z): odejście (zwolnienie lub samodzielne) ma jednakowe skutki: zwalnia biurko,
+// przydział, rezerwacje i kolejki postaci; postęp funkcji i napraw zostaje przy projekcie;
+// dzisiejsza dniówka pozostaje należna (FIN-03); premia PM-a znika, bo wynika z przydziału.
+// Brak odpraw i wpływu na resztę zespołu.
+export function removeEmployee(
+  state: GameState,
+  employeeId: EmployeeId,
+  reason: Departure['reason'],
+): GameState {
+  const employee = state.staff.employees[employeeId];
+  if (!employee) return state;
+  const employees = Object.fromEntries(
+    Object.entries(state.staff.employees).filter(([id]) => id !== employeeId),
+  ) as typeof state.staff.employees;
+  return {
+    ...state,
+    staff: {
+      ...state.staff,
+      employees,
+      departures: [
+        ...state.staff.departures,
+        { employeeId, name: employee.name, day: state.mission.day, reason },
+      ],
+    },
+    world: { ...state.world, movement: removeAgent(state.world.movement, employeeId) },
+  };
 }

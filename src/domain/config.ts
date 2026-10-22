@@ -50,6 +50,15 @@ export type BalanceConfig = DeepReadonly<{
     // Przy zmęczeniu kawa także wtedy, gdy w kolejce do ekspresu czeka najwyżej tyle osób.
     shortQueue: number;
   };
+  // NEED-03, NEED-05, decyzja SH-032 B3 (B): zadowolenie i odejścia.
+  satisfaction: {
+    neutral: number;
+    recoveryPerMinute: number;
+    declinePerMinute: number;
+    toleranceSeconds: number;
+    warningThreshold: number;
+    quitAfterSeconds: number;
+  };
   contracts: {
     // CON-01 (Z): liczba ofert na tablicy.
     boardSize: number;
@@ -112,6 +121,14 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     sofaGainPerSecond: 1,
     maxRestSeconds: 90,
     shortQueue: 1,
+  },
+  satisfaction: {
+    neutral: 70,
+    recoveryPerMinute: 1,
+    declinePerMinute: 2,
+    toleranceSeconds: 60,
+    warningThreshold: 25,
+    quitAfterSeconds: 600,
   },
   contracts: {
     boardSize: 3,

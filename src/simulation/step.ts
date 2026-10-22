@@ -5,6 +5,7 @@ import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
 import { doTesting } from './qa';
+import { updateSatisfaction } from './satisfaction';
 import { doDesign, doRepairs, doWork, planWork } from './work';
 
 // Jeden stały krok symulacji. Kolejność systemów (decyzja SH-004 B4): ruch i rezerwacje →
@@ -21,7 +22,8 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
   const rested = updateNeeds(moveCharacters(current, config), config);
   const plan = planWork(rested, config);
   const worked = doTesting(doWork(rested, config, plan), config);
-  const state = doDesign(doRepairs(worked, config, plan), config, plan);
+  // SH-004 B4: po pracy — zadowolenie i odejścia (zdarzenia — SH-031).
+  const state = updateSatisfaction(doDesign(doRepairs(worked, config, plan), config, plan), config);
 
   const timeInDayMs = mission.timeInDayMs + config.simulation.stepMs;
 

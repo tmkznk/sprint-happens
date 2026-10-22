@@ -1,4 +1,9 @@
-import { generateCandidate, MAX_ENERGY, type Employee } from '../../domain/employees';
+import {
+  generateCandidate,
+  MAX_ENERGY,
+  SATISFACTION_SCALE,
+  type Employee,
+} from '../../domain/employees';
 import { allocateId } from '../../domain/ids';
 import { canHire, registerWageDue } from '../finance';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
@@ -26,6 +31,10 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       deskId: firstFreeDesk(state),
       projectId: null,
       energy: MAX_ENERGY,
+      // NEED-03: nowa osoba zaczyna z neutralnym zadowoleniem.
+      satisfaction: config.satisfaction.neutral * SATISFACTION_SCALE,
+      badConditionsMs: 0,
+      lowSatisfactionMs: 0,
     };
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi nowy kandydat.
@@ -40,6 +49,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       {
         ...state,
         staff: {
+          ...state.staff,
           employees: { ...state.staff.employees, [employee.id]: employee },
           candidates: state.staff.candidates.map((c) =>
             c.id === candidate.id ? replacement.candidate : c,

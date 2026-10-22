@@ -3,6 +3,7 @@ import type { BalanceConfig } from '../domain/config';
 import {
   SENIORITIES,
   MAX_ENERGY,
+  MAX_SATISFACTION,
   SPECIALIZATIONS,
   type CandidateId,
   type EmployeeId,
@@ -124,9 +125,20 @@ const staffSchema = z.strictObject({
       deskId: furnitureId.nullable(),
       projectId: projectId.nullable(),
       energy: z.int().min(0).max(MAX_ENERGY),
+      satisfaction: z.int().min(0).max(MAX_SATISFACTION),
+      badConditionsMs: z.int().min(0),
+      lowSatisfactionMs: z.int().min(0),
     }),
   ),
   candidates: z.array(z.strictObject({ id: candidateId, ...person })),
+  departures: z.array(
+    z.strictObject({
+      employeeId,
+      name: z.string().min(1),
+      day: z.int().min(1),
+      reason: z.enum(['fired', 'quit']),
+    }),
+  ),
 });
 
 const missionSchema = z.strictObject({

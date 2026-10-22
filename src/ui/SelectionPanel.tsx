@@ -5,10 +5,11 @@ import { useClearSelection, useSelection } from '../application/selectionHooks';
 import type { ProjectId } from '../domain/contracts';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
-import { ENERGY_SCALE, type EmployeeId } from '../domain/employees';
+import { ENERGY_SCALE, SATISFACTION_SCALE, type EmployeeId } from '../domain/employees';
 import { workStatus } from '../simulation/assignments';
 import { activityOf } from '../simulation/needs';
 import { isTesting } from '../simulation/qa';
+import { hasBadConditions, isUnhappy } from '../simulation/satisfaction';
 import { isWorking } from '../simulation/work';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
@@ -288,7 +289,7 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
   );
   if (!employee) return null;
   return (
-    <Panel title={employee.name}>
+    <Panel title={employee.name} actions={<FireButton employeeId={employee.id} />}>
       <dt>Rola</dt>
       <dd>
         {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}
@@ -314,6 +315,7 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
         <progress max={100} value={energy} aria-label="Energia" />
         <span className={energy <= 15 ? 'negative' : undefined}>{energy}%</span>
       </dd>
+      <SatisfactionRow employeeId={employee.id} />
       {activity && (
         <>
           <dt>Teraz</dt>
@@ -329,5 +331,95 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
         </>
       )}
     </Panel>
+  );
+}
+
+// NEED-03, NEED-05 (Z): zadowolenie, złe warunki i ostrzeżenie przed odejściem.
+function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
+  const config = useBalanceConfig();
+  const level = useGameSelector((state) =>
+    Math.round((state.staff.employees[employeeId]?.satisfaction ?? 0) / SATISFACTION_SCALE),
+  );
+  const unhappy = useGameSelector((state) => {
+    const current = state.staff.employees[employeeId];
+    return current ? isUnhappy(current, config) : false;
+  });
+  const bad = useGameSelector((state) => {
+    const current = state.staff.employees[employeeId];
+    return current ? hasBadConditions(state, current, config) : false;
+  });
+  const minutesLeft = useGameSelector((state) => {
+    const current = state.staff.employees[employeeId];
+    if (!current) return 0;
+    const left = config.satisfaction.quitAfterSeconds * 1000 - current.lowSatisfactionMs;
+    return Math.max(1, Math.ceil(left / 60_000));
+  });
+  return (
+    <>
+      <dt>Zadowolenie</dt>
+      <dd className="energy">
+        <progress max={100} value={level} aria-label="Zadowolenie" />
+        <span className={unhappy ? 'negative' : undefined}>{level}</span>
+      </dd>
+      {bad && (
+        <dd className="warning">
+          Złe warunki — brak biurka, wyczerpanie albo brak miejsca odpoczynku.
+        </dd>
+      )}
+      {unhappy && (
+        <dd className="negative" role="alert">
+          Chce odejść! Odejdzie za ok. {minutesLeft} min gry, jeśli zadowolenie nie wzrośnie powyżej{' '}
+          {config.satisfaction.warningThreshold}.
+        </dd>
+      )}
+    </>
+  );
+}
+
+// EMP-08, FIN-03 (Z): zwolnienie z potwierdzeniem przydziału i pełnej należnej dniówki.
+function FireButton({ employeeId }: { employeeId: EmployeeId }) {
+  const dispatch = useDispatch();
+  const clear = useClearSelection();
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const employee = useGameSelector((state) => state.staff.employees[employeeId]);
+  const projectName = useGameSelector((state) => {
+    const projectId = state.staff.employees[employeeId]?.projectId;
+    return projectId ? (state.contracts.projects[projectId]?.name ?? null) : null;
+  });
+  const wageDue = useGameSelector((state) => state.finance.wagesDueToday[employeeId] ?? 0);
+  const [asking, setAsking] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  if (!employee) return null;
+
+  const fire = () => {
+    setAsking(false);
+    const result = dispatch({ type: 'FireEmployee', employeeId });
+    if (result.ok) clear();
+    else setMessage(REJECTION_MESSAGES[result.rejection.code]);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className="secondary-button"
+        disabled={!isWorking}
+        onClick={() => setAsking(true)}
+      >
+        Zwolnij
+      </button>
+      {message && <span className="warning">{message}</span>}
+      {asking && (
+        <ConfirmDialog
+          title={`Zwolnić: ${employee.name}?`}
+          message={`Przydział: ${projectName ?? 'brak'}. Za dziś należy się pełna dniówka ${money.format(
+            wageDue,
+          )} — zostanie pobrana w rozliczeniu. Bez odpraw; wykonana praca zostaje w projekcie.`}
+          confirmLabel="Zwolnij"
+          onCancel={() => setAsking(false)}
+          onConfirm={fire}
+        />
+      )}
+    </>
   );
 }
