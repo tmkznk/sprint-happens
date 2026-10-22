@@ -38,6 +38,9 @@ function publicFiles(dir: string): string[] {
 }
 
 export default defineConfig({
+  // GitHub Pages serwuje grę z podkatalogu repozytorium — workflow ustawia BASE_PATH
+  // (np. /sprint-happens/). Lokalnie gra działa w katalogu głównym.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), precacheManifest()],
   // Wersja buildu w kopercie zapisu (T:SAVE-T06).
   define: { __APP_VERSION__: JSON.stringify(version) },
