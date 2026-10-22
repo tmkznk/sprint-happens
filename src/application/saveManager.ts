@@ -160,19 +160,35 @@ export function attachAutosave(
 // Poprawna kopia awaryjna gotowa do wczytania na ekranie odzyskiwania.
 export type Backup = { state: GameState; day: number; savedAt: string };
 
+// Błąd odczytu: niepoprawny zapis albo niedostępna pamięć przeglądarki (np. tryb prywatny).
+export type LoadErrorCode = SnapshotError['code'] | 'storageUnavailable';
+export type LoadError = { code: LoadErrorCode; issues: string[] };
+
 export type LoadResult =
   | { kind: 'empty' }
   // `savedState` null — stan zmigrowany w pamięci; pierwszy zapis utrwali nowy format,
   // a oryginał trafi do kopii awaryjnej (SAVE-T05).
   | { kind: 'loaded'; state: GameState; savedState: GameState | null; revision: number | null }
   // `backup` — poprawna kopia; null, gdy jej brak albo zapis jest z nowszej wersji (A6b).
-  | { kind: 'error'; error: SnapshotError; revision: number | null; backup: Backup | null };
+  | { kind: 'error'; error: LoadError; revision: number | null; backup: Backup | null };
 
 // SAVE-03 (Z): wznowienie w zapisanym momencie, na pauzie, bez nadrabiania czasu poza grą.
 // T:SAVE-T05, decyzja SH-004 A6: uszkodzony zapis nigdy nie uruchamia nowej misji ani kopii
 // automatycznie — wynik opisuje błąd i dostępną kopię, a decyzję podejmuje gracz.
 export async function loadGame(store: SaveStore, context: ValidationContext): Promise<LoadResult> {
-  const { current, previous } = await store.read();
+  let saves: Awaited<ReturnType<SaveStore['read']>>;
+  try {
+    saves = await store.read();
+  } catch (error) {
+    // T:SAVE-T03: błąd magazynu jest widoczny — nie zawieszamy startu i nie udajemy pustego zapisu.
+    return {
+      kind: 'error',
+      error: { code: 'storageUnavailable', issues: [String(error)] },
+      revision: null,
+      backup: null,
+    };
+  }
+  const { current, previous } = saves;
   if (current === null) return { kind: 'empty' };
   const parsed = parseSnapshot(current, context);
   if (!parsed.ok) {

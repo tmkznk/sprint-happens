@@ -3,6 +3,8 @@ import {
   createSaveManager,
   loadGame,
   type Backup,
+  type LoadError,
+  type LoadErrorCode,
   type SaveManager,
 } from '../application/saveManager';
 import {
@@ -14,7 +16,6 @@ import { DEFAULT_BALANCE } from '../domain/config';
 import { createInitialState, type GameState } from '../domain/state';
 import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persistence/saveStore';
 import type { ValidationContext } from '../persistence/schema';
-import type { SnapshotError } from '../persistence/snapshot';
 import { createEngine, type Engine } from '../simulation/engine';
 import { pwa } from '../pwa/register';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
@@ -28,7 +29,7 @@ type Session = { id: number; engine: Engine; manager: SaveManager };
 type View =
   | { kind: 'starting' }
   | { kind: 'otherTab' }
-  | { kind: 'loadError'; error: SnapshotError; revision: number | null; backup: Backup | null }
+  | { kind: 'loadError'; error: LoadError; revision: number | null; backup: Backup | null }
   | { kind: 'playing'; session: Session }
   | { kind: 'yielded' };
 
@@ -122,7 +123,11 @@ export function GameRoot() {
   // `keepPrevious` — bieżący zapis jest uszkodzony: nie przesuwamy go nad poprawną kopię (SH-039).
   const startNewMission = useCallback(
     async (keepPrevious = false) => {
-      const { current } = await store.read();
+      // Niedostępna pamięć: gra startuje, a błąd zapisu pokaże wskaźnik zapisu (SAVE-T03).
+      const current = await store.read().then(
+        (saves) => saves.current,
+        () => null,
+      );
       const session = createSession(store, createInitialState(DEFAULT_BALANCE, randomSeed()), {
         revision: revisionOf(current),
         state: null,
@@ -233,7 +238,9 @@ export function GameRoot() {
   }
 }
 
-const LOAD_ERROR_MESSAGES: Record<SnapshotError['code'], string> = {
+const LOAD_ERROR_MESSAGES: Record<LoadErrorCode, string> = {
+  storageUnavailable:
+    'Przeglądarka nie pozwala zapisywać gry (np. tryb prywatny lub brak miejsca). Możesz zagrać, ale postęp nie zostanie zapisany.',
   invalidJson: 'Zapis gry jest uszkodzony.',
   invalidEnvelope: 'Zapis gry jest uszkodzony.',
   invalidState: 'Zapis gry jest uszkodzony lub niespójny.',
@@ -260,7 +267,7 @@ function LoadErrorScreen({
   onLoadBackup,
   onNewMission,
 }: {
-  error: SnapshotError;
+  error: LoadError;
   backup: Backup | null;
   onLoadBackup(backup: Backup): void;
   onNewMission(): void;
@@ -288,9 +295,11 @@ function LoadErrorScreen({
         <ConfirmDialog
           title="Rozpocząć nową misję?"
           message={
-            backup
-              ? 'Uszkodzony zapis zostanie zastąpiony nową misją. Kopia z poprzedniej gry przepadnie przy kolejnych zapisach.'
-              : 'Istniejący zapis zostanie zastąpiony i nie będzie można go odzyskać.'
+            error.code === 'storageUnavailable'
+              ? 'Gra wystartuje, ale bez zapisu postępu — po zamknięciu strony misja przepadnie.'
+              : backup
+                ? 'Uszkodzony zapis zostanie zastąpiony nową misją. Kopia z poprzedniej gry przepadnie przy kolejnych zapisach.'
+                : 'Istniejący zapis zostanie zastąpiony i nie będzie można go odzyskać.'
           }
           confirmLabel="Nowa misja"
           onCancel={() => setAsking(false)}

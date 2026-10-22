@@ -54,3 +54,24 @@ describe('revisionOf', () => {
     expect(revisionOf('{zepsute')).toBeNull();
   });
 });
+
+describe('IndexedDB: nieudane otwarcie (SH-043)', () => {
+  it('nie jest zapamiętywane — kolejna operacja próbuje ponownie', async () => {
+    const real = new IDBFactory();
+    let failures = 1;
+    const flaky = {
+      open(name: string, version?: number) {
+        if (failures-- > 0) {
+          const request = {} as IDBOpenDBRequest & { onerror: (() => void) | null };
+          Object.defineProperty(request, 'error', { value: new DOMException('blokada') });
+          setTimeout(() => request.onerror?.(), 0);
+          return request;
+        }
+        return real.open(name, version);
+      },
+    } as unknown as IDBFactory;
+    const store = createIndexedDbSaveStore(flaky);
+    await expect(store.read()).rejects.toThrow('blokada');
+    expect(await store.read()).toEqual({ current: null, previous: null });
+  });
+});

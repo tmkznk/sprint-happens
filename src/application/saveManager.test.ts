@@ -193,6 +193,22 @@ describe('loadGame', () => {
   });
 });
 
+describe('niedostępna pamięć przeglądarki (SH-043)', () => {
+  it('błąd odczytu magazynu → widoczny błąd, nie zawieszony start ani pusty zapis', async () => {
+    const store = {
+      read: () => Promise.reject(new Error('SecurityError')),
+      write: () =>
+        Promise.resolve({ ok: false as const, reason: 'storageError' as const, message: 'x' }),
+    };
+    const result = await loadGame(store, context);
+    expect(result).toMatchObject({
+      kind: 'error',
+      error: { code: 'storageUnavailable' },
+      backup: null,
+    });
+  });
+});
+
 describe('kopia awaryjna i odzyskiwanie (SH-039, SH-004 A6)', () => {
   async function savedTwice() {
     const { engine, memory, manager } = setup();

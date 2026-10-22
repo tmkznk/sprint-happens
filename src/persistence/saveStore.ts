@@ -42,11 +42,15 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
   let database: Promise<IDBDatabase> | null = null;
 
   function open(): Promise<IDBDatabase> {
-    database ??= new Promise((resolve, reject) => {
+    database ??= new Promise<IDBDatabase>((resolve, reject) => {
       const request = factory.open(DB_NAME, 1);
       request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error ?? new Error('Nie można otworzyć IndexedDB'));
+    }).catch((error: unknown) => {
+      // Nieudane otwarcie nie jest zapamiętywane — kolejna operacja spróbuje ponownie.
+      database = null;
+      throw error;
     });
     return database;
   }
