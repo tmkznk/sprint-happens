@@ -15,6 +15,7 @@ import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
 import { EventDialog } from './EventDialog';
 import { MissionGoals } from './MissionGoals';
+import { OfflineBadge } from './OfflineBadge';
 import { OfficeSceneBubble } from './OfficeSceneBubble';
 import { StaffAlerts } from './StaffAlerts';
 import { NewGameButton } from './NewGameButton';
@@ -73,6 +74,7 @@ export function App({
               <div className="panel-header">
                 <DayClock />
                 <SaveIndicator manager={saveManager} />
+                <OfflineBadge />
               </div>
               <FinanceSummary />
               <MissionGoals />

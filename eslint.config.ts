@@ -44,4 +44,9 @@ export default tseslint.config(
     files: ['*.config.ts'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // T:PWA-T04: service worker działa w osobnym kontekście (bez DOM).
+    files: ['src/pwa/serviceWorker.ts'],
+    languageOptions: { globals: globals.serviceworker },
+  },
 );

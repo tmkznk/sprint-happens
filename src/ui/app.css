@@ -132,6 +132,11 @@ body,
   pointer-events: none;
 }
 
+.offline-badge {
+  font-size: 0.75em;
+  color: #8fd18f;
+}
+
 .mission-goals {
   margin: 4px 0 8px;
   font-size: 0.85em;
