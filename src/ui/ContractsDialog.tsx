@@ -3,10 +3,8 @@ import { useBalanceConfig, useDispatch, useGameSelector } from '../application/e
 import {
   TECH_SPECIALIZATIONS,
   type ContractTerms,
-  PROJECT_PRIORITIES,
   type Offer,
   type ProjectId,
-  type ProjectPriority,
   type ReadonlyProject,
 } from '../domain/contracts';
 import { isReadyForDelivery, paymentPreview } from '../simulation/delivery';
@@ -125,7 +123,6 @@ export function ContractsDialog({ onClose }: { onClose(): void }) {
               </ul>
               <PmBonusLine project={project} />
               <QualityLine project={project} />
-              <PrioritySwitch project={project} onMessage={setMessage} />
               <Terms
                 terms={project}
                 deadline={
@@ -184,8 +181,10 @@ function DeliverySection({
   );
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const config = useBalanceConfig();
   const preview = paymentPreview(project, day);
   const ready = isReadyForDelivery(project);
+  const openBugs = detectedBugCount(project, config);
 
   const deliver = () => {
     setConfirming(false);
@@ -205,6 +204,15 @@ function DeliverySection({
         Oddaj projekt
       </button>
       {!ready && <p className="hint">Oddanie po ukończeniu wszystkich części technicznych.</p>}
+      {/* Decyzja z 2026-10-22: po funkcjach zespół sam naprawia wykryte błędy — gracz wybiera
+          moment oddania: teraz z błędami albo później, ryzykując opóźnienie. */}
+      {ready && (
+        <p className="hint">
+          Funkcje gotowe · oddanie dziś:{' '}
+          {preview.daysLate === 0 ? 'w terminie' : `opóźnienie ${preview.daysLate} dni`}
+          {openBugs > 0 && ` · zespół naprawia wykryte błędy (zostało: ${openBugs})`}
+        </p>
+      )}
       {message && <p className="warning">{message}</p>}
       {confirming && (
         <ConfirmDialog
@@ -310,42 +318,6 @@ function QualityLine({ project }: { project: ReadonlyProject }) {
     <p className="hint">
       Przetestowano {coverage}% wykonanej pracy · wykryte błędy: {detectedBugCount(project, config)}
     </p>
-  );
-}
-
-const PRIORITY_LABELS: Record<ProjectPriority, string> = {
-  features: 'Najpierw funkcje',
-  fixes: 'Najpierw poprawki',
-};
-
-// PROJ-05 (Z): priorytet developerów projektu; QA testuje przy obu.
-function PrioritySwitch({
-  project,
-  onMessage,
-}: {
-  project: ReadonlyProject;
-  onMessage: (message: string | null) => void;
-}) {
-  const dispatch = useDispatch();
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
-  const select = (priority: ProjectPriority) => {
-    const result = dispatch({ type: 'SetProjectPriority', projectId: project.id, priority });
-    onMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
-  };
-  return (
-    <div className="priority-switch" role="group" aria-label="Priorytet projektu">
-      {PROJECT_PRIORITIES.map((priority) => (
-        <button
-          key={priority}
-          type="button"
-          aria-pressed={project.priority === priority}
-          disabled={!isWorking}
-          onClick={() => select(priority)}
-        >
-          {PRIORITY_LABELS[priority]}
-        </button>
-      ))}
-    </div>
   );
 }
 

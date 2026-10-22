@@ -41,7 +41,6 @@ function project(scope: number, bugs: number, patch: Partial<Project> = {}): Pro
     progress: { frontend: scope * POINT_SCALE },
     fragments,
     fragmentRisk: {},
-    priority: 'features',
     designProgress: 0,
     delivery: null,
     ...patch,

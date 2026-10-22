@@ -110,10 +110,10 @@ function isPresentAtWork(state: GameState, employee: Employee): boolean {
   return isAtOwnDesk(state, employee) && !isOnBreak(state, employee);
 }
 
-// PROJ-05 (Z), decyzje SH-004 B3/B4: plan liczony raz na początku fazy pracy kroku.
-// Developerzy roli (według ID) dostają kolejne wykryte błędy własnej specjalizacji —
-// jeden błąd ma najwyżej jednego naprawiającego. Przy „Najpierw funkcje” naprawy zaczynają się
-// po ukończeniu zakresu roli; przy „Najpierw poprawki” funkcje robią tylko osoby bez błędu.
+// Decyzje SH-004 B3/B4 i właściciela z 2026-10-22 (zastępuje przełącznik priorytetu PROJ-05):
+// plan liczony raz na początku fazy pracy kroku. Developer najpierw realizuje zakres swojej
+// roli, a po jego ukończeniu sam naprawia wykryte błędy własnej specjalizacji — kolejni
+// developerzy (według ID) dostają kolejne błędy, jeden błąd ma najwyżej jednego naprawiającego.
 export function planWork(state: GameState, config: BalanceConfig): WorkPlan {
   const groups = new Map<string, Employee[]>();
   for (const employee of Object.values(state.staff.employees)) {
@@ -138,8 +138,7 @@ export function planWork(state: GameState, config: BalanceConfig): WorkPlan {
     if (!project) continue;
     const bugs = openBugs(project, specialization, config);
     const featuresLeft = remainingPoints(project, specialization) > 0;
-    const repairers =
-      project.priority === 'fixes' || !featuresLeft ? Math.min(members.length, bugs.length) : 0;
+    const repairers = featuresLeft ? 0 : Math.min(members.length, bugs.length);
     [...members]
       .sort((a, b) => compareIds(a.id, b.id))
       .forEach((employee, k) => {

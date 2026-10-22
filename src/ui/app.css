@@ -102,27 +102,6 @@ body,
   opacity: 0.85;
 }
 
-.priority-switch {
-  display: flex;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.priority-switch button {
-  flex: 1;
-  min-height: 44px;
-  border: 2px solid #4a4f6a;
-  border-radius: 4px;
-  background: #1d1f2b;
-  color: inherit;
-  font: inherit;
-}
-
-.priority-switch button[aria-pressed='true'] {
-  border-color: #f2c14e;
-  color: #f2c14e;
-}
-
 .day-clock {
   display: flex;
   align-items: center;

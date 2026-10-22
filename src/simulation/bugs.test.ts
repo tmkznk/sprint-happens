@@ -37,7 +37,6 @@ function emptyProject(scope: number): Project {
     progress: { frontend: 0 },
     fragments: [],
     fragmentRisk: {},
-    priority: 'features',
     designProgress: 0,
     delivery: null,
   };

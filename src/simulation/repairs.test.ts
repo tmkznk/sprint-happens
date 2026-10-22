@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
-import type { Fragment, Project, ProjectId, ProjectPriority } from '../domain/contracts';
+import { POINT_SCALE, type Fragment, type Project, type ProjectId } from '../domain/contracts';
 import type { Employee, EmployeeId, Seniority, Specialization } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
@@ -60,7 +60,7 @@ function withProject(
   state: GameState,
   fragments: Fragment[],
   frontendDone: number,
-  priority: ProjectPriority = 'features',
+  progress: Project['progress'] = {},
 ): GameState {
   const project = state.contracts.projects[P1];
   if (!project) throw new Error('brak projektu');
@@ -70,7 +70,7 @@ function withProject(
       ...state.contracts,
       projects: {
         ...state.contracts.projects,
-        [P1]: { ...project, progress: { frontend: frontendDone }, fragments, priority },
+        [P1]: { ...project, progress: { frontend: frontendDone, ...progress }, fragments },
       },
     },
   });
@@ -90,34 +90,16 @@ function fullFrontend(bugsAt: number[]): Fragment[] {
   return Array.from({ length: 6 }, (_, i) => (bugsAt.includes(i) ? bug() : clean()));
 }
 
-describe('priorytet projektu (PROJ-05)', () => {
-  it('domyślnie „Najpierw funkcje”: wykryty błąd czeka, developer robi swój zakres', () => {
+describe('kolejność: najpierw funkcje, potem naprawy (decyzja z 2026-10-22)', () => {
+  it('dopóki zakres roli trwa, wykryty błąd czeka, a developer robi funkcje', () => {
     const { state, ids } = seated([['frontend', 'senior']]);
     const id = ids[0] as EmployeeId;
     const start = withProject(state, [bug(), clean()], 2 * SIZE);
-    expect(project(start).priority).toBe('features');
     expect(planWork(start, CONFIG).get(id)).toEqual({ kind: 'feature' });
 
     const after = run(start, 50);
     expect(project(after).fragments[0]?.repairProgress).toBe(0);
     expect(project(after).progress.frontend).toBeGreaterThan(2 * SIZE);
-  });
-
-  it('„Najpierw poprawki” kieruje do błędu własnej specjalizacji; zmiana nie kasuje postępu', () => {
-    const { state, ids } = seated([['frontend', 'senior']]);
-    const id = ids[0] as EmployeeId;
-    const start = withProject(state, [clean(), bug()], 2 * SIZE, 'fixes');
-    expect(planWork(start, CONFIG).get(id)).toEqual({ kind: 'repair', fragment: 1 });
-
-    const repairing = run(start, 20);
-    const repaired = project(repairing).fragments[1]?.repairProgress ?? 0;
-    expect(repaired).toBe(20 * effectiveWorkPerStep(employee(start, id), CONFIG));
-    expect(project(repairing).progress.frontend).toBe(2 * SIZE);
-
-    const back = withProject(repairing, project(repairing).fragments as Fragment[], 2 * SIZE);
-    const featured = run(back, 20);
-    expect(project(featured).fragments[1]?.repairProgress).toBe(repaired);
-    expect(project(featured).progress.frontend).toBeGreaterThan(2 * SIZE);
   });
 
   it('po ukończeniu zakresu developer sam przechodzi do napraw; potem „swoja część ukończona”', () => {
@@ -135,9 +117,12 @@ describe('priorytet projektu (PROJ-05)', () => {
   });
 
   it('błąd innej specjalizacji nie trafia do developera', () => {
+    // Backend ukończony, wykryty błąd frontendu — backendowiec nie ma czego naprawiać.
     const { state, ids } = seated([['backend', 'senior']]);
-    const start = withProject(state, [bug()], SIZE, 'fixes');
-    expect(planWork(start, CONFIG).get(ids[0] as EmployeeId)).toEqual({ kind: 'feature' });
+    const id = ids[0] as EmployeeId;
+    const start = withProject(state, [bug()], SIZE, { backend: 40 * POINT_SCALE });
+    expect(planWork(start, CONFIG).has(id)).toBe(false);
+    expect(workStatus(start, employee(start, id), CONFIG)).toBe('scopeDone');
   });
 });
 
@@ -174,15 +159,15 @@ describe('naprawy (BUG-05, BUG-06, SH-004 B3)', () => {
     expect(project(after).fragments.every((f) => f.repairProgress <= REPAIR)).toBe(true);
   });
 
-  it('przy jednym błędzie i dwóch osobach „Najpierw poprawki” — druga robi funkcje', () => {
+  it('przy jednym błędzie i dwóch osobach naprawia jedna, druga czeka', () => {
     const { state, ids } = seated([
       ['frontend', 'senior'],
       ['frontend', 'mid'],
     ]);
-    const start = withProject(state, [bug(), clean()], 2 * SIZE, 'fixes');
+    const start = withProject(state, fullFrontend([3]), FRONTEND_DONE);
     const plan = planWork(start, CONFIG);
-    expect(plan.get(ids[0] as EmployeeId)).toEqual({ kind: 'repair', fragment: 0 });
-    expect(plan.get(ids[1] as EmployeeId)).toEqual({ kind: 'feature' });
+    expect(plan.get(ids[0] as EmployeeId)).toEqual({ kind: 'repair', fragment: 3 });
+    expect(plan.has(ids[1] as EmployeeId)).toBe(false);
   });
 
   it('postęp naprawy zostaje przy błędzie po zmianie wykonawcy', () => {
@@ -204,33 +189,5 @@ describe('naprawy (BUG-05, BUG-06, SH-004 B3)', () => {
       },
     });
     expect(project(run(unassigned, 10)).fragments[0]?.repairProgress).toBe(progress);
-  });
-});
-
-describe('SetProjectPriority', () => {
-  it('zmienia priorytet aktywnego projektu i odrzuca błędne polecenia bez zmiany stanu', () => {
-    const engine = createEngine({ config: CONFIG, initialState: testState() });
-    const starter = engine.getState().contracts.offers[0];
-    if (starter) engine.dispatch({ type: 'AcceptOffer', offerId: starter.id });
-
-    expect(
-      engine.dispatch({ type: 'SetProjectPriority', projectId: P1, priority: 'fixes' }),
-    ).toEqual({ ok: true });
-    expect(project(engine.getState()).priority).toBe('fixes');
-
-    const before = engine.getState();
-    const unknown = engine.dispatch({
-      type: 'SetProjectPriority',
-      projectId: 'project-9' as ProjectId,
-      priority: 'features',
-    });
-    const invalid = engine.dispatch({
-      type: 'SetProjectPriority',
-      projectId: P1,
-      priority: 'later' as ProjectPriority,
-    });
-    expect(unknown).toEqual({ ok: false, rejection: { code: 'unknownProject' } });
-    expect(invalid).toEqual({ ok: false, rejection: { code: 'invalidPriority' } });
-    expect(engine.getState()).toBe(before);
   });
 });

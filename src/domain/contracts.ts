@@ -49,10 +49,6 @@ export type Fragment = {
   repairProgress: number;
 };
 
-// PROJ-05 (Z): „Najpierw funkcje” (domyślny) albo „Najpierw poprawki”.
-export const PROJECT_PRIORITIES = ['features', 'fixes'] as const;
-export type ProjectPriority = (typeof PROJECT_PRIORITIES)[number];
-
 export type Project = ContractTerms & {
   id: ProjectId;
   acceptedOnDay: number;
@@ -65,7 +61,6 @@ export type Project = ContractTerms & {
   // Ryzyko ważone pracą w bieżącym, nieukończonym fragmencie każdej specjalizacji
   // (Σ milionowe pp × ryzyko w promilach) — rozstrzygane przy ukończeniu fragmentu.
   fragmentRisk: Partial<Record<TechSpecialization, number>>;
-  priority: ProjectPriority;
   // PROJ-10 (Z): wykonana praca Designera (milionowe pp), do `designScope`; nie generuje błędów.
   designProgress: number;
   // PROJ-07, BUG-04 (Z): raport rozliczenia oddania; null, dopóki projekt jest aktywny.

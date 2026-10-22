@@ -131,7 +131,6 @@ describe('polityka faz poleceń (TIME-08)', () => {
       BuyFurniture: 'workDay',
       AcceptOffer: 'workDay',
       AssignProject: 'workDay',
-      SetProjectPriority: 'workDay',
       DeliverProject: 'delivery',
     };
     const actual = Object.fromEntries(

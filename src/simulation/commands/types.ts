@@ -1,5 +1,5 @@
 import type { BalanceConfig } from '../../domain/config';
-import type { OfferId, ProjectId, ProjectPriority } from '../../domain/contracts';
+import type { OfferId, ProjectId } from '../../domain/contracts';
 import type { CandidateId, EmployeeId } from '../../domain/employees';
 import type { FurnitureId, FurnitureType, Rotation } from '../../domain/furniture';
 import type { GridPoint } from '../../domain/grid';
@@ -30,11 +30,6 @@ export type AssignProjectCommand = {
   employeeId: EmployeeId;
   projectId: ProjectId | null;
 };
-export type SetProjectPriorityCommand = {
-  type: 'SetProjectPriority';
-  projectId: ProjectId;
-  priority: ProjectPriority;
-};
 export type DeliverProjectCommand = { type: 'DeliverProject'; projectId: ProjectId };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
@@ -54,7 +49,6 @@ export type Command =
   | BuyFurnitureCommand
   | AcceptOfferCommand
   | AssignProjectCommand
-  | SetProjectPriorityCommand
   | DeliverProjectCommand;
 export type CommandType = Command['type'];
 
@@ -70,7 +64,6 @@ export type RejectionCode =
   | 'unknownProject'
   | 'projectClosed'
   | 'pmAlreadyAssigned'
-  | 'invalidPriority'
   | 'projectIncomplete'
   | 'unknownEmployee'
   | 'unknownFurniture'

@@ -9,7 +9,6 @@ import {
 } from '../domain/employees';
 import {
   POINT_SCALE,
-  PROJECT_PRIORITIES,
   TECH_SPECIALIZATIONS,
   type OfferId,
   type ProjectId,
@@ -91,7 +90,6 @@ const contractsSchema = z.strictObject({
         }),
       ),
       fragmentRisk: z.partialRecord(z.enum(TECH_SPECIALIZATIONS), z.int().min(0)),
-      priority: z.enum(PROJECT_PRIORITIES),
       designProgress: z.int().min(0),
       delivery: z
         .strictObject({
