@@ -19,9 +19,9 @@ export function StaffAlerts() {
   );
   if (!unhappy && !quit) return null;
   return (
-    <div className="staff-alerts" role="status">
-      {unhappy && <p className="negative">Chcą odejść: {unhappy}</p>}
-      {quit && <p className="warning">Odeszli dziś z firmy: {quit}</p>}
+    <div className="alerts" role="status">
+      {unhappy && <p className="alert danger">Chcą odejść: {unhappy}</p>}
+      {quit && <p className="alert">Odeszli dziś z firmy: {quit}</p>}
     </div>
   );
 }

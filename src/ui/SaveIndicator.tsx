@@ -2,8 +2,16 @@ import { useSyncExternalStore } from 'react';
 import type { SaveManager } from '../application/saveManager';
 
 // T:SAVE-T03 — stan zapisu jest widoczny; błąd nigdy nie wygląda jak sukces.
-export function SaveIndicator({ manager }: { manager: SaveManager }) {
+// `errorsOnly` — w nagłówku: bez komunikatów o sukcesie, ale błąd zawsze widoczny.
+export function SaveIndicator({
+  manager,
+  errorsOnly = false,
+}: {
+  manager: SaveManager;
+  errorsOnly?: boolean;
+}) {
   const status = useSyncExternalStore(manager.subscribe, manager.getStatus);
+  if (errorsOnly && status.kind !== 'error') return null;
 
   switch (status.kind) {
     case 'saving':

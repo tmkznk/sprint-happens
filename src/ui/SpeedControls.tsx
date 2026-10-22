@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { Pause, Play } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit } from '../application/furnitureEditHooks';
 import { SPEEDS, type Speed } from '../domain/state';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
-const LABELS: Record<Speed, string> = { 0: '❚❚', 1: '1×', 2: '2×', 4: '4×' };
+const LABELS: Record<Speed, ReactNode> = {
+  0: <Pause size={18} />,
+  1: <Play size={18} />,
+  2: '2×',
+  4: '4×',
+};
+const NAMES: Record<Speed, string> = { 0: 'Pauza', 1: 'Tempo 1×', 2: 'Tempo 2×', 4: 'Tempo 4×' };
 
 export function SpeedControls() {
   const speed = useGameSelector((state) => state.mission.speed);
@@ -28,13 +35,17 @@ export function SpeedControls() {
           type="button"
           aria-pressed={speed === value}
           disabled={!isWorking || editing}
-          aria-label={value === 0 ? 'Pauza' : `Tempo ${LABELS[value]}`}
+          aria-label={NAMES[value]}
           onClick={() => select(value)}
         >
           {LABELS[value]}
         </button>
       ))}
-      {message && <span role="alert">{message}</span>}
+      {message && (
+        <span role="alert" className="warning">
+          {message}
+        </span>
+      )}
     </div>
   );
 }

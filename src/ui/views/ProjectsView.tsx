@@ -1,158 +1,226 @@
+import { Briefcase } from 'lucide-react';
 import { useState } from 'react';
-import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
+import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import {
   TECH_SPECIALIZATIONS,
   type ContractTerms,
   type Offer,
   type ProjectId,
   type ReadonlyProject,
-} from '../domain/contracts';
-import { isReadyForDelivery, paymentPreview } from '../simulation/delivery';
-import { detectedBugCount, testCoverage } from '../simulation/qa';
-import { ConfirmDialog } from './ConfirmDialog';
-import { designPercent, pmBonusPermille, progressPercent } from '../simulation/work';
-import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from './labels';
-import { REJECTION_MESSAGES } from './rejectionMessages';
+} from '../../domain/contracts';
+import { isReadyForDelivery, paymentPreview } from '../../simulation/delivery';
+import { detectedBugCount, testCoverage } from '../../simulation/qa';
+import { ConfirmDialog } from '../ConfirmDialog';
+import { EmptyState } from '../EmptyState';
+import { designPercent, pmBonusPermille, progressPercent } from '../../simulation/work';
+import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from '../labels';
+import { REJECTION_MESSAGES } from '../rejectionMessages';
 
+type ProjectsTab = 'active' | 'offers' | 'archive';
+
+// Zakładka „Projekty” (SH-033, wzór SH2): W toku / Zlecenia / Archiwum.
 // CON-02 (Z): oferta pokazuje nazwę i opis, zakresy specjalizacji, termin, wynagrodzenie,
 // zaliczkę, znaczenie designu i karę za opóźnienie. CON-03: przyjęcie bez kompletnego zespołu.
-export function ContractsDialog({ onClose }: { onClose(): void }) {
+export function ProjectsView() {
   const offers = useGameSelector((state) => state.contracts.offers);
   const projects = useGameSelector((state) => state.contracts.projects);
-  const employees = useGameSelector((state) => state.staff.employees);
-  const day = useGameSelector((state) => state.mission.day);
   const phase = useGameSelector((state) => state.mission.phase);
-  const isWorking = phase === 'working';
-  const dispatch = useDispatch();
+  const active = Object.values(projects).filter((project) => project.status === 'active');
+  const delivered = Object.values(projects).filter((project) => project.status === 'delivered');
+  const [tab, setTab] = useState<ProjectsTab>(active.length > 0 ? 'active' : 'offers');
   const [message, setMessage] = useState<string | null>(null);
+  const [reportFor, setReportFor] = useState<ProjectId | null>(null);
+  const reportProject = reportFor ? projects[reportFor] : undefined;
 
+  const tabs: { id: ProjectsTab; label: string; count: number }[] = [
+    { id: 'active', label: 'W toku', count: active.length },
+    { id: 'offers', label: 'Zlecenia', count: offers.length },
+    { id: 'archive', label: 'Archiwum', count: delivered.length },
+  ];
+
+  return (
+    <>
+      <div className="segmented" role="tablist" aria-label="Projekty">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === item.id}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label} <span className="count">{item.count}</span>
+          </button>
+        ))}
+      </div>
+      {phase === 'workEnded' && (
+        <p className="alert">
+          Dzień pracy się skończył — przed rozliczeniem możesz jeszcze oddać gotowe projekty.
+        </p>
+      )}
+      {message && (
+        <p role="status" className="alert">
+          {message}
+        </p>
+      )}
+      {tab === 'active' && (
+        <ActiveProjects
+          projects={active}
+          onDelivered={setReportFor}
+          onBrowseOffers={() => setTab('offers')}
+        />
+      )}
+      {tab === 'offers' && <Offers offers={offers} onMessage={setMessage} />}
+      {tab === 'archive' && <Archive projects={delivered} onReport={setReportFor} />}
+      {reportProject?.delivery && (
+        <DeliveryReportDialog project={reportProject} onClose={() => setReportFor(null)} />
+      )}
+    </>
+  );
+}
+
+function Offers({
+  offers,
+  onMessage,
+}: {
+  offers: readonly Offer[];
+  onMessage: (message: string | null) => void;
+}) {
+  const day = useGameSelector((state) => state.mission.day);
+  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const dispatch = useDispatch();
   const accept = (offer: Offer) => {
     const result = dispatch({ type: 'AcceptOffer', offerId: offer.id });
-    setMessage(
+    onMessage(
       result.ok
         ? `Przyjęto: ${offer.name}. Zaliczka ${money.format(offer.advance)} jest już na koncie.`
         : REJECTION_MESSAGES[result.rejection.code],
     );
   };
-  const active = Object.values(projects).filter((project) => project.status === 'active');
-  const delivered = Object.values(projects).filter((project) => project.status === 'delivered');
-  const [reportFor, setReportFor] = useState<ProjectId | null>(null);
-  const reportProject = reportFor ? projects[reportFor] : undefined;
-
-  return (
-    <div className="modal-backdrop fullscreen">
-      <section
-        className="modal contracts"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="contracts-title"
+  if (offers.length === 0) {
+    return (
+      <EmptyState
+        icon={<Briefcase size={40} />}
+        title="Tablica jest pusta"
+        text="Nowe oferty pojawią się następnego dnia."
+      />
+    );
+  }
+  return offers.map((offer) => (
+    <article key={offer.id} className="contract-card">
+      <h4>{offer.name}</h4>
+      <p className="hint">{offer.description}</p>
+      <Terms
+        terms={offer}
+        deadline={`${offer.deadlineDays} dni (do końca dnia ${day + offer.deadlineDays})`}
+      />
+      <button
+        type="button"
+        className="primary-button"
+        disabled={!isWorking}
+        onClick={() => accept(offer)}
       >
-        <header className="modal-header">
-          <h2 id="contracts-title">Zlecenia</h2>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Zamknij">
-            ✕
-          </button>
-        </header>
-        {phase === 'workEnded' && (
-          <p className="warning">
-            Dzień pracy się skończył — przed rozliczeniem możesz jeszcze oddać gotowe projekty.
-          </p>
-        )}
-        {phase === 'settled' && <p className="warning">{REJECTION_MESSAGES.phaseNotAllowed}</p>}
-        {message && (
-          <p role="status" className="hint">
-            {message}
-          </p>
-        )}
+        Przyjmij
+      </button>
+    </article>
+  ));
+}
 
-        <h3>Oferty</h3>
-        {offers.length === 0 && <p className="hint">Nowe oferty pojawią się następnego dnia.</p>}
-        {offers.map((offer) => (
-          <article key={offer.id} className="contract-card">
-            <h4>{offer.name}</h4>
-            <p className="hint">{offer.description}</p>
-            <Terms
-              terms={offer}
-              deadline={`${offer.deadlineDays} dni (do końca dnia ${day + offer.deadlineDays})`}
-            />
-            <button type="button" disabled={!isWorking} onClick={() => accept(offer)}>
-              Przyjmij
-            </button>
-          </article>
-        ))}
+function ActiveProjects({
+  projects,
+  onDelivered,
+  onBrowseOffers,
+}: {
+  projects: readonly ReadonlyProject[];
+  onDelivered: (id: ProjectId) => void;
+  onBrowseOffers: () => void;
+}) {
+  const employees = useGameSelector((state) => state.staff.employees);
+  const day = useGameSelector((state) => state.mission.day);
+  if (projects.length === 0) {
+    return (
+      <EmptyState
+        icon={<Briefcase size={40} />}
+        title="Pierwszy kontrakt czeka"
+        text="Wybierz projekt pasujący do swojego zespołu."
+        action={{ label: 'Przeglądaj zlecenia', onClick: onBrowseOffers }}
+      />
+    );
+  }
+  return projects.map((project) => {
+    const daysLeft = project.deadlineDay - day;
+    const team = Object.values(employees).filter((e) => e.projectId === project.id);
+    return (
+      <article key={project.id} className="contract-card">
+        <h4>{project.name}</h4>
+        <p className="hint">
+          Zespół:{' '}
+          {team.length === 0
+            ? 'nikt nie jest przypisany — przydziel ludzi w zakładce Zespół.'
+            : team.map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`).join(', ')}
+        </p>
+        <ul className="progress-list" aria-label="Postęp prac">
+          {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
+            <li key={s}>
+              <span>{SCOPE_LABELS[s]}</span>
+              <progress max={100} value={progressPercent(project, s)} />
+              <span>{progressPercent(project, s)}%</span>
+            </li>
+          ))}
+          {/* PROJ-10: opcjonalny zakres designu — nie blokuje oddania. */}
+          {project.designScope > 0 && (
+            <li>
+              <span>Design</span>
+              <progress max={100} value={designPercent(project)} />
+              <span>{designPercent(project)}%</span>
+            </li>
+          )}
+        </ul>
+        <PmBonusLine project={project} />
+        <QualityLine project={project} />
+        <Terms
+          terms={project}
+          deadline={
+            daysLeft >= 0
+              ? `koniec dnia ${project.deadlineDay} (zostało dni: ${daysLeft})`
+              : `minął w dniu ${project.deadlineDay}`
+          }
+        />
+        <DeliverySection project={project} onDelivered={onDelivered} />
+      </article>
+    );
+  });
+}
 
-        <h3>Projekty w toku</h3>
-        {active.length === 0 && <p className="hint">Brak przyjętych kontraktów.</p>}
-        {active.map((project) => {
-          const daysLeft = project.deadlineDay - day;
-          const team = Object.values(employees).filter((e) => e.projectId === project.id);
-          return (
-            <article key={project.id} className="contract-card">
-              <h4>{project.name}</h4>
-              <p className="hint">
-                Zespół:{' '}
-                {team.length === 0
-                  ? 'nikt nie jest przypisany — przydziel pracowników w ich panelu.'
-                  : team
-                      .map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`)
-                      .join(', ')}
-              </p>
-              <ul className="progress-list" aria-label="Postęp prac">
-                {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
-                  <li key={s}>
-                    <span>{SCOPE_LABELS[s]}</span>
-                    <progress max={100} value={progressPercent(project, s)} />
-                    <span>{progressPercent(project, s)}%</span>
-                  </li>
-                ))}
-                {/* PROJ-10: opcjonalny zakres designu — nie blokuje oddania. */}
-                {project.designScope > 0 && (
-                  <li>
-                    <span>Design</span>
-                    <progress max={100} value={designPercent(project)} />
-                    <span>{designPercent(project)}%</span>
-                  </li>
-                )}
-              </ul>
-              <PmBonusLine project={project} />
-              <QualityLine project={project} />
-              <Terms
-                terms={project}
-                deadline={
-                  daysLeft >= 0
-                    ? `koniec dnia ${project.deadlineDay} (zostało dni: ${daysLeft})`
-                    : `minął w dniu ${project.deadlineDay}`
-                }
-              />
-              <DeliverySection project={project} onDelivered={setReportFor} />
-            </article>
-          );
-        })}
-
-        {delivered.length > 0 && <h3>Oddane projekty</h3>}
-        {delivered.map((project) => (
-          <article key={project.id} className="contract-card">
-            <h4>{project.name}</h4>
-            <p className="hint">
-              Oddany w dniu {project.delivery?.day} · wypłata{' '}
-              {money.format(project.delivery?.payment ?? 0)} · reputacja{' '}
-              {signed(project.delivery?.reputation.total ?? 0)}
-            </p>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setReportFor(project.id)}
-            >
-              Raport
-            </button>
-          </article>
-        ))}
-      </section>
-      {reportProject?.delivery && (
-        <DeliveryReportDialog project={reportProject} onClose={() => setReportFor(null)} />
-      )}
-    </div>
-  );
+function Archive({
+  projects,
+  onReport,
+}: {
+  projects: readonly ReadonlyProject[];
+  onReport: (id: ProjectId) => void;
+}) {
+  if (projects.length === 0) {
+    return (
+      <EmptyState
+        icon={<Briefcase size={40} />}
+        title="Archiwum jest puste"
+        text="Tu trafią oddane projekty razem z raportem jakości."
+      />
+    );
+  }
+  return projects.map((project) => (
+    <article key={project.id} className="contract-card">
+      <h4>{project.name}</h4>
+      <p className="hint">
+        Oddany w dniu {project.delivery?.day} · wypłata{' '}
+        {money.format(project.delivery?.payment ?? 0)} · reputacja{' '}
+        {signed(project.delivery?.reputation.total ?? 0)}
+      </p>
+      <button type="button" className="secondary-button" onClick={() => onReport(project.id)}>
+        Raport
+      </button>
+    </article>
+  ));
 }
 
 const signed = (value: number) => (value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '0');
@@ -193,7 +261,12 @@ function DeliverySection({
           Opóźnienie: {preview.daysLate} dni · potrącenie {money.format(preview.penalty)}
         </p>
       )}
-      <button type="button" disabled={!ready || !canDeliverNow} onClick={() => setConfirming(true)}>
+      <button
+        type="button"
+        className="primary-button"
+        disabled={!ready || !canDeliverNow}
+        onClick={() => setConfirming(true)}
+      >
         Oddaj projekt
       </button>
       {!ready && <p className="hint">Oddanie po ukończeniu wszystkich części technicznych.</p>}

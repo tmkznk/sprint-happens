@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { EngineContext } from '../application/engineHooks';
 import { browserEnvironment, startGameLoop, type FrameClock } from '../application/gameLoop';
 import { attachAutosave, type SaveManager } from '../application/saveManager';
@@ -8,29 +8,36 @@ import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import type { Engine } from '../simulation/engine';
-import { ContractsButton } from './ContractsButton';
-import { DayClock } from './DayClock';
-import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
-import { FinanceSummary } from './FinanceSummary';
 import { EventDialog } from './EventDialog';
-import { MissionGoals } from './MissionGoals';
-import { UpdateBanner } from './UpdateBanner';
-import { OfflineBadge } from './OfflineBadge';
-import { OfficeSceneBubble } from './OfficeSceneBubble';
-import { StaffAlerts } from './StaffAlerts';
-import { NewGameButton } from './NewGameButton';
-import { RecruitmentButton } from './RecruitmentButton';
-import { SaveIndicator } from './SaveIndicator';
-import { SelectionPanel } from './SelectionPanel';
-import { ShopButton } from './ShopButton';
-import { SpeedControls } from './SpeedControls';
+import { MainNav } from './MainNav';
+import { NavigationContext, type Navigation, type Tab } from './navigation';
+import { OfficeView } from './OfficeView';
+import { PlanAside } from './PlanAside';
+import { Sheet } from './Sheet';
+import { TopBar } from './TopBar';
+import { FinanceView } from './views/FinanceView';
+import { FurnishView } from './views/FurnishView';
+import { GoalsView } from './views/GoalsView';
+import { ProjectsView } from './views/ProjectsView';
+import { RecruitmentView } from './views/RecruitmentView';
+import { TeamView } from './views/TeamView';
 
 // Scena testowa okluzji dla SH-002: ?scene=occlusion
 const occlusionTest = new URLSearchParams(window.location.search).get('scene') === 'occlusion';
 
+const SHEETS: Record<Exclude<Tab, 'office'>, { title: string; view: () => ReactNode }> = {
+  projects: { title: 'Projekty i zlecenia', view: () => <ProjectsView /> },
+  team: { title: 'Twój zespół', view: () => <TeamView /> },
+  recruit: { title: 'Rekrutacja', view: () => <RecruitmentView /> },
+  furnish: { title: 'Urządź biuro', view: () => <FurnishView /> },
+  finance: { title: 'Finanse firmy', view: () => <FinanceView /> },
+  goals: { title: 'Cel misji', view: () => <GoalsView /> },
+};
+
 // Aktywna gra. Pętla, scena Phaser i autozapis żyją tyle, co komponent — nowa misja montuje
 // go od nowa, więc po restarcie nie zostaje poprzednia pętla ani handlery (T:VIEW-05).
+// Układ (SH-033, wzór SH2): nagłówek, nawigacja, biuro; zakładki zarządzania nad biurem.
 export function App({
   engine,
   saveManager,
@@ -43,6 +50,8 @@ export function App({
   const [selection] = useState(createSelectionStore);
   const [edit] = useState(createFurnitureEditStore);
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
+  const [tab, setTab] = useState<Tab>('office');
+  const navigation = useMemo<Navigation>(() => ({ tab, open: setTab }), [tab]);
   const sceneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => startGameLoop(engine, browserEnvironment, frameClock), [engine, frameClock]);
@@ -59,38 +68,27 @@ export function App({
     return () => game.destroy(true);
   }, [engine, selection, edit, frameClock]);
 
+  const sheet = tab === 'office' ? null : SHEETS[tab];
+
   return (
     <EngineContext value={engine}>
       <SelectionContext value={selection}>
         <FurnitureEditContext value={edit}>
-          <div className="app">
-            <div className="scene-area">
-              <div ref={sceneRef} className="scene" />
-              <SelectionPanel />
-              <OfficeSceneBubble />
-              <DayReportDialog onNewGame={onNewGame} />
-              <EventDialog />
+          <NavigationContext value={navigation}>
+            <div className="shell">
+              <TopBar manager={saveManager} onNewGame={onNewGame} />
+              <MainNav />
+              <OfficeView sceneRef={sceneRef} engine={engine} manager={saveManager} />
+              <PlanAside />
+              {sheet && (
+                <Sheet title={sheet.title} onClose={() => setTab('office')}>
+                  {sheet.view()}
+                </Sheet>
+              )}
             </div>
-            <div className="panel">
-              <div className="panel-header">
-                <DayClock />
-                <SaveIndicator manager={saveManager} />
-                <OfflineBadge />
-              </div>
-              <UpdateBanner engine={engine} manager={saveManager} />
-              <FinanceSummary />
-              <MissionGoals />
-              <StaffAlerts />
-              <SpeedControls />
-              <DayControls />
-              <div className="panel-actions">
-                <ContractsButton />
-                <RecruitmentButton />
-                <ShopButton />
-                <NewGameButton onConfirm={onNewGame} />
-              </div>
-            </div>
-          </div>
+            <DayReportDialog onNewGame={onNewGame} />
+            <EventDialog />
+          </NavigationContext>
         </FurnitureEditContext>
       </SelectionContext>
     </EngineContext>

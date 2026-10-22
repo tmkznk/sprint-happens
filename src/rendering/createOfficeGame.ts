@@ -11,7 +11,7 @@ export function createOfficeGame(
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    backgroundColor: '#1d1f2b',
+    backgroundColor: '#d5e2da',
     pixelArt: true,
     scale: { mode: Phaser.Scale.RESIZE },
     // Dwa wskaźniki dotykowe dla gestu przybliżania (UX-02).

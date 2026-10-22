@@ -14,6 +14,12 @@ export function useSelection(): Selection {
   return useSyncExternalStore(store.subscribe, store.get);
 }
 
+// Zaznaczenie z paneli (np. „Pokaż w biurze” w zakładce Zespół).
+export function useSelect(): (selection: Selection) => void {
+  const store = useSelectionStore();
+  return (selection) => store.set(selection);
+}
+
 export function useClearSelection(): () => void {
   const store = useSelectionStore();
   return () => store.set(null);
