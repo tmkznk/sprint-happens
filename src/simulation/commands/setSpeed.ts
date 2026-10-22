@@ -7,6 +7,8 @@ export const setSpeed: CommandHandler<SetSpeedCommand> = {
   execute(state, command) {
     // Polecenia mogą pochodzić z niezweryfikowanego wejścia, więc walidujemy także w czasie wykonania.
     if (!(SPEEDS as readonly number[]).includes(command.speed)) return reject('invalidSpeed');
+    // EVT-02: zdarzenie decyzyjne trzyma grę na pauzie do wyboru odpowiedzi.
+    if (state.events.pending && command.speed !== 0) return reject('eventPending');
     if (state.mission.speed === command.speed) return { ok: true, state };
     return { ok: true, state: { ...state, mission: { ...state.mission, speed: command.speed } } };
   },

@@ -59,6 +59,15 @@ export type BalanceConfig = DeepReadonly<{
     warningThreshold: number;
     quitAfterSeconds: number;
   };
+  // EVT-03, decyzja SH-032 A7b (B): częstotliwość zdarzeń decyzyjnych.
+  events: {
+    dailyChance: number;
+    firstDay: number;
+    cooldownDays: number;
+    // Okno dnia (ułamki długości dnia), w którym może wystąpić zdarzenie.
+    windowStart: number;
+    windowEnd: number;
+  };
   contracts: {
     // CON-01 (Z): liczba ofert na tablicy.
     boardSize: number;
@@ -121,6 +130,13 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     sofaGainPerSecond: 1,
     maxRestSeconds: 90,
     shortQueue: 1,
+  },
+  events: {
+    dailyChance: 0.35,
+    firstDay: 3,
+    cooldownDays: 5,
+    windowStart: 0.25,
+    windowEnd: 0.75,
   },
   satisfaction: {
     neutral: 70,

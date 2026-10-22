@@ -10,6 +10,7 @@ import type { Employee, EmployeeId } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { interactionCells } from '../world/geometry';
 import { addWork, openBugs, repairSize, riskPermille } from './bugs';
+import { isInMeeting } from './events';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -105,7 +106,7 @@ function isReadyDeveloper(state: GameState, employee: Employee): boolean {
 
 // Przy własnym biurku, z przydziałem do aktywnego projektu, nie na przerwie, z energią > 0.
 function isPresentAtWork(state: GameState, employee: Employee): boolean {
-  if (!employee.projectId || employee.energy <= 0) return false;
+  if (!employee.projectId || employee.energy <= 0 || isInMeeting(state)) return false;
   if (state.contracts.projects[employee.projectId]?.status !== 'active') return false;
   return isAtOwnDesk(state, employee) && !isOnBreak(state, employee);
 }

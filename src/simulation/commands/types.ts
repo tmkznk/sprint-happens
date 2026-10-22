@@ -32,6 +32,7 @@ export type AssignProjectCommand = {
 };
 export type DeliverProjectCommand = { type: 'DeliverProject'; projectId: ProjectId };
 export type FireEmployeeCommand = { type: 'FireEmployee'; employeeId: EmployeeId };
+export type ResolveEventCommand = { type: 'ResolveEvent'; optionId: string };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -51,7 +52,8 @@ export type Command =
   | AcceptOfferCommand
   | AssignProjectCommand
   | DeliverProjectCommand
-  | FireEmployeeCommand;
+  | FireEmployeeCommand
+  | ResolveEventCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -67,6 +69,9 @@ export type RejectionCode =
   | 'projectClosed'
   | 'pmAlreadyAssigned'
   | 'projectIncomplete'
+  | 'eventPending'
+  | 'noPendingEvent'
+  | 'unknownEventOption'
   | 'unknownEmployee'
   | 'unknownFurniture'
   | 'notADesk'

@@ -6,6 +6,7 @@ import type { GameState } from '../domain/state';
 import { interactionCells } from '../world/geometry';
 import { finishUse } from '../world/movement/movement';
 import { destinationId } from '../world/movement/officeEnv';
+import { isCoffeeBroken } from './events';
 
 // NEED-01, NEED-02 (Z), decyzje SH-004 A3/A4 i SH-032 B2: energia, przerwy, kawa i kanapa.
 // System działa w kroku po ruchu i przed pracą (SH-004 B4). Stan logiczny czynności wynika
@@ -50,6 +51,8 @@ const OPEN_ENDED_USE = 1_000_000;
 
 function restDestinations(state: GameState, kind: RestKind): string[] {
   const type: Furniture['type'] = kind === 'coffee' ? 'coffeeMachine' : 'sofa';
+  // Zdarzenie „Ekspres strajkuje”: do końca dnia nikt nie wybiera kawy.
+  if (kind === 'coffee' && isCoffeeBroken(state)) return [];
   return Object.values(state.world.furniture)
     .filter((item) => item.type === type)
     .flatMap((item) => interactionCells(item).map((_, index) => destinationId(item.id, index)));

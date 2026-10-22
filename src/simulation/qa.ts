@@ -3,6 +3,7 @@ import { POINT_SCALE, TECH_SPECIALIZATIONS, type ReadonlyProject } from '../doma
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { fragmentSize, isDetected, isFixed } from './bugs';
+import { isInMeeting } from './events';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -18,6 +19,7 @@ import { applyBonus, isAtOwnDesk, pmBonusPermille } from './work';
 // nie na przerwie i z energią > 0 (NEED-01).
 function isReadyTester(state: GameState, employee: Employee): boolean {
   if (employee.specialization !== 'qa' || !employee.projectId || employee.energy <= 0) return false;
+  if (isInMeeting(state)) return false;
   const project = state.contracts.projects[employee.projectId];
   if (project?.status !== 'active') return false;
   return isAtOwnDesk(state, employee) && !isOnBreak(state, employee);

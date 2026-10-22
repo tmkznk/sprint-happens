@@ -4,6 +4,7 @@ import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
+import { triggerEvent } from './events';
 import { doTesting } from './qa';
 import { updateSatisfaction } from './satisfaction';
 import { doDesign, doRepairs, doWork, planWork } from './work';
@@ -31,10 +32,11 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
   if (timeInDayMs >= DAY_LENGTH_MS) {
     return {
       ...state,
-      mission: { ...mission, timeInDayMs: DAY_LENGTH_MS, phase: 'workEnded', speed: 0 },
+      mission: { ...state.mission, timeInDayMs: DAY_LENGTH_MS, phase: 'workEnded', speed: 0 },
     };
   }
-  return { ...state, mission: { ...mission, timeInDayMs } };
+  // EVT-02, SH-004 B4: zdarzenie w zaplanowanej chwili dnia — po pozostałych systemach kroku.
+  return triggerEvent({ ...state, mission: { ...state.mission, timeInDayMs } }, config);
 }
 
 // T:MOVE-01–09 — ruch postaci po mapie biura (SH-011, SH-012).

@@ -1,3 +1,4 @@
+import type { TechSpecialization } from '../domain/contracts';
 import type { Seniority, Specialization } from '../domain/employees';
 import type { FurnitureType } from '../domain/furniture';
 import type { AgentStatus } from '../domain/movement';
@@ -61,3 +62,11 @@ export const ACTIVITY_LABELS: Record<Activity, string> = {
 };
 
 export const money = new Intl.NumberFormat('pl-PL');
+
+// PROJ-09: nazwy zakresów technicznych projektu.
+export const SCOPE_LABELS: Record<TechSpecialization, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  mobile: 'Mobile',
+  devops: 'DevOps',
+};

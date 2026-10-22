@@ -7,6 +7,7 @@ import { fireEmployee } from './fireEmployee';
 import { hireCandidate } from './hireCandidate';
 import { moveFurniture } from './moveFurniture';
 import { sellFurniture } from './sellFurniture';
+import { resolveEvent } from './resolveEvent';
 import { setSpeed } from './setSpeed';
 import { settleDay } from './settleDay';
 import { startNextDay } from './startNextDay';
@@ -29,4 +30,5 @@ export const commandHandlers: HandlerRegistry = {
   AssignProject: assignProject,
   DeliverProject: deliverProject,
   FireEmployee: fireEmployee,
+  ResolveEvent: resolveEvent,
 };

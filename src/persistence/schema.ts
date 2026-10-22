@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EVENT_TEMPLATES } from '../domain/content/events';
 import type { BalanceConfig } from '../domain/config';
 import {
   SENIORITIES,
@@ -231,12 +232,29 @@ const worldSchema = z.strictObject({
 
 const idsSchema = z.record(z.string().regex(/^[a-z][a-zA-Z]*$/), z.int().min(0));
 
+// EVT-01–03: stan zdarzeń, w tym oczekująca decyzja (przetrwa zapis).
+const eventsSchema = z.strictObject({
+  scheduledAtMs: z.int().min(0).max(DAY_LENGTH_MS).nullable(),
+  pending: z
+    .strictObject({
+      instanceId: z.string().regex(/^event-\d+$/),
+      templateId: z.enum(EVENT_TEMPLATES.map((t) => t.id) as [string, ...string[]]),
+      projectId: projectId.nullable(),
+      resumeSpeed: z.literal(SPEEDS),
+    })
+    .nullable(),
+  lastSeenDay: z.record(z.string().min(1), z.int().min(1)),
+  meetingUntilMs: z.int().min(0).nullable(),
+  coffeeBrokenDay: z.int().min(1).nullable(),
+});
+
 export const gameStateShape = z.strictObject({
   mission: missionSchema,
   finance: financeSchema,
   contracts: contractsSchema,
   staff: staffSchema,
   world: worldSchema,
+  events: eventsSchema,
   ids: idsSchema,
   // TIME-T04: stan generatora losowego jest zapisywany, aby wczytanie nie przelosowało wyników.
   rng: z.uint32(),
@@ -253,6 +271,7 @@ export function consistencyIssues(state: GameState, context: ValidationContext):
     ...furniture,
     ...staffIssues(state),
     ...contractIssues(state, context),
+    ...eventIssues(state),
     // Ruch sprawdzamy tylko na poprawnym układzie mebli — inaczej mapa przejść jest niewiarygodna.
     ...(furniture.length === 0 ? movementIssues(state, context) : []),
   ];
@@ -328,6 +347,23 @@ function furnitureIssues(state: GameState, { layout }: ValidationContext): Issue
       if (other) issues.push({ path, message: `Mebel koliduje z ${other} na polu ${label(cell)}` });
       taken.set(label(cell), item.id);
     }
+  }
+  return issues;
+}
+
+// EVT-02: oczekująca decyzja wskazuje istniejący projekt; zaplanowane zdarzenie nie współistnieje
+// z oczekującym (najwyżej jedno decyzyjne dziennie).
+function eventIssues(state: GameState): Issue[] {
+  const issues: Issue[] = [];
+  const { pending, scheduledAtMs } = state.events;
+  if (pending?.projectId && !state.contracts.projects[pending.projectId]) {
+    issues.push({
+      path: ['events', 'pending', 'projectId'],
+      message: 'Zdarzenie dla nieznanego projektu',
+    });
+  }
+  if (pending && scheduledAtMs !== null) {
+    issues.push({ path: ['events'], message: 'Zaplanowane i oczekujące zdarzenie naraz' });
   }
   return issues;
 }

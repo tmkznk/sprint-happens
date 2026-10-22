@@ -13,7 +13,9 @@ import { DayClock } from './DayClock';
 import { DayControls } from './DayControls';
 import { DayReportDialog } from './DayReportDialog';
 import { FinanceSummary } from './FinanceSummary';
+import { EventDialog } from './EventDialog';
 import { MissionGoals } from './MissionGoals';
+import { OfficeSceneBubble } from './OfficeSceneBubble';
 import { StaffAlerts } from './StaffAlerts';
 import { NewGameButton } from './NewGameButton';
 import { RecruitmentButton } from './RecruitmentButton';
@@ -63,7 +65,9 @@ export function App({
             <div className="scene-area">
               <div ref={sceneRef} className="scene" />
               <SelectionPanel />
+              <OfficeSceneBubble />
               <DayReportDialog onNewGame={onNewGame} />
+              <EventDialog />
             </div>
             <div className="panel">
               <div className="panel-header">

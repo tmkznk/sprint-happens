@@ -365,6 +365,34 @@ describe('zadowolenie i odejścia w zapisie (SH-019)', () => {
   });
 });
 
+describe('zdarzenia w zapisie (SH-031)', () => {
+  it('oczekująca decyzja przetrwa zapis; zdarzenie dla nieznanego projektu jest odrzucane', () => {
+    const initial = createInitialState(DEFAULT_BALANCE, 8);
+    const state: GameState = {
+      ...initial,
+      ids: { ...initial.ids, event: 1 },
+      events: {
+        ...initial.events,
+        pending: {
+          instanceId: 'event-1',
+          templateId: 'open-day',
+          projectId: null,
+          resumeSpeed: 2,
+        },
+        lastSeenDay: { 'open-day': 1 },
+      },
+    };
+    expect(roundTrip(state)).toEqual(state);
+
+    const envelope = JSON.parse(
+      JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...meta, state }),
+    ) as { state: Record<string, any> };
+    envelope.state.events.pending.projectId = 'project-7';
+    const result = parseSnapshot(JSON.stringify(envelope), context);
+    expect(result.ok ? '' : result.error.issues.join('\n')).toContain('nieznanego projektu');
+  });
+});
+
 describe('kontrakty w zapisie (SH-020)', () => {
   it('przyjęty kontrakt i uzupełniona tablica przetrwają zapis', () => {
     const engine = createEngine({

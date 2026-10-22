@@ -11,15 +11,8 @@ import { isReadyForDelivery, paymentPreview } from '../simulation/delivery';
 import { detectedBugCount, testCoverage } from '../simulation/qa';
 import { ConfirmDialog } from './ConfirmDialog';
 import { designPercent, pmBonusPermille, progressPercent } from '../simulation/work';
-import { money, SPECIALIZATION_LABELS } from './labels';
+import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from './labels';
 import { REJECTION_MESSAGES } from './rejectionMessages';
-
-const SCOPE_LABELS = {
-  frontend: 'Frontend',
-  backend: 'Backend',
-  mobile: 'Mobile',
-  devops: 'DevOps',
-};
 
 // CON-02 (Z): oferta pokazuje nazwę i opis, zakresy specjalizacji, termin, wynagrodzenie,
 // zaliczkę, znaczenie designu i karę za opóźnienie. CON-03: przyjęcie bez kompletnego zespołu.

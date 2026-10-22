@@ -42,6 +42,28 @@ export type DayReport = {
 // MIS-03 (Z): zwycięstwo i bankructwo kończą misję.
 export type MissionStatus = 'active' | 'won' | 'bankrupt';
 
+// EVT-01–03 (Z): stan zdarzeń — zapisywany, aby wczytanie nie przelosowało ani nie powtórzyło
+// zdarzenia, a oczekująca decyzja przetrwała zamknięcie gry.
+export type PendingEvent = {
+  instanceId: string;
+  templateId: string;
+  // Projekt, którego dotyczą skutki (wybrany przy wystąpieniu); null — zdarzenie ogólne.
+  projectId: ProjectId | null;
+  // Tempo sprzed automatycznej pauzy — przywracane po wyborze (EVT-02).
+  resumeSpeed: Speed;
+};
+
+export type EventsState = {
+  // Moment zdarzenia w bieżącym dniu (ms czasu gry) albo null — dziś bez zdarzenia.
+  scheduledAtMs: number | null;
+  pending: PendingEvent | null;
+  // Dzień ostatniego wystąpienia każdego szablonu (odstęp między powtórzeniami).
+  lastSeenDay: Record<string, number>;
+  // Skutki trwające: zebranie do podanej chwili dnia; ekspres zepsuty w podanym dniu.
+  meetingUntilMs: number | null;
+  coffeeBrokenDay: number | null;
+};
+
 export type GameState = DeepReadonly<{
   mission: {
     status: MissionStatus;
@@ -75,6 +97,7 @@ export type GameState = DeepReadonly<{
     // T:MOVE-03–09: pozycje, przejścia, trasy, kolejki i rezerwacje postaci (SAVE-T02).
     movement: MovementState;
   };
+  events: EventsState;
   ids: IdSequence;
   rng: RngState;
 }>;
@@ -115,6 +138,13 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
     contracts: { offers: board.offers, projects: {}, deliveredCount: 0 },
     staff: { employees: {}, candidates: market.candidates, departures: [] },
     world: { furniture, movement: createMovementState([]) },
+    events: {
+      scheduledAtMs: null,
+      pending: null,
+      lastSeenDay: {},
+      meetingUntilMs: null,
+      coffeeBrokenDay: null,
+    },
     ids: board.ids,
     rng: board.rng,
   };
