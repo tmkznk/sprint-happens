@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react';
+import { Settings, Star, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
@@ -32,20 +32,26 @@ export function TopBar({ manager, onNewGame }: { manager: SaveManager; onNewGame
       <div className="top-stats">
         <SaveIndicator manager={manager} errorsOnly />
         <div className="stat">
-          <span>Budżet firmy</span>
-          <strong className={cash < 0 ? 'negative' : undefined}>{money.format(cash)} zł</strong>
+          <Wallet className="stat-icon" size={22} aria-hidden="true" />
+          <div>
+            <span>Budżet firmy</span>
+            <strong className={cash < 0 ? 'negative' : undefined}>{money.format(cash)} zł</strong>
+          </div>
         </div>
         <div className="stat">
-          <span>Reputacja</span>
-          <strong>
-            {reputation}
-            <small>/100</small>
-          </strong>
+          <Star className="stat-icon" size={22} aria-hidden="true" />
+          <div>
+            <span>Reputacja</span>
+            <strong>
+              {reputation}
+              <small>/100</small>
+            </strong>
+          </div>
         </div>
         <div className="settings">
           <button
             type="button"
-            className="icon-button"
+            className="icon-button header-icon"
             aria-label="Ustawienia"
             aria-expanded={menu}
             onClick={() => setMenu((value) => !value)}
