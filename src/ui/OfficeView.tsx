@@ -85,7 +85,10 @@ export function OfficeView({
       </section>
       <DayCard />
       <StaffAlerts />
-      <p className="office-log">{news}</p>
+      <p className="office-log">
+        <b>Z życia biura</b>
+        <span>{news}</span>
+      </p>
     </main>
   );
 }

@@ -1,7 +1,7 @@
-@import './fonts.css';
-
 /* Motyw (SH-033): jasny, kremowo-zielony z żółtym akcentem — wzór z prototypu SH2.
-   Kolory jako zmienne, aby panele i scena korzystały z jednej palety. */
+   Typografia i odstępy jako tokeny (2026-10-23, pomiary SH2 vs nasza aplikacja): wartości
+   z SH2, na telefonie z dolną granicą czytelności (9 px wersaliki, 10 px tekst — SH2 ma 7–8 px).
+   Desktop nadpisuje tokeny w @media niżej. */
 :root {
   --ink: #18382e;
   --text: #233c34;
@@ -18,17 +18,34 @@
   --danger: #b4483c;
   --danger-soft: #f6e1dc;
   --ok: #3f7d55;
-  --radius: 12px;
   --shadow: 0 6px 24px rgb(24 56 46 / 10%);
-  --nav-height: 68px;
+
+  /* Typografia — telefon. */
+  --fs-micro: 9px; /* wersaliki: kicker, etykiety, chipy */
+  --fs-label: 10px; /* etykiety metryk, podpisy, nawigacja */
+  --fs-small: 11px; /* opisy, linia aktywności, drobny druk */
+  --fs-body: 12px; /* treść kart, zakładki */
+  --fs-button: 12px;
+  --fs-strong: 13px; /* małe nagłówki, nazwy na listach */
+  --fs-value: 15px; /* wartości w nagłówku */
+  --fs-card-title: 17px;
+  --fs-title: 20px; /* tytuł zakładki i kolumny planu */
+  --fs-h1: 21px;
+  --fs-figure: 22px; /* duże liczby (kwoty) */
+  --fw-title: 600;
+  --ls-title: -0.035em;
+  --ls-micro: 0.13em;
+
+  /* Odstępy i kształty — telefon. */
+  --pad-page: 12px;
+  --gap-page: 12px;
+  --pad-card: 13px;
+  --radius: 8px;
+  --radius-control: 7px;
+  --control-height: 34px;
+
   font-family:
-    'Inter Variable',
-    Inter,
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, ui-sans-serif, system-ui, sans-serif;
   color: var(--text);
   background: var(--page);
   font-synthesis: none;
@@ -63,15 +80,16 @@ h2,
 h3,
 h4 {
   color: var(--ink);
-  letter-spacing: -0.02em;
+  font-weight: var(--fw-title);
+  letter-spacing: var(--ls-title);
 }
 
 .kicker {
   margin: 0;
   color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: var(--fs-micro);
+  font-weight: 750;
+  letter-spacing: var(--ls-micro);
   text-transform: uppercase;
 }
 
@@ -87,7 +105,7 @@ h4 {
   color: var(--danger);
 }
 
-/* Przyciski: główny (ciemnozielony), drugorzędny (obrys), ikonowy. Cel dotyku ≥ 44 px (UX). */
+/* Przyciski: główny (ciemnozielony), drugorzędny (obrys), ikonowy. */
 .primary-button,
 .modal button:not(.secondary-button, .icon-button, .event-option),
 .screen button:not(.secondary-button) {
@@ -95,13 +113,14 @@ h4 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: var(--control-height);
+  padding: 0 15px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--green);
   color: var(--cream);
-  font-weight: 650;
+  font-size: var(--fs-button);
+  font-weight: 600;
 }
 
 .secondary-button {
@@ -109,23 +128,24 @@ h4 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 16px;
+  min-height: var(--control-height);
+  padding: 0 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--paper);
   color: var(--ink);
+  font-size: var(--fs-button);
   font-weight: 600;
 }
 
 .icon-button {
   display: inline-grid;
   place-items: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink);
 }
@@ -134,12 +154,13 @@ h4 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--control-height);
   padding: 0 4px;
   border: none;
   background: none;
   color: var(--ink);
-  font-weight: 650;
+  font-size: var(--fs-button);
+  font-weight: 600;
 }
 
 /* ===== Szkielet aplikacji (SH-033): nagłówek, nawigacja, biuro, kolumna planu ===== */
@@ -154,14 +175,16 @@ h4 {
   height: 100%;
 }
 
-/* Nagłówek: na telefonie zwarty (budżet i reputacja w jednej linii), na desktopie większy
-   i z ikonami (uwagi właściciela z 2026-10-23). */
+/* Nagłówek (wzór SH2): 70 px na telefonie, 86 px na desktopie; ikony przy wartościach
+   tylko na desktopie, wszystkie w kolorze ikon nawigacji. */
 .top-bar {
   grid-area: header;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 8px;
+  min-height: 70px;
+  padding: 0 15px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
 }
@@ -169,50 +192,55 @@ h4 {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: var(--ink);
 }
 
 .logo-badge {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 27px;
+  height: 27px;
   border: 3px solid var(--ink);
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--yellow);
   box-shadow: 2px 2px 0 var(--ink);
+  font-size: 16px;
   font-weight: 900;
-  font-size: 0.95rem;
   font-style: italic;
 }
 
 .logo-text {
   display: flex;
   flex-direction: column;
-  line-height: 1;
-  font-size: 0.85rem;
-  font-weight: 850;
-  letter-spacing: -0.02em;
+  line-height: 0.95;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 .logo-text small {
-  font-size: 0.5rem;
+  font-size: 8px;
   letter-spacing: 0.22em;
   font-weight: 800;
 }
 
 .tagline {
   display: none;
-  padding-left: 16px;
+  padding-left: 25px;
   border-left: 1px solid var(--line);
-  font-size: 0.85rem;
+  font-size: 13px;
+}
+
+.tagline span {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .top-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-left: auto;
 }
 
@@ -230,26 +258,29 @@ h4 {
 
 .stat span {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--fs-micro);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .stat strong {
   color: var(--ink);
-  font-size: 0.98rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-value);
+  font-weight: 650;
+  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 
 .stat strong small {
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: var(--fs-micro);
   font-weight: 600;
 }
 
-/* Ikony nagłówka w kolorze ikon nawigacji; przy budżecie i reputacji tylko na desktopie. */
+.stat strong.negative {
+  color: var(--danger);
+}
+
 .stat-icon {
   display: none;
   flex: none;
@@ -257,13 +288,9 @@ h4 {
 }
 
 .top-bar .header-icon {
-  min-width: 40px;
+  min-width: 32px;
   min-height: 40px;
   color: var(--muted);
-}
-
-.stat strong.negative {
-  color: var(--danger);
 }
 
 .settings {
@@ -278,7 +305,7 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 240px;
+  min-width: 220px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -288,12 +315,12 @@ h4 {
 
 .settings-menu p {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
 }
 
 .save-indicator {
-  font-size: 0.75rem;
   color: var(--muted);
+  font-size: var(--fs-label);
 }
 
 .save-indicator.save-error {
@@ -301,8 +328,8 @@ h4 {
 }
 
 .offline-badge {
-  font-size: 0.75rem;
   color: var(--ok);
+  font-size: var(--fs-label);
 }
 
 /* Nawigacja: na telefonie dolny pasek, na desktopie kolumna po lewej (UX — jedna ręka). */
@@ -310,8 +337,8 @@ h4 {
   grid-area: nav;
   display: flex;
   justify-content: space-around;
-  gap: 4px;
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  gap: 0;
+  padding: 5px 6px calc(5px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   background: var(--paper);
 }
@@ -321,14 +348,15 @@ h4 {
   flex: 1;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 56px;
+  min-height: 50px;
   padding: 6px 4px;
   border: none;
-  border-radius: 12px;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-label);
   font-weight: 600;
 }
 
@@ -345,16 +373,15 @@ h4 {
   grid-area: main;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-page);
   min-height: 0;
-  padding: 12px 16px;
+  padding: 19px var(--pad-page) 0;
   overflow-y: auto;
 }
 
 .office-heading h1 {
-  margin: 4px 0 0;
-  font-size: 1.6rem;
-  font-weight: 800;
+  margin: 5px 0 0;
+  font-size: var(--fs-h1);
 }
 
 .office-heading h1 .dot {
@@ -366,9 +393,9 @@ h4 {
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-height: 320px;
+  min-height: 300px;
   border: 1px solid #c7d6cd;
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: var(--mint);
   overflow: hidden;
 }
@@ -376,8 +403,8 @@ h4 {
 .office-card-top {
   position: absolute;
   top: 12px;
-  left: 14px;
-  right: 14px;
+  left: 12px;
+  right: 12px;
   z-index: 2;
   display: flex;
   align-items: center;
@@ -392,22 +419,22 @@ h4 {
 .office-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 .pause-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 25px;
+  padding: 0 8px;
   border: 1px solid #c7d6cd;
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--paper);
   color: var(--ink);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-micro);
+  font-weight: 650;
+  letter-spacing: var(--ls-micro);
   text-transform: uppercase;
 }
 
@@ -435,8 +462,8 @@ h4 {
   bottom: 12px;
   z-index: 3;
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: 9px;
+  padding: var(--pad-card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--cream);
@@ -447,84 +474,95 @@ h4 {
   display: grid;
   flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: var(--yellow-soft);
   color: #9a6a12;
 }
 
-.intro-card h2 {
-  margin: 0 0 8px;
-  font-size: 0.98rem;
+.intro-card .intro-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
-/* Na telefonie karta jest zwięzła — biuro ma pozostać widoczne. */
+.intro-card h2 {
+  margin: 0 0 4px;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
 .intro-card p {
-  display: none;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: var(--fs-small);
+  line-height: 1.6;
 }
 
 .intro-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  gap: 8px 12px;
+}
+
+/* Przyciski karty powitalnej w jednym wierszu (wzór SH2). */
+.intro-actions .primary-button,
+.intro-actions .link-button {
+  padding: 0 10px;
+  font-size: var(--fs-small);
 }
 
 .office-scene {
   position: absolute;
-  top: 56px;
+  top: 48px;
   left: 50%;
   z-index: 2;
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
   margin: 0;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: rgb(252 251 246 / 92%);
   color: var(--ink);
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
   box-shadow: var(--shadow);
   pointer-events: none;
 }
 
-/* Karta dnia: numer, godzina, postęp dnia, tempo (TIME-02). */
-/* Karta dnia: na telefonie zwarta, aby numer, opis i tempo zmieściły się w jednej linii;
-   na desktopie większa (uwagi właściciela z 2026-10-23). */
+/* Karta dnia (wzór SH2): numer monospace, godzina, postęp dnia (desktop), tempo (TIME-02). */
 .day-card {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 7px;
+  padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
 }
 
-/* Numer dnia monospace — wzór SH2. */
 .day-number {
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
+  box-sizing: border-box;
+  width: 30px;
   height: 34px;
   border: 1px solid #d6decb;
   border-radius: 6px;
   background: #eff2e7;
   color: #7a886b;
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 1.05rem;
+  font-size: 17px;
 }
 
 .day-info {
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 3px;
   min-width: 0;
   white-space: nowrap;
 }
@@ -537,25 +575,31 @@ h4 {
 
 .day-info strong {
   color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .day-info span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-label);
 }
 
 .day-progress {
   display: none;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 0.65rem;
+  gap: 5px;
+  color: #9ba28e;
+  font-size: 8px;
 }
 
 .day-progress div {
   display: flex;
   justify-content: space-between;
+}
+
+.day-progress progress {
+  height: 5px;
 }
 
 .speed-controls {
@@ -564,22 +608,27 @@ h4 {
   gap: 2px;
   margin-left: auto;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--green-soft);
 }
 
 .speed-controls button {
   display: grid;
   place-items: center;
-  min-width: 34px;
-  min-height: 34px;
+  min-width: 27px;
+  min-height: 28px;
   padding: 0;
-  font-size: 0.85rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--muted);
-  font-weight: 700;
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.speed-controls svg {
+  width: 14px;
+  height: 14px;
 }
 
 .speed-controls button[aria-pressed='true'] {
@@ -593,7 +642,7 @@ h4 {
   align-items: center;
   gap: 8px 12px;
   width: 100%;
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
 }
 
 .day-controls button {
@@ -603,19 +652,29 @@ h4 {
 .office-log {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-height: 43px;
   margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-label);
 }
 
 .office-log::before {
   content: '';
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--ok);
+}
+
+.office-log b {
+  display: none;
+  color: var(--ink);
+  font-size: var(--fs-micro);
+  font-weight: 750;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
 }
 
 .alerts {
@@ -625,12 +684,16 @@ h4 {
 }
 
 .alert {
-  margin: 0;
+  margin: 0 0 8px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--yellow-soft);
   color: #7a5410;
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
+}
+
+.alerts .alert {
+  margin: 0;
 }
 
 .alert.danger {
@@ -639,10 +702,11 @@ h4 {
 }
 
 .update-banner {
-  padding: 12px;
+  padding: var(--pad-card);
   border: 1px solid var(--yellow);
   border-radius: var(--radius);
   background: var(--cream);
+  font-size: var(--fs-body);
 }
 
 .update-banner p {
@@ -655,30 +719,30 @@ h4 {
   grid-area: aside;
   display: none;
   flex-direction: column;
-  gap: 16px;
-  padding: 24px;
+  gap: 18px;
+  padding: 30px 23px;
   border-left: 1px solid var(--line);
   background: var(--paper);
   overflow-y: auto;
 }
 
 .plan h2 {
-  margin: 4px 0 8px;
-  font-size: 1.4rem;
-  line-height: 1.15;
+  margin: 8px 0 10px;
+  font-size: 22px;
+  line-height: 1.3;
 }
 
 .plan p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: var(--fs-small);
+  line-height: 1.8;
 }
 
 .goal-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -688,21 +752,23 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: var(--fs-label);
 }
 
 .goal-list li div {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .goal-list strong {
   color: var(--ink);
+  font-weight: 700;
 }
 
 .bar {
-  height: 6px;
-  border-radius: 999px;
+  height: 4px;
+  border-radius: 4px;
   background: var(--line);
   overflow: hidden;
 }
@@ -715,7 +781,7 @@ h4 {
 }
 
 .plan-section {
-  padding-top: 16px;
+  padding-top: 18px;
   border-top: 1px solid var(--line);
 }
 
@@ -727,7 +793,13 @@ h4 {
 
 .plan-section h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.plan-section .link-button {
+  font-size: var(--fs-label);
 }
 
 .cta-card {
@@ -740,11 +812,14 @@ h4 {
 
 .cta-card h3 {
   margin: 0 0 4px;
-  font-size: 0.95rem;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .cta-card .secondary-button {
   width: 100%;
+  min-height: 42px;
   margin-top: 12px;
 }
 
@@ -769,22 +844,22 @@ h4 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px 16px 14px;
+  padding: 16px var(--pad-page) 14px;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
 }
 
 .sheet-header h2 {
-  margin: 4px 0 0;
-  font-size: 1.5rem;
-  font-weight: 800;
+  margin: 5px 0 0;
+  font-size: var(--fs-title);
 }
 
 .sheet-body {
   flex: 1;
   min-height: 0;
-  padding: 16px;
+  padding: 16px var(--pad-page);
   overflow-y: auto;
+  font-size: var(--fs-body);
 }
 
 .segmented {
@@ -792,7 +867,7 @@ h4 {
   gap: 4px;
   margin-bottom: 16px;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--green-soft);
 }
 
@@ -801,13 +876,14 @@ h4 {
   flex: 1;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 44px;
+  gap: 6px;
+  min-height: 35px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--muted);
-  font-weight: 650;
+  font-size: var(--fs-small);
+  font-weight: 600;
 }
 
 .segmented button[aria-selected='true'] {
@@ -817,10 +893,10 @@ h4 {
 }
 
 .count {
-  padding: 2px 7px;
-  border-radius: 6px;
+  padding: 2px 5px;
+  border-radius: 5px;
   background: rgb(24 56 46 / 7%);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
 }
 
 .empty-state {
@@ -828,19 +904,21 @@ h4 {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 48px 16px;
+  padding: 40px 16px;
   text-align: center;
   color: #6f8a5f;
+  font-size: var(--fs-body);
 }
 
 .empty-state h3 {
   margin: 8px 0 0;
   color: #5b7a4c;
-  font-size: 1.2rem;
+  font-size: 16px;
 }
 
 .empty-state p {
   margin: 0 0 12px;
+  line-height: 1.6;
 }
 
 .view-toolbar {
@@ -863,13 +941,13 @@ h4 {
 .card h3,
 .card h4 {
   margin: 0 0 6px;
-  font-size: 1.05rem;
+  font-size: var(--fs-card-title);
 }
 
 .card .hint {
   margin: 0 0 10px;
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: var(--fs-body);
+  line-height: 1.6;
 }
 
 .card > button,
@@ -884,7 +962,7 @@ h4 {
 }
 
 .balance-card {
-  padding: 24px;
+  padding: 22px;
   border: 1px solid #d7dfcf;
   border-radius: var(--radius);
   background: var(--green-soft);
@@ -892,14 +970,16 @@ h4 {
 
 .balance-card span {
   color: #6f8a5f;
+  font-size: var(--fs-body);
 }
 
 .balance-card strong {
   display: block;
-  margin: 10px 0;
+  margin: 8px 0;
   color: var(--ink);
-  font-size: 2.4rem;
-  letter-spacing: -0.03em;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
 }
 
 .rows {
@@ -912,16 +992,17 @@ h4 {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 0;
+  padding: 13px 0;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
+  font-size: var(--fs-body);
 }
 
 .rows li strong {
   color: var(--green);
 }
 
-/* ===== Karty kontraktów, zespołu, sklepu ===== */
+/* ===== Karty kontraktów, zespołu, sklepu (wzór kart zleceń SH2) ===== */
 
 .contract-card {
   margin-bottom: 12px;
@@ -933,25 +1014,31 @@ h4 {
 
 .contract-card h4 {
   margin: 0 0 6px;
-  font-size: 1.05rem;
+  font-size: var(--fs-card-title);
 }
 
 .contract-card .hint {
   margin: 0 0 10px;
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: var(--fs-body);
+  line-height: 1.6;
 }
 
 .contract-card > button {
   margin-top: 12px;
 }
 
+.contract-card > .primary-button {
+  width: 100%;
+  min-height: 41px;
+  font-size: 13px;
+}
+
 dl.contract-terms {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px 16px;
+  gap: 5px 16px;
   margin: 8px 0 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-small);
 }
 
 dl.contract-terms dt {
@@ -974,17 +1061,17 @@ dl.contract-terms dd {
 
 .progress-list li {
   display: grid;
-  grid-template-columns: 80px 1fr 42px;
+  grid-template-columns: 70px 1fr 36px;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
 }
 
 progress {
   width: 100%;
-  height: 8px;
+  height: 6px;
   border: none;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--line);
   overflow: hidden;
   appearance: none;
@@ -995,18 +1082,20 @@ progress::-webkit-progress-bar {
 }
 
 progress::-webkit-progress-value {
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--green);
 }
 
 progress::-moz-progress-bar {
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--green);
 }
 
 .candidate-list h3 {
   margin: 16px 0 8px;
-  font-size: 0.95rem;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .candidate-list ul,
@@ -1024,12 +1113,12 @@ progress::-moz-progress-bar {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 4px 12px;
+  gap: 3px 12px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
-  font-size: 0.88rem;
+  font-size: var(--fs-small);
 }
 
 .candidate-list li span:not(.candidate-name),
@@ -1039,8 +1128,12 @@ progress::-moz-progress-bar {
 }
 
 .candidate-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   grid-column: 1;
   color: var(--ink);
+  font-size: var(--fs-strong);
   font-weight: 650;
 }
 
@@ -1071,13 +1164,15 @@ progress::-moz-progress-bar {
 
 .team-member h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .team-member p {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-small);
 }
 
 .meters {
@@ -1086,8 +1181,8 @@ progress::-moz-progress-bar {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 4px 10px;
-  font-size: 0.78rem;
   color: var(--muted);
+  font-size: var(--fs-label);
 }
 
 /* ===== Panel zaznaczenia (karta nad sceną) ===== */
@@ -1099,7 +1194,7 @@ progress::-moz-progress-bar {
   bottom: 12px;
   z-index: 4;
   max-height: 70%;
-  padding: 14px 16px 16px;
+  padding: 12px 14px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
@@ -1115,16 +1210,16 @@ progress::-moz-progress-bar {
 
 .selection-panel h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 15px;
 }
 
 .selection-panel header button {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   border: none;
   background: transparent;
   color: var(--ink);
-  font-size: 1.2rem;
+  font-size: 18px;
 }
 
 .selection-panel dl {
@@ -1132,7 +1227,7 @@ progress::-moz-progress-bar {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 6px 16px;
   margin: 8px 0 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
 }
 
 .selection-panel dt {
@@ -1148,18 +1243,19 @@ progress::-moz-progress-bar {
 .selection-panel select {
   width: 100%;
   max-width: 100%;
-  min-height: 40px;
+  min-height: var(--control-height);
   padding: 0 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--cream);
   color: var(--ink);
+  font-size: var(--fs-body);
   text-overflow: ellipsis;
 }
 
 .selection-panel dd.energy {
   display: grid;
-  grid-template-columns: 1fr 44px;
+  grid-template-columns: 1fr 40px;
   align-items: center;
   gap: 8px;
 }
@@ -1173,15 +1269,16 @@ progress::-moz-progress-bar {
 }
 
 .selection-panel .warning {
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
 }
 
 .edit-bar p {
   margin: 6px 0;
+  font-size: var(--fs-body);
 }
 
 .edit-bar h2 {
-  font-size: 1rem;
+  font-size: var(--fs-strong);
 }
 
 /* ===== Okna modalne (zdarzenie, raport dnia, potwierdzenia) ===== */
@@ -1197,22 +1294,23 @@ progress::-moz-progress-bar {
 }
 
 .modal {
-  width: min(480px, 100%);
+  width: min(460px, 100%);
   max-height: calc(100% - 32px);
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 10px;
   background: var(--paper);
   box-shadow: var(--shadow);
   overflow-y: auto;
+  font-size: var(--fs-body);
 }
 
 .modal h2 {
   margin: 0 0 8px;
-  font-size: 1.3rem;
+  font-size: var(--fs-title);
 }
 
 .modal p {
-  line-height: 1.45;
+  line-height: 1.6;
 }
 
 .modal dl {
@@ -1260,18 +1358,21 @@ progress::-moz-progress-bar {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  min-height: 44px;
+  min-height: 40px;
   padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--cream);
   color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 600;
   text-align: left;
 }
 
 .event-option span {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-small);
+  font-weight: 400;
 }
 
 /* ===== Ekrany startu i błędu ===== */
@@ -1285,96 +1386,40 @@ progress::-moz-progress-bar {
   height: 100%;
   padding: 24px;
   text-align: center;
+  font-size: 13px;
 }
 
 .screen h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 22px;
 }
 
 .screen p {
   max-width: 420px;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-/* ===== Desktop: nawigacja z lewej, panel zakładek z prawej z rozmyciem biura ===== */
+/* ===== Desktop: tokeny i układ (nawigacja z lewej, panel zakładek z prawej) ===== */
 
 @media (min-width: 900px) {
-  .top-bar {
-    gap: 16px;
-    padding: 10px 16px;
-  }
-
-  .logo-badge {
-    width: 38px;
-    height: 38px;
-    box-shadow: 3px 3px 0 var(--ink);
-    font-size: 1.15rem;
-  }
-
-  .logo-text {
-    font-size: 1rem;
-  }
-
-  .logo-text small {
-    font-size: 0.62rem;
-  }
-
-  .top-stats {
-    gap: 20px;
-  }
-
-  .stat span {
-    font-size: 0.7rem;
-  }
-
-  .stat strong {
-    font-size: 1.2rem;
-  }
-
-  .stat strong small {
-    font-size: 0.65rem;
-  }
-
-  .stat-icon {
-    display: block;
-  }
-
-  .top-bar .header-icon {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .day-card {
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  .day-number {
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
-    font-size: 1.3rem;
-  }
-
-  .day-info {
-    flex: none;
-  }
-
-  .day-info span {
-    font-size: 0.8rem;
-  }
-
-  .speed-controls {
-    gap: 4px;
-    padding: 4px;
-  }
-
-  .speed-controls button {
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 1rem;
+  :root {
+    --fs-micro: 10px;
+    --fs-label: 10px;
+    --fs-small: 11px;
+    --fs-body: 13px;
+    --fs-button: 12px;
+    --fs-strong: 14px;
+    --fs-value: 19px;
+    --fs-card-title: 19px;
+    --fs-title: 24px;
+    --fs-h1: 25px;
+    --fs-figure: 26px;
+    --pad-page: 24px;
+    --gap-page: 14px;
+    --pad-card: 19px;
+    --radius: 10px;
+    --control-height: 38px;
   }
 
   .shell {
@@ -1385,21 +1430,59 @@ progress::-moz-progress-bar {
     grid-template-rows: auto 1fr;
   }
 
+  .top-bar {
+    gap: 25px;
+    min-height: 86px;
+    padding: 0 26px;
+  }
+
+  .logo-badge {
+    width: 37px;
+    height: 37px;
+    border-radius: 6px;
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 22px;
+  }
+
+  .logo-text {
+    font-size: 19px;
+  }
+
+  .logo-text small {
+    font-size: 10px;
+  }
+
   .tagline {
     display: block;
+  }
+
+  .top-stats {
+    gap: 22px;
+  }
+
+  .stat-icon {
+    display: block;
+  }
+
+  .top-bar .header-icon {
+    min-width: 40px;
   }
 
   .main-nav {
     flex-direction: column;
     justify-content: flex-start;
-    padding: 24px 8px;
+    align-items: center;
+    gap: 12px;
+    padding: 26px 8px;
     border-top: none;
     border-right: 1px solid var(--line);
   }
 
   .main-nav button {
     flex: none;
-    min-height: 64px;
+    width: 65px;
+    min-height: 65px;
+    gap: 7px;
   }
 
   .main-nav .nav-goals {
@@ -1408,29 +1491,75 @@ progress::-moz-progress-bar {
   }
 
   .office-main {
-    padding: 24px;
+    padding: 28px var(--pad-page) 0;
   }
 
-  .office-heading h1 {
-    font-size: 1.8rem;
+  .office-card-top {
+    top: 16px;
+    left: 18px;
+    right: 18px;
+  }
+
+  .pause-chip {
+    min-height: 27px;
   }
 
   .intro-card {
+    left: 24px;
     right: auto;
-    width: min(420px, calc(100% - 24px));
-    padding: 16px;
+    bottom: 24px;
+    gap: 13px;
+    width: min(405px, calc(100% - 48px));
+    box-sizing: border-box;
   }
 
-  .intro-card h2 {
-    font-size: 1.05rem;
+  .intro-card .intro-icon {
+    width: 40px;
+    height: 40px;
   }
 
-  .intro-card p {
-    display: block;
+  .intro-card .intro-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .day-card {
+    gap: 22px;
+    padding: 14px 18px;
+  }
+
+  .day-number {
+    width: 39px;
+    height: 39px;
+    font-size: 22px;
+  }
+
+  .day-info {
+    flex: none;
   }
 
   .day-progress {
     display: flex;
+  }
+
+  .speed-controls button {
+    min-width: 32px;
+    min-height: 30px;
+    font-size: var(--fs-small);
+  }
+
+  .speed-controls svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .office-log {
+    gap: 9px;
+    min-height: 50px;
+  }
+
+  .office-log b {
+    display: inline;
   }
 
   /* Nawigacja zostaje dostępna — zakładki można przełączać bez zamykania panelu. */
@@ -1448,9 +1577,17 @@ progress::-moz-progress-bar {
     box-shadow: var(--shadow);
   }
 
+  .segmented button {
+    font-size: 12px;
+  }
+
   .selection-panel {
     right: auto;
-    width: min(420px, calc(100% - 24px));
+    width: min(400px, calc(100% - 24px));
+  }
+
+  .selection-panel h2 {
+    font-size: 16px;
   }
 }
 
@@ -1459,7 +1596,7 @@ progress::-moz-progress-bar {
     grid-template-areas:
       'header header header'
       'nav main aside';
-    grid-template-columns: 84px 1fr 300px;
+    grid-template-columns: 84px 1fr 284px;
   }
 
   .plan {
