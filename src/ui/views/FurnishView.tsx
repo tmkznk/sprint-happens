@@ -1,4 +1,4 @@
-import { Armchair } from 'lucide-react';
+import { Armchair, CodeXml, Coffee, type LucideIcon } from 'lucide-react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import { useFurnitureEditStore } from '../../application/furnitureEditHooks';
 import { useClearSelection } from '../../application/selectionHooks';
@@ -8,6 +8,12 @@ import { useNavigation } from '../navigation';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
 const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine'];
+
+const ICONS: Record<FurnitureType, LucideIcon> = {
+  desk: CodeXml,
+  sofa: Armchair,
+  coffeeMachine: Coffee,
+};
 
 const DESCRIPTIONS: Record<FurnitureType, string> = {
   desk: 'Stanowisko pracy — bez biurka nikt nie pracuje.',
@@ -41,26 +47,29 @@ export function FurnishView() {
       </p>
       {!isWorking && <p className="alert">{REJECTION_MESSAGES.phaseNotAllowed}</p>}
       <ul className="shop-list">
-        {TYPES.map((type) => (
-          <li key={type}>
-            <span className="candidate-name">
-              <Armchair size={16} /> {FURNITURE_NAMES[type]}
-            </span>
-            <span>{DESCRIPTIONS[type]}</span>
-            <span>
-              {money.format(config.furniture.prices[type])} zł · miejsca:{' '}
-              {FURNITURE_CATALOG[type].interactionPoints.length}
-            </span>
-            <button
-              type="button"
-              className="primary-button"
-              disabled={!isWorking}
-              onClick={() => choose(type)}
-            >
-              Wybierz
-            </button>
-          </li>
-        ))}
+        {TYPES.map((type) => {
+          const Icon = ICONS[type];
+          return (
+            <li key={type}>
+              <span className="candidate-name">
+                <Icon size={16} aria-hidden="true" /> {FURNITURE_NAMES[type]}
+              </span>
+              <span>{DESCRIPTIONS[type]}</span>
+              <span>
+                {money.format(config.furniture.prices[type])} zł · miejsca:{' '}
+                {FURNITURE_CATALOG[type].interactionPoints.length}
+              </span>
+              <button
+                type="button"
+                className="primary-button"
+                disabled={!isWorking}
+                onClick={() => choose(type)}
+              >
+                Wybierz
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </>
   );
