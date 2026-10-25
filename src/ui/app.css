@@ -1233,25 +1233,28 @@ progress::-moz-progress-bar {
 
 .team-member {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px 12px;
-  padding: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
 }
 
-.team-member h3 {
-  margin: 0;
-  font-size: var(--fs-strong);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+.team-member .warning,
+.team-member .negative {
+  font-size: var(--fs-small);
 }
 
-.team-member p {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: var(--fs-small);
+.team-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.team-actions .secondary-button {
+  width: var(--control-height);
+  padding: 0;
 }
 
 .meters {

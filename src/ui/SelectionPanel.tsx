@@ -14,6 +14,7 @@ import { isWorking } from '../simulation/work';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
+import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import {
   ACTIVITY_LABELS,
@@ -289,7 +290,7 @@ function EmployeeDetails({ id }: { id: EmployeeId }) {
   );
   if (!employee) return null;
   return (
-    <Panel title={employee.name} actions={<FireButton employeeId={employee.id} />}>
+    <Panel title={employee.name} actions={<FireEmployeeButton employeeId={employee.id} />}>
       <dt>Rola</dt>
       <dd>
         {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}
@@ -371,54 +372,6 @@ function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
           Chce odejść! Odejdzie za ok. {minutesLeft} min gry, jeśli zadowolenie nie wzrośnie powyżej{' '}
           {config.satisfaction.warningThreshold}.
         </dd>
-      )}
-    </>
-  );
-}
-
-// EMP-08, FIN-03 (Z): zwolnienie z potwierdzeniem przydziału i pełnej należnej dniówki.
-function FireButton({ employeeId }: { employeeId: EmployeeId }) {
-  const dispatch = useDispatch();
-  const clear = useClearSelection();
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
-  const employee = useGameSelector((state) => state.staff.employees[employeeId]);
-  const projectName = useGameSelector((state) => {
-    const projectId = state.staff.employees[employeeId]?.projectId;
-    return projectId ? (state.contracts.projects[projectId]?.name ?? null) : null;
-  });
-  const wageDue = useGameSelector((state) => state.finance.wagesDueToday[employeeId] ?? 0);
-  const [asking, setAsking] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  if (!employee) return null;
-
-  const fire = () => {
-    setAsking(false);
-    const result = dispatch({ type: 'FireEmployee', employeeId });
-    if (result.ok) clear();
-    else setMessage(REJECTION_MESSAGES[result.rejection.code]);
-  };
-
-  return (
-    <>
-      <button
-        type="button"
-        className="secondary-button"
-        disabled={!isWorking}
-        onClick={() => setAsking(true)}
-      >
-        Zwolnij
-      </button>
-      {message && <span className="warning">{message}</span>}
-      {asking && (
-        <ConfirmDialog
-          title={`Zwolnić: ${employee.name}?`}
-          message={`Przydział: ${projectName ?? 'brak'}. Za dziś należy się pełna dniówka ${money.format(
-            wageDue,
-          )} — zostanie pobrana w rozliczeniu. Bez odpraw; wykonana praca zostaje w projekcie.`}
-          confirmLabel="Zwolnij"
-          onCancel={() => setAsking(false)}
-          onConfirm={fire}
-        />
       )}
     </>
   );

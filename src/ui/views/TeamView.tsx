@@ -5,7 +5,9 @@ import { ENERGY_SCALE, SATISFACTION_SCALE, type Employee } from '../../domain/em
 import { workStatus } from '../../simulation/assignments';
 import { isUnhappy } from '../../simulation/satisfaction';
 import { compareIds } from '../../simulation/staff';
+import { Avatar } from '../Avatar';
 import { EmptyState } from '../EmptyState';
+import { FireEmployeeButton } from '../FireEmployeeButton';
 import { money, SENIORITY_LABELS, SPECIALIZATION_LABELS, WORK_STATUS_LABELS } from '../labels';
 import { useNavigation } from '../navigation';
 import { peopleCount } from '../plural';
@@ -46,6 +48,8 @@ export function TeamView() {
   );
 }
 
+// Kafelek pracownika (wzór kafelka kandydata): awatar, stanowisko, dniówka, projekt i problemy
+// z pracą; akcje „Pokaż w biurze” i „Zwolnij”; paski energii i zadowolenia.
 function TeamMember({ employee }: { employee: Employee }) {
   const config = useBalanceConfig();
   const { open } = useNavigation();
@@ -62,29 +66,35 @@ function TeamMember({ employee }: { employee: Employee }) {
 
   return (
     <li className="team-member">
-      <div>
-        <h3>{employee.name}</h3>
-        <p>
-          {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}{' '}
-          · {money.format(employee.dailyWage)} zł / dzień
-        </p>
-        <p>{projectName ?? 'Bez przydziału do projektu'}</p>
+      <Avatar name={employee.name} specialization={employee.specialization} />
+      <div className="candidate-info">
+        <span className="candidate-name">{employee.name}</span>
+        <span className="candidate-role">
+          {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}
+        </span>
+        <span className="candidate-wage">
+          {money.format(employee.dailyWage)} zł / dzień · {projectName ?? 'bez przydziału'}
+        </span>
         {status && status !== 'ready' && status !== 'noAssignment' && (
-          <p className="warning">{WORK_STATUS_LABELS[status]}</p>
+          <span className="warning">{WORK_STATUS_LABELS[status]}</span>
         )}
-        {isUnhappy(employee, config) && <p className="negative">Chce odejść!</p>}
+        {isUnhappy(employee, config) && <span className="negative">Chce odejść!</span>}
       </div>
-      <button
-        type="button"
-        className="secondary-button"
-        aria-label={`Pokaż w biurze: ${employee.name}`}
-        onClick={() => {
-          select({ kind: 'employee', id: employee.id });
-          open('office');
-        }}
-      >
-        <MapPin size={18} />
-      </button>
+      <div className="team-actions">
+        <button
+          type="button"
+          className="secondary-button"
+          aria-label={`Pokaż w biurze: ${employee.name}`}
+          title="Pokaż w biurze"
+          onClick={() => {
+            select({ kind: 'employee', id: employee.id });
+            open('office');
+          }}
+        >
+          <MapPin size={18} />
+        </button>
+        <FireEmployeeButton employeeId={employee.id} variant="icon" />
+      </div>
       <div className="meters">
         <span>Energia</span>
         <progress max={100} value={energy} aria-label={`Energia: ${employee.name}`} />
