@@ -37,9 +37,9 @@ function toNextDay(state: GameState): GameState {
 }
 
 describe('katalog zleceń', () => {
-  it('ma 20 spójnych szablonów na trzech poziomach', () => {
-    expect(CONTRACT_TEMPLATES).toHaveLength(20);
-    expect(new Set(CONTRACT_TEMPLATES.map((t) => t.id)).size).toBe(20);
+  it('ma 19 spójnych szablonów na trzech poziomach', () => {
+    expect(CONTRACT_TEMPLATES).toHaveLength(19);
+    expect(new Set(CONTRACT_TEMPLATES.map((t) => t.id)).size).toBe(19);
     expect(new Set(CONTRACT_TEMPLATES.map((t) => t.level))).toEqual(new Set([1, 2, 3]));
     for (const template of CONTRACT_TEMPLATES) {
       const scopes = Object.entries(template.scopes);
@@ -86,13 +86,13 @@ describe('tablica zleceń (CON-01, SH-032 A3, A5)', () => {
   it('warunki oferty wynikają z katalogu i skali punktów (CON-02)', () => {
     const offer = createInitialState(DEFAULT_BALANCE, 1).contracts.offers[0];
 
-    // Katalog: front end 25, backend 20, grafik 15 pkt × 10 pp; zaliczka i kara z katalogu.
+    // Katalog: front end 25, backend 25, devops 5, grafik 15 pkt × 10 pp; zaliczka i kara z katalogu.
     expect(offer).toMatchObject({
-      scopes: { frontend: 250, backend: 200 },
-      deadlineDays: 6,
-      reward: 15_000,
-      advance: 4_500,
-      latePenaltyPerDay: 350,
+      scopes: { frontend: 250, backend: 250, devops: 50 },
+      deadlineDays: 10,
+      reward: 21_000,
+      advance: 10_500,
+      latePenaltyPerDay: 200,
       designImportance: 2,
       designScope: 150,
     });

@@ -1,6 +1,7 @@
 import type { TechSpecialization } from '../contracts';
 
-// Katalog zleceń (wersja robocza 1.0, 24.10.2026) — dane treściowe; liczby to propozycja do balansu
+// Katalog zleceń (wersja robocza 1.0, 24.10.2026; bez „Koszyka pełnego nadziei”, nowy opis
+// zlecenia startowego) — dane treściowe; liczby to propozycja do balansu
 // (SH-044). Zakresy i design w punktach katalogu: silnik mnoży je przez
 // `contracts.pointsPerCatalogPoint` z konfiguracji, więc tabela zgadza się 1:1 z katalogiem.
 // Katalog nie zna QA ani PM-a (role opcjonalne — PROJ-03); „Grafik” to opcjonalny design (PROJ-10).
@@ -21,8 +22,8 @@ export type ContractTemplate = {
   latePenaltyPerDay: number;
 };
 
-// SH-032 A5: gwarantowany prosty kontrakt pierwszego dnia (tylko Frontend i Backend).
-export const STARTER_CONTRACT_ID = 'koszyk-pelen-nadziei';
+// SH-032 A5: gwarantowany kontrakt pierwszego dnia — luźny termin, wysoka zaliczka, niska kara.
+export const STARTER_CONTRACT_ID = 'podejrzanie-dobry-klient';
 
 export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
   {
@@ -102,19 +103,6 @@ export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
     reward: 42_000,
     advance: 16_800,
     latePenaltyPerDay: 900,
-  },
-  {
-    id: STARTER_CONTRACT_ID,
-    level: 1,
-    name: 'Koszyk pełen nadziei',
-    description:
-      'Sklep ma dużo odwiedzin, ale nikt niczego nie kupuje. Klient podejrzewa odcień zieleni na przycisku. Nasz tester podejrzewa obowiązkową rejestrację faksem.',
-    scopes: { frontend: 25, backend: 20 },
-    design: 15,
-    deadlineDays: 6,
-    reward: 15_000,
-    advance: 4_500,
-    latePenaltyPerDay: 350,
   },
   {
     id: 'synergia360',
@@ -273,11 +261,11 @@ export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
     latePenaltyPerDay: 400,
   },
   {
-    id: 'podejrzanie-dobry-klient',
+    id: STARTER_CONTRACT_ID,
     level: 1,
     name: 'Podejrzanie dobry klient',
     description:
-      'Kompletna dokumentacja, realistyczny termin i zaliczka wpłacona w terminie. Klient akceptuje pierwszy projekt i dziękuje za współpracę. Zespół poprosił dział bezpieczeństwa o sprawdzenie wiadomości.',
+      'Strona z rezerwacjami dla zakładu pogrzebowego. Wymagania spisane, makiety gotowe, budżet z zapasem. Jedyna uwaga klienta: „Bez pośpiechu, nasi klienci nigdzie się nie wybierają”.',
     scopes: { frontend: 25, backend: 25, devops: 5 },
     design: 15,
     deadlineDays: 10,
