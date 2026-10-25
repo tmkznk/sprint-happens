@@ -1,6 +1,6 @@
 import type { TechSpecialization } from '../contracts';
 
-// Katalog zleceń (wersja robocza 1.0, 24.10.2026; bez „Koszyka pełnego nadziei”, nowy opis
+// Katalog zleceń (wersja robocza 1.0, 24.10.2026; bez „Koszyka pełnego nadziei”, nowy tytuł i opis
 // zlecenia startowego) — dane treściowe; liczby to propozycja do balansu
 // (SH-044). Zakresy i design w punktach katalogu: silnik mnoży je przez
 // `contracts.pointsPerCatalogPoint` z konfiguracji, więc tabela zgadza się 1:1 z katalogiem.
@@ -23,7 +23,7 @@ export type ContractTemplate = {
 };
 
 // SH-032 A5: gwarantowany kontrakt pierwszego dnia — luźny termin, wysoka zaliczka, niska kara.
-export const STARTER_CONTRACT_ID = 'podejrzanie-dobry-klient';
+export const STARTER_CONTRACT_ID = 'rip-rezerwacje';
 
 export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
   {
@@ -263,7 +263,7 @@ export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
   {
     id: STARTER_CONTRACT_ID,
     level: 1,
-    name: 'Podejrzanie dobry klient',
+    name: 'R.I.P. — Rezerwacje Internetowe Pogrzebów',
     description:
       'Strona z rezerwacjami dla zakładu pogrzebowego. Wymagania spisane, makiety gotowe, budżet z zapasem. Jedyna uwaga klienta: „Bez pośpiechu, nasi klienci nigdzie się nie wybierają”.',
     scopes: { frontend: 25, backend: 25, devops: 5 },
