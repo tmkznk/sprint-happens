@@ -6,6 +6,7 @@ import { ROTATIONS } from '../domain/furniture';
 import { createInitialState, type GameState } from '../domain/state';
 import type { Command } from '../simulation/commands';
 import { createEngine, type Engine } from '../simulation/engine';
+import { withTestOffer } from './engineFixture';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 
 // Prosty „gracz” do scenariuszy integracyjnych (SH-042, SH-043): wyłącznie publiczne polecenia
@@ -36,7 +37,7 @@ export function createPlayer(
 ): Player {
   const engine = createEngine({
     config,
-    initialState: initialState ?? createInitialState(config, seed),
+    initialState: initialState ?? withTestOffer(createInitialState(config, seed)),
   });
   const state = () => engine.getState();
   const must = (command: Command) => {

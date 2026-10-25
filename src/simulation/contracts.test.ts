@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
-import { fillBoard, maxOfferLevel } from '../domain/contractBoard';
+import {
+  designImportance,
+  fillBoard,
+  maxOfferLevel,
+  termsFromTemplate,
+} from '../domain/contractBoard';
 import { CONTRACT_TEMPLATES, STARTER_CONTRACT_ID } from '../domain/content/contracts';
 import { TECH_SPECIALIZATIONS, type OfferId } from '../domain/contracts';
 import { createInitialState, type GameState } from '../domain/state';
@@ -31,25 +36,39 @@ function toNextDay(state: GameState): GameState {
   return engine.getState();
 }
 
-describe('pula kontraktów (SH-032 A4, B8)', () => {
-  it('ma 12 spójnych szablonów na trzech poziomach', () => {
-    expect(CONTRACT_TEMPLATES).toHaveLength(12);
-    expect(new Set(CONTRACT_TEMPLATES.map((t) => t.id)).size).toBe(12);
+describe('katalog zleceń', () => {
+  it('ma 20 spójnych szablonów na trzech poziomach', () => {
+    expect(CONTRACT_TEMPLATES).toHaveLength(20);
+    expect(new Set(CONTRACT_TEMPLATES.map((t) => t.id)).size).toBe(20);
     expect(new Set(CONTRACT_TEMPLATES.map((t) => t.level))).toEqual(new Set([1, 2, 3]));
     for (const template of CONTRACT_TEMPLATES) {
       const scopes = Object.entries(template.scopes);
       expect(scopes.length, template.id).toBeGreaterThan(0);
       for (const [specialization, points] of scopes) {
         expect(TECH_SPECIALIZATIONS).toContain(specialization);
-        expect(points % 10, template.id).toBe(0);
         expect(points).toBeGreaterThan(0);
       }
-      expect(template.designImportance).toBeGreaterThanOrEqual(0);
-      expect(template.designImportance).toBeLessThanOrEqual(5);
+      expect(template.design).toBeGreaterThanOrEqual(0);
       expect(template.reward).toBeGreaterThan(0);
+      expect(template.advance).toBeGreaterThan(0);
+      expect(template.advance).toBeLessThan(template.reward);
+      expect(template.latePenaltyPerDay).toBeGreaterThan(0);
       expect(template.description.length).toBeGreaterThan(0);
     }
     expect(levelOf(STARTER_CONTRACT_ID)).toBe(1);
+  });
+
+  it('każdy szablon daje zakresy w pełnych fragmentach (BUG-01)', () => {
+    for (const template of CONTRACT_TEMPLATES) {
+      const terms = termsFromTemplate(template, DEFAULT_BALANCE);
+      for (const points of [...Object.values(terms.scopes), terms.designScope]) {
+        expect((points ?? 0) % DEFAULT_BALANCE.bugs.fragmentPoints, template.id).toBe(0);
+      }
+    }
+  });
+
+  it('znaczenie designu rośnie z zakresem, od 0 do 5', () => {
+    expect([0, 5, 10, 15, 25, 35, 45, 90].map(designImportance)).toEqual([0, 1, 1, 2, 3, 4, 5, 5]);
   });
 });
 
@@ -64,17 +83,18 @@ describe('tablica zleceń (CON-01, SH-032 A3, A5)', () => {
     }
   });
 
-  it('warunki oferty wynikają z szablonu i konfiguracji (CON-02, B5, B6)', () => {
+  it('warunki oferty wynikają z katalogu i skali punktów (CON-02)', () => {
     const offer = createInitialState(DEFAULT_BALANCE, 1).contracts.offers[0];
 
+    // Katalog: front end 25, backend 20, grafik 15 pkt × 10 pp; zaliczka i kara z katalogu.
     expect(offer).toMatchObject({
-      scopes: { frontend: 60, backend: 40 },
-      deadlineDays: 3,
-      reward: 7_000,
-      advance: 2_100,
-      latePenaltyPerDay: 700,
-      designImportance: 1,
-      designScope: 20,
+      scopes: { frontend: 250, backend: 200 },
+      deadlineDays: 6,
+      reward: 15_000,
+      advance: 4_500,
+      latePenaltyPerDay: 350,
+      designImportance: 2,
+      designScope: 150,
     });
   });
 

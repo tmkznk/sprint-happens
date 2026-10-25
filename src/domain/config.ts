@@ -71,12 +71,9 @@ export type BalanceConfig = DeepReadonly<{
   contracts: {
     // CON-01 (Z): liczba ofert na tablicy.
     boardSize: number;
-    // FIN-01, decyzja SH-032 B5 (B): zaliczka jako część wynagrodzenia.
-    advanceRatio: number;
-    // FIN-04, decyzja SH-032 B5 (B): kara za każdy rozpoczęty dzień opóźnienia.
-    latePenaltyRatio: number;
-    // PROJ-10, decyzja SH-032 B6 (B): punkty designu na jeden stopień znaczenia.
-    designPointsPerImportance: number;
+    // PROJ-09 (B): punkty pracy (pp) na jeden punkt zakresu z katalogu zleceń. Wynik musi być
+    // wielokrotnością fragmentu (`bugs.fragmentPoints`) — zakres zaokrągla się w górę.
+    pointsPerCatalogPoint: number;
     // PROJ-11, decyzja SH-032 B6 (B): premia PM-a do wydajności całego zespołu projektu.
     pmBonus: WageTable;
   };
@@ -148,9 +145,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   },
   contracts: {
     boardSize: 3,
-    advanceRatio: 0.3,
-    latePenaltyRatio: 0.1,
-    designPointsPerImportance: 20,
+    pointsPerCatalogPoint: 10,
     pmBonus: { junior: 0.1, mid: 0.15, senior: 0.2 },
   },
   reputation: {
