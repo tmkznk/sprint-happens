@@ -1252,7 +1252,8 @@ progress::-moz-progress-bar {
   gap: 6px;
 }
 
-.team-actions .secondary-button {
+/* Tylko własne przyciski kafelka (nie przyciski okna potwierdzenia). */
+.team-actions > .secondary-button {
   width: var(--control-height);
   padding: 0;
 }

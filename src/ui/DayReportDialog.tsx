@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
 import { NewGameButton } from './NewGameButton';
@@ -18,64 +19,71 @@ export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
   const daysLeft = report.rescueDeadlineDay === null ? null : report.rescueDeadlineDay - report.day;
 
   return (
-    <div className="modal-backdrop">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="day-report-title">
-        <h2 id="day-report-title">
-          {won ? 'Zwycięstwo!' : bankrupt ? 'Bankructwo' : `Podsumowanie dnia ${report.day}`}
-        </h2>
-        <dl>
-          <dt>Wpływy</dt>
-          <dd>+{money.format(report.income)}</dd>
-          <dt>Zakupy i inne wydatki</dt>
-          <dd>−{money.format(report.spending)}</dd>
-          <dt>Pensje</dt>
-          <dd>−{money.format(report.wages)}</dd>
-          <dt>Utrzymanie biura</dt>
-          <dd>−{money.format(report.upkeep)}</dd>
-          <dt>Saldo po rozliczeniu</dt>
-          <dd className={report.cashAfterSettlement < 0 ? 'negative' : undefined}>
-            {money.format(report.cashAfterSettlement)}
-          </dd>
-        </dl>
-        {bankrupt ? (
-          <p className="warning" role="alert">
-            Firma nie odzyskała płynności w okresie ratunkowym. Misja zakończona — rozpocznij nową
-            grę.
-          </p>
-        ) : (
-          daysLeft !== null && (
+    <ModalLayer>
+      <div className="modal-backdrop">
+        <section
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="day-report-title"
+        >
+          <h2 id="day-report-title">
+            {won ? 'Zwycięstwo!' : bankrupt ? 'Bankructwo' : `Podsumowanie dnia ${report.day}`}
+          </h2>
+          <dl>
+            <dt>Wpływy</dt>
+            <dd>+{money.format(report.income)}</dd>
+            <dt>Zakupy i inne wydatki</dt>
+            <dd>−{money.format(report.spending)}</dd>
+            <dt>Pensje</dt>
+            <dd>−{money.format(report.wages)}</dd>
+            <dt>Utrzymanie biura</dt>
+            <dd>−{money.format(report.upkeep)}</dd>
+            <dt>Saldo po rozliczeniu</dt>
+            <dd className={report.cashAfterSettlement < 0 ? 'negative' : undefined}>
+              {money.format(report.cashAfterSettlement)}
+            </dd>
+          </dl>
+          {bankrupt ? (
             <p className="warning" role="alert">
-              Ujemne saldo! Odzyskaj płynność do rozliczenia dnia {report.rescueDeadlineDay}
-              {daysLeft === 0 ? '.' : ` (pozostało dni: ${daysLeft}).`} Do tego czasu nie można
-              zatrudniać ani kupować wyposażenia.
+              Firma nie odzyskała płynności w okresie ratunkowym. Misja zakończona — rozpocznij nową
+              grę.
             </p>
-          )
-        )}
-        {/* MIS-03 (Z): koniec misji — podsumowanie i nowa gra po potwierdzeniu; brak dalszej gry. */}
-        {status !== 'active' && (
-          <>
-            {won && (
-              <p role="status">
-                Software house przetrwał i zdobył renomę! Misja ukończona w {report.day} dni.
+          ) : (
+            daysLeft !== null && (
+              <p className="warning" role="alert">
+                Ujemne saldo! Odzyskaj płynność do rozliczenia dnia {report.rescueDeadlineDay}
+                {daysLeft === 0 ? '.' : ` (pozostało dni: ${daysLeft}).`} Do tego czasu nie można
+                zatrudniać ani kupować wyposażenia.
               </p>
-            )}
-            <dl>
-              <dt>Dni misji</dt>
-              <dd>{report.day}</dd>
-              <dt>Oddane projekty</dt>
-              <dd>{delivered}</dd>
-              <dt>Reputacja</dt>
-              <dd>{reputation}/100</dd>
-            </dl>
-            <NewGameButton onConfirm={onNewGame} />
-          </>
-        )}
-        {status === 'active' && (
-          <button type="button" onClick={() => dispatch({ type: 'StartNextDay' })}>
-            Następny dzień
-          </button>
-        )}
-      </section>
-    </div>
+            )
+          )}
+          {/* MIS-03 (Z): koniec misji — podsumowanie i nowa gra po potwierdzeniu; brak dalszej gry. */}
+          {status !== 'active' && (
+            <>
+              {won && (
+                <p role="status">
+                  Software house przetrwał i zdobył renomę! Misja ukończona w {report.day} dni.
+                </p>
+              )}
+              <dl>
+                <dt>Dni misji</dt>
+                <dd>{report.day}</dd>
+                <dt>Oddane projekty</dt>
+                <dd>{delivered}</dd>
+                <dt>Reputacja</dt>
+                <dd>{reputation}/100</dd>
+              </dl>
+              <NewGameButton onConfirm={onNewGame} />
+            </>
+          )}
+          {status === 'active' && (
+            <button type="button" onClick={() => dispatch({ type: 'StartNextDay' })}>
+              Następny dzień
+            </button>
+          )}
+        </section>
+      </div>
+    </ModalLayer>
   );
 }

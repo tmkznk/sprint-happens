@@ -12,6 +12,7 @@ import { isReadyForDelivery, paymentPreview } from '../../simulation/delivery';
 import { detectedBugCount, testCoverage } from '../../simulation/qa';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { EmptyState } from '../EmptyState';
+import { ModalLayer } from '../ModalLayer';
 import { designPercent, pmBonusPermille, progressPercent } from '../../simulation/work';
 import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from '../labels';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
@@ -306,44 +307,46 @@ function DeliveryReportDialog({
   const report = project.delivery;
   if (!report) return null;
   return (
-    <div className="modal-backdrop fullscreen">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="delivery-title">
-        <h2 id="delivery-title">Oddano: {project.name}</h2>
-        <dl>
-          <dt>Terminowość</dt>
-          <dd>
-            {report.daysLate === 0 ? 'w terminie' : `opóźnienie ${report.daysLate} dni`} (
-            {signed(report.reputation.punctuality)})
-          </dd>
-          <dt>Jakość techniczna</dt>
-          <dd>
-            {percent(report.qualityPermille)} · pozostałe błędy: {report.remainingBugs} (
-            {signed(report.reputation.quality)})
-          </dd>
-          <dt>Design</dt>
-          <dd>
-            {project.designScope === 0
-              ? 'nie dotyczy'
-              : `${percent(report.designPermille)} ukończenia`}{' '}
-            ({signed(report.reputation.design)})
-          </dd>
-          <dt>Reputacja</dt>
-          <dd>
-            {signed(report.reputation.total)} → {report.reputationAfter}/100
-          </dd>
-          <dt>Wypłata</dt>
-          <dd>
-            +{money.format(report.payment)}
-            {report.penalty > 0 && ` (kara −${money.format(report.penalty)})`}
-          </dd>
-        </dl>
-        <div className="modal-actions">
-          <button type="button" onClick={onClose}>
-            Zamknij
-          </button>
-        </div>
-      </section>
-    </div>
+    <ModalLayer>
+      <div className="modal-backdrop">
+        <section className="modal" role="dialog" aria-modal="true" aria-labelledby="delivery-title">
+          <h2 id="delivery-title">Oddano: {project.name}</h2>
+          <dl>
+            <dt>Terminowość</dt>
+            <dd>
+              {report.daysLate === 0 ? 'w terminie' : `opóźnienie ${report.daysLate} dni`} (
+              {signed(report.reputation.punctuality)})
+            </dd>
+            <dt>Jakość techniczna</dt>
+            <dd>
+              {percent(report.qualityPermille)} · pozostałe błędy: {report.remainingBugs} (
+              {signed(report.reputation.quality)})
+            </dd>
+            <dt>Design</dt>
+            <dd>
+              {project.designScope === 0
+                ? 'nie dotyczy'
+                : `${percent(report.designPermille)} ukończenia`}{' '}
+              ({signed(report.reputation.design)})
+            </dd>
+            <dt>Reputacja</dt>
+            <dd>
+              {signed(report.reputation.total)} → {report.reputationAfter}/100
+            </dd>
+            <dt>Wypłata</dt>
+            <dd>
+              +{money.format(report.payment)}
+              {report.penalty > 0 && ` (kara −${money.format(report.penalty)})`}
+            </dd>
+          </dl>
+          <div className="modal-actions">
+            <button type="button" onClick={onClose}>
+              Zamknij
+            </button>
+          </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
 

@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { eventTemplate } from '../simulation/events';
@@ -22,27 +23,29 @@ export function EventDialog() {
   };
 
   return (
-    <div className="modal-backdrop fullscreen">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="event-title">
-        <h2 id="event-title">{template.title}</h2>
-        <p>{template.description}</p>
-        {project && <p className="hint">Dotyczy projektu: {project.name}</p>}
-        <div className="event-options">
-          {template.options.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className="event-option"
-              onClick={() => choose(option.id)}
-            >
-              <strong>{option.label}</strong>
-              <span>{describeOption(option, project, config).join(' · ')}</span>
-            </button>
-          ))}
-        </div>
-        <p className="hint">Gra jest wstrzymana do wyboru. Potem wróci do poprzedniego tempa.</p>
-        {message && <p className="warning">{message}</p>}
-      </section>
-    </div>
+    <ModalLayer>
+      <div className="modal-backdrop">
+        <section className="modal" role="dialog" aria-modal="true" aria-labelledby="event-title">
+          <h2 id="event-title">{template.title}</h2>
+          <p>{template.description}</p>
+          {project && <p className="hint">Dotyczy projektu: {project.name}</p>}
+          <div className="event-options">
+            {template.options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className="event-option"
+                onClick={() => choose(option.id)}
+              >
+                <strong>{option.label}</strong>
+                <span>{describeOption(option, project, config).join(' · ')}</span>
+              </button>
+            ))}
+          </div>
+          <p className="hint">Gra jest wstrzymana do wyboru. Potem wróci do poprzedniego tempa.</p>
+          {message && <p className="warning">{message}</p>}
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
