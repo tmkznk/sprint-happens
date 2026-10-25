@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
-import type { ProjectId } from '../domain/contracts';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
 import { ENERGY_SCALE, SATISFACTION_SCALE, type EmployeeId } from '../domain/employees';
@@ -16,6 +15,7 @@ import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FireEmployeeButton } from './FireEmployeeButton';
+import { ProjectSelect } from './ProjectSelect';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import {
   ACTIVITY_LABELS,
@@ -228,48 +228,6 @@ function takenDesksKey(state: GameState): string {
   return Object.values(state.staff.employees)
     .map((e) => e.deskId ?? '')
     .join('|');
-}
-
-// EMP-05, EMP-07 (Z): przydział zmienia wyłącznie gracz; oddane projekty nie są dostępne.
-function ProjectSelect({
-  employeeId,
-  projectId,
-}: {
-  employeeId: EmployeeId;
-  projectId: ProjectId | null;
-}) {
-  const projects = useGameSelector((state) => state.contracts.projects);
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
-  const dispatch = useDispatch();
-  const [message, setMessage] = useState<string | null>(null);
-  const active = Object.values(projects).filter((project) => project.status === 'active');
-
-  return (
-    <>
-      <select
-        aria-label="Projekt"
-        value={projectId ?? ''}
-        disabled={!isWorking}
-        onChange={(event) => {
-          const value = event.target.value;
-          const result = dispatch({
-            type: 'AssignProject',
-            employeeId,
-            projectId: value === '' ? null : (value as ProjectId),
-          });
-          setMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
-        }}
-      >
-        <option value="">Bez przydziału</option>
-        {active.map((project) => (
-          <option key={project.id} value={project.id}>
-            {project.name}
-          </option>
-        ))}
-      </select>
-      {message && <span className="warning">{message}</span>}
-    </>
-  );
 }
 
 function EmployeeDetails({ id }: { id: EmployeeId }) {

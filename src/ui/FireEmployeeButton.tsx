@@ -45,7 +45,7 @@ export function FireEmployeeButton({
     <>
       <button
         type="button"
-        className="secondary-button"
+        className={variant === 'icon' ? 'secondary-button icon-only' : 'secondary-button'}
         disabled={!isWorking}
         aria-label={variant === 'icon' ? `Zwolnij: ${employee.name}` : undefined}
         title={variant === 'icon' ? 'Zwolnij' : undefined}

@@ -1,5 +1,6 @@
-import { Briefcase, Users } from 'lucide-react';
+import { ArrowUpRight, Briefcase, UserPlus } from 'lucide-react';
 import { useState } from 'react';
+import { CONTRACT_TEMPLATES } from '../../domain/content/contracts';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import {
   TECH_SPECIALIZATIONS,
@@ -13,11 +14,12 @@ import { missingRoles } from '../../simulation/assignments';
 import { isReadyForDelivery, paymentPreview } from '../../simulation/delivery';
 import { detectedBugCount, testCoverage } from '../../simulation/qa';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { Avatar } from '../Avatar';
 import { EmptyState } from '../EmptyState';
 import { useNavigation } from '../navigation';
 import { ModalLayer } from '../ModalLayer';
 import { designPercent, pmBonusPermille, progressPercent } from '../../simulation/work';
-import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from '../labels';
+import { money, SCOPE_LABELS } from '../labels';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
 type ProjectsTab = 'active' | 'offers' | 'archive';
@@ -111,23 +113,62 @@ function Offers({
     );
   }
   return offers.map((offer) => (
-    <article key={offer.id} className="contract-card">
-      <h4>{offer.name}</h4>
-      <p className="hint">{offer.description}</p>
-      <Terms
-        terms={offer}
-        deadline={`${offer.deadlineDays} dni (do końca dnia ${day + offer.deadlineDays})`}
-      />
+    <article key={offer.id} className="project-card">
+      <div className="card-top">
+        <span className="eyebrow">Poziom {templateLevel(offer.templateId)}</span>
+        <span className="pill">
+          {offer.deadlineDays} {offer.deadlineDays === 1 ? 'dzień' : 'dni'} · do dnia{' '}
+          {day + offer.deadlineDays}
+        </span>
+      </div>
+      <h3>{offer.name}</h3>
+      <p className="card-description">{offer.description}</p>
+      <ScopeChips terms={offer} />
+      <div className="offer-numbers">
+        <div>
+          <small>Wynagrodzenie</small>
+          <strong>{money.format(offer.reward)} zł</strong>
+        </div>
+        <div>
+          <small>Zaliczka od razu</small>
+          <strong>{money.format(offer.advance)} zł</strong>
+        </div>
+      </div>
+      <p className="fineprint">
+        Kara {money.format(offer.latePenaltyPerDay)} zł za każdy rozpoczęty dzień spóźnienia, do
+        wysokości reszty wypłaty.{' '}
+        {offer.designScope > 0
+          ? `Opcjonalny design: ${offer.designScope} pp, do +${offer.designImportance} reputacji.`
+          : 'Bez designu.'}
+      </p>
       <button
         type="button"
-        className="primary-button"
+        className="primary-button full"
         disabled={!isWorking}
         onClick={() => accept(offer)}
       >
-        Przyjmij
+        Przyjmij zlecenie <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </article>
   ));
+}
+
+// Poziom trudności szablonu (SH-032 A3b) — etykieta nad tytułem karty.
+function templateLevel(templateId: string): number {
+  return CONTRACT_TEMPLATES.find((template) => template.id === templateId)?.level ?? 1;
+}
+
+// CON-02: zakresy specjalizacji jako pastylki.
+function ScopeChips({ terms }: { terms: ContractTerms }) {
+  return (
+    <div className="chips">
+      {TECH_SPECIALIZATIONS.filter((s) => terms.scopes[s] !== undefined).map((s) => (
+        <span key={s} className="pill">
+          {SCOPE_LABELS[s]} · {terms.scopes[s]} pp
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function ActiveProjects({
@@ -152,49 +193,115 @@ function ActiveProjects({
     );
   }
   return projects.map((project) => {
-    const daysLeft = project.deadlineDay - day;
+    const late = day > project.deadlineDay;
     const team = Object.values(employees).filter((e) => e.projectId === project.id);
     return (
-      <article key={project.id} className="contract-card">
-        <h4>{project.name}</h4>
-        <p className="hint">
-          Zespół:{' '}
-          {team.length === 0
-            ? 'nikt nie jest przypisany.'
-            : team.map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`).join(', ')}
-        </p>
-        <StaffingPrompt project={project} team={team} />
-        <ul className="progress-list" aria-label="Postęp prac">
-          {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
-            <li key={s}>
+      <article key={project.id} className="project-card">
+        <div className="card-top">
+          <span className="eyebrow">Poziom {templateLevel(project.templateId)}</span>
+          <span className={late ? 'pill danger' : 'pill'}>
+            {late
+              ? `Termin minął: dzień ${project.deadlineDay}`
+              : `Termin: dzień ${project.deadlineDay}`}
+          </span>
+        </div>
+        <h3>{project.name}</h3>
+        <p className="card-description">{project.description}</p>
+        {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
+          <div key={s} className="scope">
+            <div>
               <span>{SCOPE_LABELS[s]}</span>
-              <progress max={100} value={progressPercent(project, s)} />
-              <span>{progressPercent(project, s)}%</span>
-            </li>
-          ))}
-          {/* PROJ-10: opcjonalny zakres designu — nie blokuje oddania. */}
-          {project.designScope > 0 && (
-            <li>
-              <span>Design</span>
-              <progress max={100} value={designPercent(project)} />
-              <span>{designPercent(project)}%</span>
-            </li>
-          )}
-        </ul>
-        <PmBonusLine project={project} />
-        <QualityLine project={project} />
-        <Terms
-          terms={project}
-          deadline={
-            daysLeft >= 0
-              ? `koniec dnia ${project.deadlineDay} (zostało dni: ${daysLeft})`
-              : `minął w dniu ${project.deadlineDay}`
-          }
-        />
-        <DeliverySection project={project} onDelivered={onDelivered} />
+              <strong>{progressPercent(project, s)}%</strong>
+            </div>
+            <span className="bar">
+              <span style={{ width: `${progressPercent(project, s)}%` }} />
+            </span>
+          </div>
+        ))}
+        <ProjectStats project={project} />
+        <DeliveryFooter project={project} onDelivered={onDelivered} />
+        <AssignedRow project={project} team={team} />
       </article>
     );
   });
+}
+
+// BUG-03, PROJ-10, PROJ-11: testy, wykryte błędy (jedyna liczba błędów widoczna przed oddaniem),
+// design i premia PM-a; bez testów — „Jakość niezweryfikowana”.
+function ProjectStats({ project }: { project: ReadonlyProject }) {
+  const config = useBalanceConfig();
+  const bonus = useGameSelector((state) => pmBonusPermille(state, project.id, config));
+  const coverage = testCoverage(project, config);
+  return (
+    <>
+      <div className="project-stats">
+        <span>
+          Testy <b>{coverage === null ? '—' : `${coverage}%`}</b>
+        </span>
+        <span>
+          Wykryte błędy <b>{detectedBugCount(project, config)}</b>
+        </span>
+        {project.designScope > 0 && (
+          <span>
+            Design <b>{designPercent(project)}%</b>
+          </span>
+        )}
+        {bonus > 0 && (
+          <span>
+            Premia PM <b>+{bonus / 10}%</b>
+          </span>
+        )}
+      </div>
+      {(coverage === null || coverage === 0) && (
+        <small className="card-note">Jakość niezweryfikowana.</small>
+      )}
+    </>
+  );
+}
+
+// PROJ-02, PROJ-03: zespół projektu (awatary) i skrót do zakładki Zespół, gdy brakuje obsady
+// stanowisk technicznych z pracą do zrobienia (QA, Designer i PM są opcjonalni).
+function AssignedRow({
+  project,
+  team,
+}: {
+  project: ReadonlyProject;
+  team: readonly Pick<Employee, 'id' | 'name' | 'specialization'>[];
+}) {
+  const { open } = useNavigation();
+  const missing = missingRoles(project, team);
+  return (
+    <div className="assigned">
+      {team.length > 0 && (
+        <span
+          className="assigned-avatars"
+          aria-label={`Zespół: ${team.map((e) => e.name).join(', ')}`}
+        >
+          {team.map((member) => (
+            <Avatar
+              key={member.id}
+              name={member.name}
+              specialization={member.specialization}
+              size={26}
+            />
+          ))}
+        </span>
+      )}
+      {missing.length > 0 ? (
+        <>
+          <span className="assigned-missing">
+            Brakuje: {missing.map((specialization) => SCOPE_LABELS[specialization]).join(', ')}
+          </span>
+          <button type="button" className="assign-button" onClick={() => open('team')}>
+            <UserPlus size={15} aria-hidden="true" />
+            Przydziel zespół
+          </button>
+        </>
+      ) : (
+        team.length === 0 && <span className="assigned-missing">Nikt nie jest przypisany.</span>
+      )}
+    </div>
+  );
 }
 
 function Archive({
@@ -214,14 +321,23 @@ function Archive({
     );
   }
   return projects.map((project) => (
-    <article key={project.id} className="contract-card">
-      <h4>{project.name}</h4>
-      <p className="hint">
-        Oddany w dniu {project.delivery?.day} · wypłata{' '}
-        {money.format(project.delivery?.payment ?? 0)} · reputacja{' '}
-        {signed(project.delivery?.reputation.total ?? 0)}
-      </p>
-      <button type="button" className="secondary-button" onClick={() => onReport(project.id)}>
+    <article key={project.id} className="project-card">
+      <div className="card-top">
+        <span className="eyebrow">Oddany w dniu {project.delivery?.day}</span>
+        <span className="pill">Reputacja {signed(project.delivery?.reputation.total ?? 0)}</span>
+      </div>
+      <h3>{project.name}</h3>
+      <div className="offer-numbers">
+        <div>
+          <small>Wypłata przy oddaniu</small>
+          <strong>{money.format(project.delivery?.payment ?? 0)} zł</strong>
+        </div>
+        <div>
+          <small>Jakość techniczna</small>
+          <strong>{percent(project.delivery?.qualityPermille ?? 0)}</strong>
+        </div>
+      </div>
+      <button type="button" className="secondary-button full" onClick={() => onReport(project.id)}>
         Raport
       </button>
     </article>
@@ -231,9 +347,9 @@ function Archive({
 const signed = (value: number) => (value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '0');
 const percent = (permille: number) => `${Math.floor(permille / 10)}%`;
 
-// PROJ-06, FIN-04 (Z): oddanie ręcznie, po ukończeniu techniki; panel pokazuje bieżące potrącenie.
-// Podgląd nie ujawnia jakości — ukryte błędy są widoczne dopiero w raporcie (BUG-03).
-function DeliverySection({
+// PROJ-06, FIN-04 (Z): oddanie ręcznie, po ukończeniu techniki; stopka pokazuje bieżącą
+// wypłatę z potrąceniem. Podgląd nie ujawnia jakości — ukryte błędy dopiero w raporcie (BUG-03).
+function DeliveryFooter({
   project,
   onDelivered,
 }: {
@@ -262,34 +378,40 @@ function DeliverySection({
   return (
     <>
       {preview.daysLate > 0 && (
-        <p className="warning">
-          Opóźnienie: {preview.daysLate} dni · potrącenie {money.format(preview.penalty)}
+        <p className="card-alert">
+          Opóźnienie: {preview.daysLate} {preview.daysLate === 1 ? 'dzień' : 'dni'} · potrącenie{' '}
+          {money.format(preview.penalty)} zł
         </p>
       )}
-      <button
-        type="button"
-        className="primary-button"
-        disabled={!ready || !canDeliverNow}
-        onClick={() => setConfirming(true)}
-      >
-        Oddaj projekt
-      </button>
-      {!ready && <p className="hint">Oddanie po ukończeniu wszystkich części technicznych.</p>}
       {/* Decyzja z 2026-10-22: po funkcjach zespół sam naprawia wykryte błędy — gracz wybiera
           moment oddania: teraz z błędami albo później, ryzykując opóźnienie. */}
-      {ready && (
-        <p className="hint">
-          Funkcje gotowe · oddanie dziś:{' '}
-          {preview.daysLate === 0 ? 'w terminie' : `opóźnienie ${preview.daysLate} dni`}
-          {openBugs > 0 && ` · zespół naprawia wykryte błędy (zostało: ${openBugs})`}
-        </p>
-      )}
+      <small className="card-note">
+        {ready
+          ? `Funkcje gotowe · oddanie dziś: ${preview.daysLate === 0 ? 'w terminie' : `opóźnienie ${preview.daysLate} dni`}${
+              openBugs > 0 ? ` · zespół naprawia wykryte błędy (zostało: ${openBugs})` : ''
+            }`
+          : 'Oddanie po ukończeniu wszystkich części technicznych.'}
+      </small>
+      <div className="card-bottom">
+        <span>
+          Do wypłaty
+          <strong>{money.format(preview.payment)} zł</strong>
+        </span>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!ready || !canDeliverNow}
+          onClick={() => setConfirming(true)}
+        >
+          Oddaj projekt <ArrowUpRight size={15} aria-hidden="true" />
+        </button>
+      </div>
       {message && <p className="warning">{message}</p>}
       {confirming && (
         <ConfirmDialog
           title={`Oddać „${project.name}”?`}
-          message={`Wypłata ${money.format(preview.payment)}${
-            preview.penalty > 0 ? ` (potrącenie ${money.format(preview.penalty)})` : ''
+          message={`Wypłata ${money.format(preview.payment)} zł${
+            preview.penalty > 0 ? ` (potrącenie ${money.format(preview.penalty)} zł)` : ''
           }. Nienaprawione błędy obniżą jakość i reputację, nie wypłatę. Projektu nie będzie można już rozwijać.`}
           confirmLabel="Oddaj"
           onConfirm={deliver}
@@ -351,78 +473,5 @@ function DeliveryReportDialog({
         </section>
       </div>
     </ModalLayer>
-  );
-}
-
-function Terms({ terms, deadline }: { terms: ContractTerms; deadline: string }) {
-  const scopes = TECH_SPECIALIZATIONS.filter((s) => terms.scopes[s] !== undefined)
-    .map((s) => `${SCOPE_LABELS[s]} ${terms.scopes[s]} pp`)
-    .join(' · ');
-  return (
-    <dl className="contract-terms">
-      <dt>Zakres</dt>
-      <dd>{scopes}</dd>
-      <dt>Design</dt>
-      <dd>
-        {terms.designImportance === 0
-          ? 'bez znaczenia'
-          : `${'★'.repeat(terms.designImportance)}${'☆'.repeat(5 - terms.designImportance)}`}
-      </dd>
-      <dt>Termin</dt>
-      <dd>{deadline}</dd>
-      <dt>Wynagrodzenie</dt>
-      <dd>{money.format(terms.reward)}</dd>
-      <dt>Zaliczka</dt>
-      <dd>{money.format(terms.advance)}</dd>
-      <dt>Kara za dzień opóźnienia</dt>
-      <dd>{money.format(terms.latePenaltyPerDay)}</dd>
-    </dl>
-  );
-}
-
-// BUG-03 (Z): widoczne są tylko wykryte błędy i zakres testów, nigdy liczba ukrytych.
-// Zero wykrytych błędów nie jest deklaracją bezbłędności (BUG-06: bez pracy — brak procentu).
-function QualityLine({ project }: { project: ReadonlyProject }) {
-  const config = useBalanceConfig();
-  const coverage = testCoverage(project, config);
-  if (coverage === null) return null;
-  if (coverage === 0) return <p className="hint">Jakość niezweryfikowana</p>;
-  return (
-    <p className="hint">
-      Przetestowano {coverage}% wykonanej pracy · wykryte błędy: {detectedBugCount(project, config)}
-    </p>
-  );
-}
-
-// PROJ-11 (Z): premia PM-a widoczna na karcie projektu.
-function PmBonusLine({ project }: { project: ReadonlyProject }) {
-  const config = useBalanceConfig();
-  const bonus = useGameSelector((state) => pmBonusPermille(state, project.id, config));
-  if (bonus === 0) return null;
-  return <p className="hint">Premia PM-a: +{bonus / 10}% wydajności zespołu</p>;
-}
-
-// PROJ-02, PROJ-03: brak obsady stanowisk technicznych z pracą do zrobienia — skrót do zakładki
-// Zespół, gdzie przydziela się ludzi (QA, Designer i PM są opcjonalni).
-function StaffingPrompt({
-  project,
-  team,
-}: {
-  project: ReadonlyProject;
-  team: readonly Pick<Employee, 'specialization'>[];
-}) {
-  const { open } = useNavigation();
-  const missing = missingRoles(project, team);
-  if (missing.length === 0) return null;
-  return (
-    <div className="staffing-prompt">
-      <p className="warning">
-        Brakuje: {missing.map((specialization) => SCOPE_LABELS[specialization]).join(', ')}
-      </p>
-      <button type="button" className="secondary-button" onClick={() => open('team')}>
-        <Users size={16} aria-hidden="true" />
-        Przydziel zespół
-      </button>
-    </div>
   );
 }
