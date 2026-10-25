@@ -1,0 +1,13 @@
+{
+  "name": "furniture-render",
+  "private": true,
+  "type": "module",
+  "description": "Pre-render mebli z modeli 3D (VNB Low Poly Office Set 2) do sprite'ów gry",
+  "scripts": {
+    "render": "node build.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.49.1",
+    "three": "0.170.0"
+  }
+}

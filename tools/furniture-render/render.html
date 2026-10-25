@@ -1,0 +1,240 @@
+<!doctype html>
+<!-- Renderer mebli: składa scenę z modeli paczki i renderuje ją kamerą izometryczną 2:1 (T:ART-04). -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/three/build/three.module.js",
+          "three/addons/": "/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body style="margin: 0; background: transparent">
+    <script type="module">
+      import * as THREE from 'three';
+      import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+      import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+      const cache = new Map();
+      async function loadModel(name) {
+        if (!cache.has(name)) {
+          cache.set(
+            name,
+            (async () => {
+              const mtl = await new MTLLoader()
+                .setPath('/pack/OBJ/')
+                .setResourcePath('/pack/Textures/')
+                .loadAsync(`${name}.mtl`);
+              mtl.preload();
+              const obj = await new OBJLoader()
+                .setMaterials(mtl)
+                .setPath('/pack/OBJ/')
+                .loadAsync(`${name}.obj`);
+              obj.traverse((child) => {
+                if (!child.isMesh) return;
+                const convert = (m) => {
+                  const map = m.map ?? null;
+                  if (map) {
+                    map.colorSpace = THREE.SRGBColorSpace;
+                    map.magFilter = THREE.NearestFilter;
+                    map.minFilter = THREE.NearestFilter;
+                    map.generateMipmaps = false;
+                  }
+                  return new THREE.MeshStandardMaterial({
+                    map,
+                    color: map ? 0xffffff : m.color,
+                    roughness: 0.85,
+                    metalness: 0,
+                    flatShading: true,
+                  });
+                };
+                child.material = Array.isArray(child.material)
+                  ? child.material.map(convert)
+                  : convert(child.material);
+                child.castShadow = true;
+                child.receiveShadow = true;
+              });
+              // Tekstury palet wczytują się asynchronicznie — render przed ich wczytaniem daje czarne modele.
+              const maps = [];
+              obj.traverse((child) => {
+                if (!child.isMesh) return;
+                for (const m of [child.material].flat()) if (m.map) maps.push(m.map);
+              });
+              const deadline = Date.now() + 10000;
+              while (maps.some((t) => !(t.image && t.image.complete && t.image.naturalWidth > 0))) {
+                if (Date.now() > deadline) throw new Error(`Tekstury ${name} nie wczytały się`);
+                await new Promise((r) => setTimeout(r, 20));
+              }
+              for (const t of maps) t.needsUpdate = true;
+              return obj;
+            })(),
+          );
+        }
+        return (await cache.get(name)).clone(true);
+      }
+
+      // Prosty model z prostopadłościanów (dla obiektów spoza paczki).
+      function boxes(parts) {
+        const group = new THREE.Group();
+        for (const p of parts) {
+          const mesh = new THREE.Mesh(
+            p.cylinder
+              ? new THREE.CylinderGeometry(p.size[0] / 2, p.size[0] / 2, p.size[2], 16)
+              : new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]),
+            new THREE.MeshStandardMaterial({
+              color: p.color,
+              roughness: p.roughness ?? 0.6,
+              metalness: p.metalness ?? 0,
+              flatShading: true,
+            }),
+          );
+          if (p.cylinder) mesh.rotation.x = Math.PI / 2; // oś cylindra wzdłuż z (pion w układzie modelu)
+          mesh.position.set(p.at[0], p.at[1], p.at[2] + p.size[2] / 2);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          group.add(mesh);
+        }
+        return group;
+      }
+
+      // spec: { footprint:{w,h}, rotation, metersPerTile, scale (px na 64 px kafla → mnożnik), items:[{model|boxes, at:[x,y,z] m, rotZ:deg, scale}] }
+      window.renderSprite = async (spec) => {
+        const S = spec.scale ?? 2;
+        const k = 32 * S * Math.SQRT2; // px na jednostkę (kafel) wzdłuż osi siatki
+        const scene = new THREE.Scene();
+        const zup = new THREE.Group();
+        zup.rotation.x = -Math.PI / 2;
+        for (const item of spec.items) {
+          const node = item.model ? await loadModel(item.model) : boxes(item.boxes);
+          node.position.set(...item.at);
+          node.rotation.z = THREE.MathUtils.degToRad(item.rotZ ?? 0);
+          if (Array.isArray(item.scale)) node.scale.set(...item.scale);
+          else node.scale.setScalar(item.scale ?? 1);
+          zup.add(node);
+        }
+        const scaled = new THREE.Group();
+        scaled.scale.setScalar(1 / spec.metersPerTile);
+        scaled.add(zup);
+        const { w, h } = spec.footprint;
+        const rotated = spec.rotation === 90 || spec.rotation === 270 ? { w: h, h: w } : { w, h };
+        const placed = new THREE.Group();
+        placed.rotation.y = THREE.MathUtils.degToRad(-spec.rotation);
+        placed.position.set(rotated.w / 2, 0, rotated.h / 2);
+        placed.add(scaled);
+        scene.add(placed);
+
+        // Światło: miękkie otoczenie + kierunkowe z lewej góry ekranu, cień kontaktowy na podłodze.
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b0a0, 1.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+        sun.position.set(rotated.w / 2 - 3, 7, rotated.h / 2 + 1.5);
+        sun.target.position.set(rotated.w / 2, 0, rotated.h / 2);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(2048, 2048);
+        Object.assign(sun.shadow.camera, {
+          left: -5,
+          right: 5,
+          top: 5,
+          bottom: -5,
+          near: 0.1,
+          far: 30,
+        });
+        sun.shadow.radius = 4;
+        sun.shadow.bias = -0.0005;
+        scene.add(sun, sun.target);
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(20, 20),
+          new THREE.ShadowMaterial({ opacity: 0.22 }),
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(rotated.w / 2, 0.001, rotated.h / 2);
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Kamera izometryczna 2:1: azymut 45°, elewacja 30°.
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+        const el = THREE.MathUtils.degToRad(30);
+        const dir = new THREE.Vector3(
+          Math.cos(el) / Math.SQRT2,
+          Math.sin(el),
+          Math.cos(el) / Math.SQRT2,
+        );
+        camera.position.copy(dir.clone().multiplyScalar(50));
+        camera.up.set(0, 1, 0);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        scene.updateMatrixWorld(true);
+
+        // Obrys w przestrzeni widoku: wierzchołki modeli i narożniki footprintu.
+        const view = camera.matrixWorldInverse;
+        let minU = Infinity,
+          maxU = -Infinity,
+          minV = Infinity,
+          maxV = -Infinity,
+          maxY = 0;
+        const add = (p) => {
+          maxY = Math.max(maxY, p.y);
+          const q = p.clone().applyMatrix4(view);
+          minU = Math.min(minU, q.x);
+          maxU = Math.max(maxU, q.x);
+          minV = Math.min(minV, q.y);
+          maxV = Math.max(maxV, q.y);
+        };
+        placed.traverse((child) => {
+          if (!child.isMesh) return;
+          const pos = child.geometry.attributes.position;
+          const v = new THREE.Vector3();
+          for (let i = 0; i < pos.count; i++)
+            add(v.fromBufferAttribute(pos, i).applyMatrix4(child.matrixWorld));
+        });
+        for (const [x, z] of [
+          [0, 0],
+          [rotated.w, 0],
+          [rotated.w, rotated.h],
+          [0, rotated.h],
+        ])
+          add(new THREE.Vector3(x, 0, z));
+        const pad = 6 / k; // margines na cień i wygładzanie
+        let left = minU - pad,
+          top = maxV + pad;
+        const width = Math.ceil((maxU + pad - left) * k),
+          height = Math.ceil((top - (minV - pad)) * k);
+        // Kotwica w pełnym pikselu: przesuwamy ramkę, żeby narożnik (0,0) footprintu wypadł na całych pikselach.
+        const o = new THREE.Vector3(0, 0, 0).applyMatrix4(view);
+        const ax = (o.x - left) * k,
+          ay = (top - o.y) * k;
+        left -= (Math.ceil(ax) - ax) / k;
+        top += (Math.ceil(ay) - ay) / k;
+        Object.assign(camera, { left, right: left + width / k, top, bottom: top - height / k });
+        camera.updateProjectionMatrix();
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+        });
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.render(scene, camera);
+        const dataURL = renderer.domElement.toDataURL('image/png');
+        renderer.dispose();
+        return {
+          dataURL,
+          width,
+          height,
+          anchorX: Math.round((o.x - left) * k),
+          anchorY: Math.round((top - o.y) * k),
+          heightPx: Math.round(((maxY * k * Math.cos(el)) / Math.SQRT2) * Math.SQRT2),
+          scale: S,
+        };
+      };
+      window.ready = true;
+    </script>
+  </body>
+</html>

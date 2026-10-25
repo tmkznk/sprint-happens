@@ -1,5 +1,6 @@
 import type { FurnitureType } from '../domain/furniture';
 import type { RoomId } from '../world/officeLayout';
+import { FURNITURE_HEIGHTS } from './furnitureSpriteMeta';
 
 // Zastępcze kolory i wysokości (px źródłowe) do czasu właściwych assetów (SH-035, SH-036).
 // Wysokości służą też do trafiania dotykiem w bryłę obiektu (picking.ts).
@@ -13,11 +14,13 @@ export const WALL_COLOR = 0xc9c3b6;
 export const WINDOW_COLOR = 0x9fd3ff;
 export const WINDOW_FRAME_COLOR = 0xe9e4d8;
 export const WINDOW_SHINE_COLOR = 0xd4ecff;
+// Meble mają już grafiki (pre-render 3D) — kolor zostaje dla podglądu ustawiania, wysokość
+// pochodzi z wyrenderowanej bryły.
 export const FURNITURE_STYLE: Record<FurnitureType, { color: number; height: number }> = {
-  desk: { color: 0xb07a45, height: 22 },
-  sofa: { color: 0x6a4fa3, height: 18 },
-  coffeeMachine: { color: 0x3d3d3d, height: 34 },
-  plant: { color: 0x4f8a3c, height: 30 },
+  desk: { color: 0xb07a45, height: FURNITURE_HEIGHTS.desk },
+  sofa: { color: 0x6a4fa3, height: FURNITURE_HEIGHTS.sofa },
+  coffeeMachine: { color: 0x3d3d3d, height: FURNITURE_HEIGHTS.coffeeMachine },
+  plant: { color: 0x4f8a3c, height: FURNITURE_HEIGHTS.plant },
 };
 export const BACK_WALL_HEIGHT = 48;
 export const FRONT_WALL_HEIGHT = 12;

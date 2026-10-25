@@ -20,7 +20,7 @@ const engineRestrictedImports = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'node_modules'] },
+  { ignores: ['dist', 'coverage', '**/node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
@@ -43,6 +43,11 @@ export default tseslint.config(
   {
     files: ['*.config.ts'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    // Narzędzie pre-renderu mebli: skrypty Node, kod w page.evaluate działa w przeglądarce.
+    files: ['tools/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
     // T:PWA-T04: service worker działa w osobnym kontekście (bez DOM).

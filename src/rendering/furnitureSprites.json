@@ -1,0 +1,130 @@
+{
+  "coffeeMachine-0": {
+    "width": 141,
+    "height": 198,
+    "anchorX": 71,
+    "anchorY": 128,
+    "heightPx": 138,
+    "scale": 2
+  },
+  "coffeeMachine-90": {
+    "width": 141,
+    "height": 194,
+    "anchorX": 71,
+    "anchorY": 124,
+    "heightPx": 138,
+    "scale": 2
+  },
+  "coffeeMachine-180": {
+    "width": 141,
+    "height": 194,
+    "anchorX": 71,
+    "anchorY": 124,
+    "heightPx": 138,
+    "scale": 2
+  },
+  "coffeeMachine-270": {
+    "width": 141,
+    "height": 198,
+    "anchorX": 71,
+    "anchorY": 128,
+    "heightPx": 138,
+    "scale": 2
+  },
+  "desk-0": {
+    "width": 333,
+    "height": 272,
+    "anchorX": 135,
+    "anchorY": 106,
+    "heightPx": 147,
+    "scale": 2
+  },
+  "desk-90": {
+    "width": 333,
+    "height": 234,
+    "anchorX": 199,
+    "anchorY": 68,
+    "heightPx": 147,
+    "scale": 2
+  },
+  "desk-180": {
+    "width": 333,
+    "height": 250,
+    "anchorX": 135,
+    "anchorY": 84,
+    "heightPx": 147,
+    "scale": 2
+  },
+  "desk-270": {
+    "width": 333,
+    "height": 290,
+    "anchorX": 199,
+    "anchorY": 124,
+    "heightPx": 147,
+    "scale": 2
+  },
+  "plant-0": {
+    "width": 141,
+    "height": 210,
+    "anchorX": 71,
+    "anchorY": 140,
+    "heightPx": 157,
+    "scale": 2
+  },
+  "plant-90": {
+    "width": 141,
+    "height": 205,
+    "anchorX": 71,
+    "anchorY": 135,
+    "heightPx": 157,
+    "scale": 2
+  },
+  "plant-180": {
+    "width": 141,
+    "height": 197,
+    "anchorX": 71,
+    "anchorY": 127,
+    "heightPx": 157,
+    "scale": 2
+  },
+  "plant-270": {
+    "width": 141,
+    "height": 202,
+    "anchorX": 71,
+    "anchorY": 132,
+    "heightPx": 157,
+    "scale": 2
+  },
+  "sofa-0": {
+    "width": 333,
+    "height": 242,
+    "anchorX": 135,
+    "anchorY": 76,
+    "heightPx": 87,
+    "scale": 2
+  },
+  "sofa-90": {
+    "width": 333,
+    "height": 210,
+    "anchorX": 199,
+    "anchorY": 44,
+    "heightPx": 87,
+    "scale": 2
+  },
+  "sofa-180": {
+    "width": 333,
+    "height": 210,
+    "anchorX": 135,
+    "anchorY": 44,
+    "heightPx": 87,
+    "scale": 2
+  },
+  "sofa-270": {
+    "width": 333,
+    "height": 242,
+    "anchorX": 199,
+    "anchorY": 76,
+    "heightPx": 87,
+    "scale": 2
+  }
+}

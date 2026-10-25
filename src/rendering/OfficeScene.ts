@@ -14,10 +14,11 @@ import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
 import { rotatedSize } from '../world/geometry';
-import { FURNITURE_CATALOG } from '../domain/furniture';
+import { FURNITURE_CATALOG, type Furniture } from '../domain/furniture';
 import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
+import { furnitureSpriteKey, furnitureSpriteMeta } from './furnitureSpriteMeta';
 import { doorThreshold, wallBands, wallFloorQuarters } from './wallGeometry';
 import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
@@ -63,6 +64,15 @@ export type OfficeSceneOptions = {
 
 const FLOOR_DEPTH = -1000;
 
+// Pre-renderowane meble (src/assets/furniture/<typ>-<obrót>.png) — adresy z paczki Vite.
+const FURNITURE_TEXTURES = Object.entries(
+  import.meta.glob<string>('../assets/furniture/*.png', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+  }),
+).map(([path, url]) => [`furniture-${path.replace(/^.*\/(.+)\.png$/, '$1')}`, url] as const);
+
 const TEST_STEP_MS = 100;
 const TEST_STEPS_PER_CELL = 4;
 
@@ -74,7 +84,7 @@ export class OfficeScene extends Phaser.Scene {
   private renderedEdit: FurnitureEdit | null = null;
   private readonly options: OfficeSceneOptions;
   private readonly agentSprites = new Map<string, AgentSprite>();
-  private furnitureGraphics: Phaser.GameObjects.Graphics[] = [];
+  private furnitureGraphics: Phaser.GameObjects.GameObject[] = [];
   private renderedFurniture: GameState['world']['furniture'] | null = null;
   private renderedSelection: Selection = null;
   private actor: Phaser.GameObjects.Graphics | null = null;
@@ -91,7 +101,15 @@ export class OfficeScene extends Phaser.Scene {
     this.options = options;
   }
 
+  preload(): void {
+    for (const [key, url] of FURNITURE_TEXTURES) this.load.image(key, url);
+  }
+
   create(): void {
+    // Gra ma pixelArt (filtr najbliższego sąsiada); pre-render 3D skalujemy płynnie.
+    for (const [key] of FURNITURE_TEXTURES) {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
     this.drawFloor();
     this.drawWalls();
     this.syncFurniture();
@@ -275,15 +293,16 @@ export class OfficeScene extends Phaser.Scene {
     for (const furniture of Object.values(allFurniture)) {
       const rect = furnitureRect(furniture);
       const style = FURNITURE_STYLE[furniture.type];
-      const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
-      drawPrism(graphics, rect, style.height, style.color);
+      const image = this.addFurnitureImage(furniture);
       // Edytowany mebel zostaje w starym miejscu jako cień — anulowanie przywraca ten stan.
-      if (edit?.mode === 'move' && edit.furnitureId === furniture.id) graphics.setAlpha(0.3);
+      if (edit?.mode === 'move' && edit.furnitureId === furniture.id) image.setAlpha(0.3);
+      this.furnitureGraphics.push(image);
       if (!edit && selection?.kind === 'furniture' && selection.id === furniture.id) {
-        graphics.lineStyle(3, SELECTION_COLOR, 1);
-        graphics.strokePoints(toVectors(prismSilhouette(rect, style.height)), true);
+        const outline = this.add.graphics().setDepth(depthOfFootprint(rect, rect) + 0.001);
+        outline.lineStyle(3, SELECTION_COLOR, 1);
+        outline.strokePoints(toVectors(prismSilhouette(rect, style.height)), true);
+        this.furnitureGraphics.push(outline);
       }
-      this.furnitureGraphics.push(graphics);
 
       if (this.options.occlusionTest) {
         const markers = this.add.graphics().setDepth(FLOOR_DEPTH + 1);
@@ -304,18 +323,31 @@ export class OfficeScene extends Phaser.Scene {
     if (!candidate) return;
     const valid = editProblem(state, this.engine.config, edit) === null;
     const rect = furnitureRect(candidate);
-    const style = FURNITURE_STYLE[candidate.type];
-    const ghost = this.add
-      .graphics()
+    // Kolor pól pod meblem mówi, czy ustawienie jest dozwolone; sam mebel półprzezroczysty.
+    const ghost = this.addFurnitureImage(candidate)
       .setDepth(depthOfFootprint(rect, rect) + 0.02)
-      .setAlpha(0.85);
-    drawPrism(ghost, rect, style.height, valid ? EDIT_VALID_COLOR : EDIT_INVALID_COLOR);
+      .setAlpha(0.8);
+    if (!valid) ghost.setTint(0xff9a9a);
     const markers = this.add.graphics().setDepth(FLOOR_DEPTH + 1);
+    markers.fillStyle(valid ? EDIT_VALID_COLOR : EDIT_INVALID_COLOR, 0.45);
+    markers.fillPoints(toVectors(rectCorners(rect)), true);
     for (const point of interactionCells(candidate)) {
       const inset = { x: point.x + 0.3, y: point.y + 0.3, width: 0.4, height: 0.4 };
       fillPolygon(markers, MARKER_COLOR, rectCorners(inset));
     }
     this.furnitureGraphics.push(ghost, markers);
+  }
+
+  // Kotwica obrazka = narożnik (0,0) footprintu; obrazek ma podwójną rozdzielczość.
+  private addFurnitureImage(furniture: Furniture): Phaser.GameObjects.Image {
+    const rect = furnitureRect(furniture);
+    const sprite = furnitureSpriteMeta(furniture.type, furniture.rotation);
+    const corner = gridToScreen({ x: rect.x, y: rect.y });
+    return this.add
+      .image(corner.x, corner.y, furnitureSpriteKey(furniture.type, furniture.rotation))
+      .setOrigin(sprite.anchorX / sprite.width, sprite.anchorY / sprite.height)
+      .setScale(1 / sprite.scale)
+      .setDepth(depthOfFootprint(rect, rect));
   }
 
   private createTestActor(): void {
