@@ -1,3 +1,4 @@
+import { Coffee } from 'lucide-react';
 import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
@@ -148,6 +149,11 @@ function FurnitureDetails({ id }: { id: FurnitureId }) {
       <dd>{FURNITURE_CATALOG[furniture.type].interactionPoints.length}</dd>
       <dt>Obrót</dt>
       <dd>{furniture.rotation}°</dd>
+      {furniture.type === 'coffeeMachine' && (
+        <dd className="full-row">
+          <SupportCoffee />
+        </dd>
+      )}
     </Panel>
   );
 }
@@ -374,5 +380,27 @@ function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
         </dd>
       )}
     </>
+  );
+}
+
+const SUPPORT_URL = 'https://buycoffee.to/tmkznk';
+
+// Wsparcie autora przy ekspresie do kawy (link zewnętrzny, nowa karta, bez dostępu do gry).
+function SupportCoffee() {
+  return (
+    <aside className="support-card">
+      <p className="support-title">Podoba ci się gra?</p>
+      <p>Ten ekspres działa na wirtualnej kawie. Autor — na prawdziwej.</p>
+      <a
+        className="primary-button support-button"
+        href={SUPPORT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Postaw mi kawę (otwiera się w nowej karcie)"
+      >
+        <Coffee size={16} aria-hidden="true" />
+        Postaw mi kawę
+      </a>
+    </aside>
   );
 }

@@ -1360,6 +1360,33 @@ progress::-moz-progress-bar {
   margin-top: 12px;
 }
 
+/* Wsparcie autora (karta ekspresu do kawy). */
+.support-card {
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid #ecd9a8;
+  border-radius: var(--radius);
+  background: var(--yellow-soft);
+  color: #7a5410;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.support-card p {
+  margin: 0 0 10px;
+}
+
+.support-card .support-title {
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-size: var(--fs-strong);
+  font-weight: 700;
+}
+
+.support-button {
+  text-decoration: none;
+}
+
 .selection-panel .warning {
   font-size: var(--fs-small);
 }
