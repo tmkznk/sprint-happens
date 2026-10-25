@@ -63,7 +63,7 @@
     "heightPx": 147,
     "scale": 2
   },
-  "deskChair-0": {
+  "deskChairBack-0": {
     "width": 333,
     "height": 182,
     "anchorX": 135,
@@ -71,7 +71,7 @@
     "heightPx": 104,
     "scale": 2
   },
-  "deskChair-90": {
+  "deskChairBack-90": {
     "width": 333,
     "height": 234,
     "anchorX": 199,
@@ -79,7 +79,7 @@
     "heightPx": 104,
     "scale": 2
   },
-  "deskChair-180": {
+  "deskChairBack-180": {
     "width": 333,
     "height": 230,
     "anchorX": 135,
@@ -87,7 +87,39 @@
     "heightPx": 104,
     "scale": 2
   },
-  "deskChair-270": {
+  "deskChairBack-270": {
+    "width": 333,
+    "height": 177,
+    "anchorX": 199,
+    "anchorY": 11,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChairSeat-0": {
+    "width": 333,
+    "height": 182,
+    "anchorX": 135,
+    "anchorY": 16,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChairSeat-90": {
+    "width": 333,
+    "height": 234,
+    "anchorX": 199,
+    "anchorY": 68,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChairSeat-180": {
+    "width": 333,
+    "height": 230,
+    "anchorX": 135,
+    "anchorY": 64,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChairSeat-270": {
     "width": 333,
     "height": 177,
     "anchorX": 199,

@@ -17,8 +17,6 @@
       import * as THREE from 'three';
       import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
       import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
-      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-      import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
       const cache = new Map();
       async function loadModel(name) {
@@ -153,7 +151,25 @@
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(rotated.w / 2, 0.001, rotated.h / 2);
         floor.receiveShadow = true;
+        floor.visible = spec.shadow !== false;
         scene.add(floor);
+
+        // Warstwa mebla: cięcie poziomą płaszczyzną na wysokości `clip.heightM` (m) — zostaje część
+        // poniżej (`keep: 'below'`) albo powyżej. Cień zawsze z całej bryły (clipShadows = false).
+        if (spec.clip) {
+          const y = spec.clip.heightM / spec.metersPerTile;
+          const plane =
+            spec.clip.keep === 'below'
+              ? new THREE.Plane(new THREE.Vector3(0, -1, 0), y)
+              : new THREE.Plane(new THREE.Vector3(0, 1, 0), -y);
+          placed.traverse((child) => {
+            if (!child.isMesh) return;
+            for (const m of [child.material].flat()) {
+              m.clippingPlanes = [plane];
+              m.clipShadows = false;
+            }
+          });
+        }
 
         // Kamera izometryczna 2:1: azymut 45°, elewacja 30°.
         const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
@@ -223,6 +239,7 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.localClippingEnabled = true;
         renderer.render(scene, camera);
         const dataURL = renderer.domElement.toDataURL('image/png');
         renderer.dispose();
@@ -277,113 +294,179 @@
         return camera;
       }
 
-      const glbCache = new Map();
-      async function loadCharacter(name) {
-        if (!glbCache.has(name))
-          glbCache.set(name, new GLTFLoader().loadAsync(`/chars/${name}.glb`));
-        const gltf = await glbCache.get(name);
-        const model = SkeletonUtils.clone(gltf.scene);
-        model.traverse((child) => {
-          if (!child.isMesh) return;
-          const map = child.material.map;
-          if (map) {
-            map.magFilter = THREE.NearestFilter;
-            map.minFilter = THREE.NearestFilter;
-            map.generateMipmaps = false;
-            map.needsUpdate = true;
-          }
-          child.material = new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0 });
-          child.castShadow = true;
-          child.receiveShadow = true;
-        });
-        return { model, animations: gltf.animations };
+      // Własna postać low poly (proporcje ~1,72 m, płaskie cieniowanie jak meble VNB):
+      // hierarchia stawów, pozy liczone w kodzie. Postać patrzy w stronę +Z.
+      const mat = (color) =>
+        new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true });
+      function box(w, h, d, color, y = 0, z = 0, x = 0) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+        m.position.set(x, y, z);
+        return m;
+      }
+      function limb(rTop, rBottom, len, color) {
+        const g = new THREE.CylinderGeometry(rTop, rBottom, len, 7);
+        g.translate(0, -len / 2, 0);
+        return new THREE.Mesh(g, mat(color));
+      }
+      function joint(parent, x, y, z = 0) {
+        const j = new THREE.Group();
+        j.position.set(x, y, z);
+        parent.add(j);
+        return j;
       }
 
-      // Klatki animacji postaci w stałej ramce (box w metrach wokół stóp), kotwica = punkt stóp.
-      // spec: { character, clip, frames, facing: kąt obrotu modelu (°), metersPerTile, heightM, box:{w,h,up}, scale }
-      window.renderCharacterFrames = async (spec) => {
-        const S = spec.scale ?? 2;
-        const k = 32 * S * Math.SQRT2;
-        const scene = new THREE.Scene();
-        const { model, animations } = await loadCharacter(spec.character);
-        const holder = new THREE.Group();
-        const unit = spec.heightM / spec.metersPerTile / 0.7755; // wysokość modelu ≈ 0,7755 j.
-        holder.scale.setScalar(unit);
-        holder.rotation.y = THREE.MathUtils.degToRad(spec.facing);
-        holder.add(model);
-        holder.position.y = (spec.lift ?? 0) / spec.metersPerTile;
-        scene.add(holder);
-        if (spec.props) {
-          // Kalibracja: meble z paczki w tym samym układzie (metry, z w górę).
-          const zup = new THREE.Group();
-          zup.rotation.x = -Math.PI / 2;
-          for (const item of spec.props) {
-            const node = await loadModel(item.model);
-            node.position.set(...item.at);
-            node.rotation.z = THREE.MathUtils.degToRad(item.rotZ ?? 0);
-            zup.add(node);
+      function buildPerson(look) {
+        const { skin, shirt, pants, shoes = 0x2b2b2b, hair, hairStyle, glasses } = look;
+        const root = new THREE.Group();
+        const hips = joint(root, 0, 0.9);
+        hips.add(box(0.3, 0.14, 0.18, pants, -0.02));
+        const p = { root, hips };
+        for (const [side, s] of [
+          [-1, 'L'],
+          [1, 'R'],
+        ]) {
+          const thigh = joint(hips, side * 0.085, -0.04);
+          thigh.add(limb(0.07, 0.06, 0.42, pants));
+          const knee = joint(thigh, 0, -0.42);
+          knee.add(limb(0.055, 0.045, 0.4, pants));
+          const ankle = joint(knee, 0, -0.4);
+          ankle.add(box(0.1, 0.07, 0.24, shoes, -0.03, 0.05));
+          p[`thigh${s}`] = thigh;
+          p[`knee${s}`] = knee;
+        }
+        const spine = joint(hips, 0, 0.05);
+        spine.add(box(0.34, 0.5, 0.2, shirt, 0.25));
+        spine.add(box(0.38, 0.1, 0.21, shirt, 0.46));
+        p.spine = spine;
+        const neck = joint(spine, 0, 0.52);
+        neck.add(box(0.08, 0.08, 0.08, skin, 0.03));
+        const head = joint(neck, 0, 0.07);
+        head.add(box(0.19, 0.23, 0.2, skin, 0.115));
+        for (const side of [-1, 1])
+          head.add(box(0.025, 0.03, 0.01, 0x2a2420, 0.13, 0.101, side * 0.045));
+        if (glasses) head.add(box(0.17, 0.035, 0.02, 0x222222, 0.13, 0.105));
+        const H = (w, h, d, y, z = 0, x = 0) => head.add(box(w, h, d, hair, y, z, x));
+        if (hairStyle !== 'bald') H(0.21, 0.07, 0.22, 0.235, -0.005);
+        if (['short', 'beard', 'quiff', 'bun', 'ponytail'].includes(hairStyle))
+          H(0.21, 0.1, 0.05, 0.17, -0.09);
+        if (hairStyle === 'quiff') H(0.17, 0.06, 0.08, 0.28, 0.06);
+        if (hairStyle === 'bald') H(0.2, 0.06, 0.05, 0.12, -0.085);
+        if (hairStyle === 'beard') H(0.17, 0.07, 0.03, 0.035, 0.095);
+        if (hairStyle === 'long') {
+          H(0.22, 0.32, 0.07, 0.07, -0.085);
+          H(0.04, 0.24, 0.16, 0.1, -0.02, 0.105);
+          H(0.04, 0.24, 0.16, 0.1, -0.02, -0.105);
+        }
+        if (hairStyle === 'bob') {
+          H(0.22, 0.17, 0.06, 0.15, -0.085);
+          H(0.04, 0.15, 0.17, 0.15, -0.015, 0.105);
+          H(0.04, 0.15, 0.17, 0.15, -0.015, -0.105);
+        }
+        if (hairStyle === 'bun') H(0.1, 0.1, 0.1, 0.27, -0.1);
+        if (hairStyle === 'ponytail') H(0.07, 0.22, 0.07, 0.06, -0.13);
+        for (const [side, s] of [
+          [-1, 'L'],
+          [1, 'R'],
+        ]) {
+          const shoulder = joint(spine, side * 0.215, 0.45);
+          shoulder.add(limb(0.05, 0.045, 0.29, shirt));
+          const elbow = joint(shoulder, 0, -0.29);
+          elbow.add(limb(0.043, 0.036, 0.25, skin));
+          const hand = joint(elbow, 0, -0.25);
+          hand.add(box(0.06, 0.09, 0.08, skin, -0.04));
+          p[`shoulder${s}`] = shoulder;
+          p[`elbow${s}`] = elbow;
+          p[`hand${s}`] = hand;
+        }
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.09, 8), mat(0xf4f1ea));
+        cup.position.set(0, -0.09, 0.03);
+        p.handR.add(cup);
+        p.cup = cup;
+        root.traverse((o) => {
+          if (o.isMesh) o.castShadow = o.receiveShadow = true;
+        });
+        return p;
+      }
+
+      // Pozy (kąty w radianach; obrót wokół X: ujemny = do przodu). `seat` — wysokość siedziska (m).
+      function pose(p, kind, phase, seat) {
+        const set = (j, x, z = 0) => p[j].rotation.set(x, 0, z);
+        for (const j of ['thighL', 'thighR', 'kneeL', 'kneeR', 'spine', 'elbowL', 'elbowR'])
+          set(j, 0);
+        set('shoulderL', 0, -0.06);
+        set('shoulderR', 0, 0.06);
+        p.hips.position.y = 0.9;
+        p.cup.visible = false;
+        const wave = Math.sin(phase * Math.PI * 2);
+        if (kind === 'idle') {
+          set('spine', 0.015 * wave);
+          set('shoulderL', 0.03 * wave, -0.06);
+          set('shoulderR', -0.03 * wave, 0.06);
+        }
+        if (kind === 'walk') {
+          set('thighL', -0.45 * wave);
+          set('thighR', 0.45 * wave);
+          set('kneeL', Math.max(0, wave) * 0.7);
+          set('kneeR', Math.max(0, -wave) * 0.7);
+          set('shoulderL', 0.4 * wave, -0.06);
+          set('shoulderR', -0.4 * wave, 0.06);
+          set('elbowL', -0.25);
+          set('elbowR', -0.25);
+          p.hips.position.y = 0.9 - Math.abs(Math.cos(phase * Math.PI * 2)) * 0.02;
+        }
+        if (kind === 'sitChair' || kind === 'typing' || kind === 'sitSofa') {
+          set('thighL', -Math.PI / 2 + 0.05, 0.05);
+          set('thighR', -Math.PI / 2 + 0.05, -0.05);
+          set('kneeL', Math.PI / 2 - 0.05);
+          set('kneeR', Math.PI / 2 - 0.05);
+          p.hips.position.y = seat + 0.07;
+          if (kind === 'sitSofa') {
+            set('spine', 0.18);
+            set('shoulderL', 0.25, -0.15);
+            set('shoulderR', 0.25, 0.15);
+            set('elbowL', -0.6);
+            set('elbowR', -0.6);
           }
-          const scaled = new THREE.Group();
-          scaled.scale.setScalar(1 / spec.metersPerTile);
-          scaled.add(zup);
-          scene.add(scaled);
+          if (kind === 'sitChair') {
+            set('shoulderL', -0.3, -0.08);
+            set('shoulderR', -0.3, 0.08);
+            set('elbowL', -0.9);
+            set('elbowR', -0.9);
+          }
+          if (kind === 'typing') {
+            set('spine', -0.08);
+            set('shoulderL', -0.75 - 0.06 * wave, -0.12);
+            set('shoulderR', -0.75 + 0.06 * wave, 0.12);
+            set('elbowL', -0.85);
+            set('elbowR', -0.85);
+          }
         }
-        const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
-        const mixer = new THREE.AnimationMixer(model);
-        const clip = animations.find((a) => a.name === spec.clip);
-        if (!clip) throw new Error(`Brak animacji ${spec.clip}`);
-        const action = mixer.clipAction(clip);
-        action.play();
-        // Stała ramka w pikselach: szerokość/wysokość z boxu, stopy w ustalonym punkcie.
-        const width = Math.round(spec.box.w * k),
-          height = Math.round(spec.box.h * k);
-        const anchorX = Math.round(width / 2),
-          anchorY = Math.round(spec.box.up * k);
-        Object.assign(camera, {
-          left: -anchorX / k,
-          right: (width - anchorX) / k,
-          top: anchorY / k,
-          bottom: -(height - anchorY) / k,
-        });
-        camera.updateProjectionMatrix();
-        const renderer = new THREE.WebGLRenderer({
-          antialias: true,
-          alpha: true,
-          preserveDrawingBuffer: true,
-        });
-        renderer.setPixelRatio(1);
-        renderer.setSize(width, height);
-        renderer.setClearColor(0x000000, 0);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        const frames = [];
-        for (let i = 0; i < spec.frames; i++) {
-          mixer.setTime((clip.duration * i) / spec.frames);
-          renderer.render(scene, camera);
-          frames.push(renderer.domElement.toDataURL('image/png'));
+        if (kind === 'coffee') {
+          // Łyk kawy: kubek w prawej ręce wędruje do ust i z powrotem.
+          const lift = (1 - Math.cos(phase * Math.PI * 2)) / 2;
+          set('shoulderR', -0.45 - 0.35 * lift, 0.15);
+          set('elbowR', -1.5 - 0.6 * lift);
+          p.cup.visible = true;
         }
-        renderer.dispose();
-        return { frames, width, height, anchorX, anchorY, scale: S };
-      };
+      }
 
       // Atlas postaci: kierunki × animacje w jednej siatce klatek, zakodowany jako WebP z alfą.
-      // spec: { character, metersPerTile, heightM, box:{w,h,up} (kafle), scale,
-      //         facings:[{name, angle}], anims:[{name, clip, frames, lift (m)}] }
+      // spec: { look, metersPerTile, heightM, box:{w,h,up} (kafle), scale, quality,
+      //         facings:[{name, angle}], anims:[{name, frames, seat?}] }
       window.renderCharacterAtlas = async (spec) => {
         const S = spec.scale ?? 2;
         const k = 32 * S * Math.SQRT2;
         const scene = new THREE.Scene();
-        const { model, animations } = await loadCharacter(spec.character);
+        const person = buildPerson(spec.look);
         const holder = new THREE.Group();
-        holder.scale.setScalar(spec.heightM / spec.metersPerTile / 0.7755);
-        holder.add(model);
+        holder.scale.setScalar(spec.heightM / 1.72 / spec.metersPerTile);
+        holder.add(person.root);
         scene.add(holder);
         const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
-        const frameWidth = Math.round(spec.box.w * k),
-          frameHeight = Math.round(spec.box.h * k);
-        const anchorX = Math.round(frameWidth / 2),
-          anchorY = Math.round(spec.box.up * k);
+        const frameWidth = Math.round(spec.box.w * k);
+        const frameHeight = Math.round(spec.box.h * k);
+        const anchorX = Math.round(frameWidth / 2);
+        const anchorY = Math.round(spec.box.up * k);
         Object.assign(camera, {
           left: -anchorX / k,
           right: (frameWidth - anchorX) / k,
@@ -391,23 +474,6 @@
           bottom: -(frameHeight - anchorY) / k,
         });
         camera.updateProjectionMatrix();
-
-        const clipByName = (name) => {
-          if (name === 'typing') {
-            // Pisanie przy biurku: nogi i tułów z pozy siedzącej, ręce z animacji obsługi.
-            const sit = clipByName('sit'),
-              interact = clipByName('interact-right');
-            const arms = (t) => /^arm-(left|right)\./.test(t.name);
-            return new THREE.AnimationClip('typing', interact.duration, [
-              ...sit.tracks.filter((t) => !arms(t)),
-              ...interact.tracks.filter(arms),
-            ]);
-          }
-          const clip = animations.find((a) => a.name === name);
-          if (!clip) throw new Error(`Brak animacji ${name}`);
-          return clip;
-        };
-
         const renderer = new THREE.WebGLRenderer({
           antialias: true,
           alpha: true,
@@ -434,14 +500,10 @@
         spec.facings.forEach((facing, row) => {
           holder.rotation.y = THREE.MathUtils.degToRad(facing.angle);
           for (const anim of spec.anims) {
-            holder.position.y = (anim.lift ?? 0) / spec.metersPerTile;
             // Siedząca postać nie rzuca cienia na podłogę — cień daje mebel, na którym siedzi.
-            scene.getObjectByName('shadow-floor').visible = !anim.lift;
-            const mixer = new THREE.AnimationMixer(model);
-            const clip = clipByName(anim.clip);
-            mixer.clipAction(clip).play();
+            scene.getObjectByName('shadow-floor').visible = !anim.seat;
             for (let i = 0; i < anim.frames; i++) {
-              mixer.setTime((clip.duration * i) / anim.frames);
+              pose(person, anim.name, i / anim.frames, anim.seat ?? 0);
               renderer.render(scene, camera);
               ctx.drawImage(
                 renderer.domElement,
@@ -449,13 +511,11 @@
                 row * frameHeight,
               );
             }
-            mixer.stopAllAction();
-            mixer.uncacheRoot(model);
           }
         });
         renderer.dispose();
         return {
-          dataURL: atlas.toDataURL('image/webp', spec.quality ?? 0.88),
+          dataURL: atlas.toDataURL('image/webp', spec.quality ?? 0.85),
           frameWidth,
           frameHeight,
           anchorX,

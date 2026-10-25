@@ -1,13 +1,13 @@
 import * as Phaser from 'phaser';
-import { LOOKS, type Look } from '../domain/content/people';
+import type { PersonId } from '../domain/content/people';
 import type { AgentStatus } from '../domain/movement';
 import type { AgentPose, Facing, PoseKind } from './agentPose';
 import meta from './characterSprites.json';
 import { SELECTION_COLOR } from './placeholderStyle';
 import { gridToScreen } from './projection';
 
-// Postacie (Kenney Mini Characters, CC0) pre-renderowane do atlasów WebP
-// (tools/furniture-render): wiersz = kierunek, kolumny = klatki kolejnych animacji.
+// Własne postacie low poly pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
+// na osobę z listy postaci: wiersz = kierunek, kolumny = klatki kolejnych animacji.
 type CharacterMeta = {
   frameWidth: number;
   frameHeight: number;
@@ -27,77 +27,92 @@ const ATLAS_URLS = import.meta.glob<string>('../assets/characters/*.webp', {
   import: 'default',
 });
 
-const textureKey = (look: Look) => `character-${look}`;
-const animKey = (look: Look, kind: PoseKind, facing: Facing) => `${look}-${kind}-${facing}`;
+const textureKey = (personId: PersonId) => `character-${personId}`;
+const animKey = (personId: PersonId, kind: PoseKind, facing: Facing) =>
+  `${personId}-${kind}-${facing}`;
 
-export function preloadCharacters(scene: Phaser.Scene): void {
-  for (const look of LOOKS) {
-    const url = ATLAS_URLS[`../assets/characters/${look}.webp`];
-    if (!url) continue;
-    scene.load.spritesheet(textureKey(look), url, {
+// Atlasy są ładowane na żądanie — w biurze jest naraz kilka osób, a komplet 63 tekstur
+// zająłby niepotrzebnie pamięć karty graficznej. Pliki i tak są w cache offline (precache).
+function ensureCharacterTexture(scene: Phaser.Scene, personId: PersonId, onReady: () => void) {
+  const key = textureKey(personId);
+  if (scene.textures.exists(key)) {
+    onReady();
+    return;
+  }
+  const url = ATLAS_URLS[`../assets/characters/${personId}.webp`];
+  if (!url) return;
+  scene.load.once(`filecomplete-spritesheet-${key}`, () => {
+    createAnimations(scene, personId);
+    onReady();
+  });
+  if (!scene.load.textureManager.exists(key)) {
+    scene.load.spritesheet(key, url, {
       frameWidth: SHEET.frameWidth,
       frameHeight: SHEET.frameHeight,
     });
   }
+  if (!scene.load.isLoading()) scene.load.start();
 }
 
-// Animacje dla każdego wyglądu, pozy i kierunku — raz na scenę.
-export function createCharacterAnimations(scene: Phaser.Scene): void {
-  for (const look of LOOKS) {
-    const texture = textureKey(look);
-    if (!scene.textures.exists(texture)) continue;
-    scene.textures.get(texture).setFilter(Phaser.Textures.FilterMode.LINEAR);
-    SHEET.rows.forEach((facing, row) => {
-      for (const [kind, anim] of Object.entries(SHEET.anims) as [
-        PoseKind,
-        CharacterMeta['anims'][PoseKind],
-      ][]) {
-        const key = animKey(look, kind, facing);
-        if (scene.anims.exists(key)) continue;
-        const first = row * SHEET.columns + anim.start;
-        scene.anims.create({
-          key,
-          frames: scene.anims.generateFrameNumbers(texture, {
-            start: first,
-            end: first + anim.frames - 1,
-          }),
-          frameRate: anim.fps,
-          repeat: -1,
-        });
-      }
-    });
-  }
+function createAnimations(scene: Phaser.Scene, personId: PersonId): void {
+  const texture = textureKey(personId);
+  scene.textures.get(texture).setFilter(Phaser.Textures.FilterMode.LINEAR);
+  SHEET.rows.forEach((facing, row) => {
+    for (const [kind, anim] of Object.entries(SHEET.anims) as [
+      PoseKind,
+      CharacterMeta['anims'][PoseKind],
+    ][]) {
+      const key = animKey(personId, kind, facing);
+      if (scene.anims.exists(key)) continue;
+      const first = row * SHEET.columns + anim.start;
+      scene.anims.create({
+        key,
+        frames: scene.anims.generateFrameNumbers(texture, {
+          start: first,
+          end: first + anim.frames - 1,
+        }),
+        frameRate: anim.fps,
+        repeat: -1,
+      });
+    }
+  });
 }
-
-// Wysokość postaci w pikselach gry (do trafiania dotykiem i zaznaczenia).
-export const CHARACTER_HEIGHT = Math.round((SHEET.anchorY - 8) / SHEET.scale);
 
 const WARNING_STATUSES: readonly AgentStatus[] = ['noRoute', 'deadlocked'];
 
 export type CharacterSprite = {
   body: Phaser.GameObjects.Sprite;
   ring: Phaser.GameObjects.Graphics;
-  look: Look;
+  personId: PersonId;
+  ready: boolean;
   facing: Facing;
   destroy(): void;
 };
 
-export function createCharacterSprite(scene: Phaser.Scene, look: Look): CharacterSprite {
+export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): CharacterSprite {
   const ring = scene.add.graphics();
   const body = scene.add
-    .sprite(0, 0, textureKey(look))
+    .sprite(0, 0, '__MISSING')
     .setOrigin(SHEET.anchorX / SHEET.frameWidth, SHEET.anchorY / SHEET.frameHeight)
-    .setScale(1 / SHEET.scale);
-  return {
+    .setScale(1 / SHEET.scale)
+    .setVisible(false);
+  const sprite: CharacterSprite = {
     body,
     ring,
-    look,
+    personId,
+    ready: false,
     facing: 'px',
     destroy() {
       body.destroy();
       ring.destroy();
     },
   };
+  ensureCharacterTexture(scene, personId, () => {
+    if (!body.active) return;
+    body.setTexture(textureKey(personId)).setVisible(true);
+    sprite.ready = true;
+  });
+  return sprite;
 }
 
 // Pozycja, animacja i znaczniki postaci. `timeScale` — tempo gry (0 = pauza zatrzymuje animację).
@@ -111,14 +126,17 @@ export function placeCharacterSprite(
   if (pose.facing) sprite.facing = pose.facing;
   const screen = gridToScreen(pose.position);
   sprite.body.setPosition(screen.x, screen.y).setDepth(pose.depth);
-  const key = animKey(sprite.look, pose.kind, sprite.facing);
-  if (sprite.body.anims.currentAnim?.key !== key) sprite.body.play(key);
-  sprite.body.anims.timeScale = timeScale;
+  if (sprite.ready) {
+    const key = animKey(sprite.personId, pose.kind, sprite.facing);
+    if (sprite.body.anims.currentAnim?.key !== key) sprite.body.play(key);
+    sprite.body.anims.timeScale = timeScale;
+  }
 
   // Znacznik pod stopami: zaznaczenie albo problem z ruchem (brak drogi, blokada).
   sprite.ring.clear();
-  const warning = WARNING_STATUSES.includes(status);
-  if (warning) sprite.ring.fillStyle(0xff3b3b, 0.55).fillEllipse(0, 0, 30, 13);
+  if (WARNING_STATUSES.includes(status)) {
+    sprite.ring.fillStyle(0xff3b3b, 0.55).fillEllipse(0, 0, 30, 13);
+  }
   if (selected) sprite.ring.lineStyle(3, SELECTION_COLOR, 1).strokeEllipse(0, 0, 34, 16);
   sprite.ring.setPosition(screen.x, screen.y).setDepth(pose.depth - 0.001);
 }

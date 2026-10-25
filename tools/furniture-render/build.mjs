@@ -1,12 +1,11 @@
 // Pre-render grafik gry z modeli 3D. Użycie (z tego katalogu):
 //   npm install
-//   VNB_PACK="/ścieżka/VNB Low Poly Office Set 2" \
-//   KENNEY_PACK="/ścieżka/kenney_mini-characters" npm run render [-- cel…]
+//   VNB_PACK="/ścieżka/VNB Low Poly Office Set 2" npm run render [-- cel…]
 // Cele: typy mebli (desk, deskChair, sofa, coffeeMachine, plant) albo `characters`; bez celów —
 // wszystko. Meble → src/assets/furniture/<typ>-<obrót>.png + src/rendering/furnitureSprites.json;
-// postacie → src/assets/characters/<wygląd>.webp + src/rendering/characterSprites.json.
+// postacie (własne, low poly) → src/assets/characters/<id osoby>.webp
+// + src/rendering/characterSprites.json.
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { ANIMS, CHARACTER, FACINGS, LOOKS } from './characters.mjs';
@@ -17,14 +16,13 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const PACK =
   process.env.VNB_PACK ??
   fileURLToPath(new URL('../../../VNB Low Poly Office Set 2', import.meta.url));
-const KENNEY = process.env.KENNEY_PACK ? join(process.env.KENNEY_PACK, 'Models/GLB format') : null;
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FURNITURE_SCALE = 2; // 2 px obrazu na 1 px gry
-const CHARACTER_SCALE = 1.5; // postacie: mniejsze atlasy (WebP), wciąż ostre przy przybliżeniu
+const CHARACTER_SCALE = 1; // postacie: 1 px obrazu na 1 px gry — płaskie kolory dobrze znoszą skalowanie
 const targets = process.argv.slice(2);
 const wanted = (name) => targets.length === 0 || targets.includes(name);
 
-const server = await startServer(PACK, 4401, KENNEY);
+const server = await startServer(PACK);
 const browser = await chromium.launch({
   executablePath: CHROME,
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
@@ -59,29 +57,27 @@ try {
   await writeFile(furnitureMetaFile, `${JSON.stringify(sortKeys(furnitureMeta), null, 2)}\n`);
 
   if (wanted('characters')) {
-    if (!KENNEY) throw new Error('Ustaw KENNEY_PACK (katalog paczki Kenney Mini Characters)');
     await mkdir(`${ROOT}src/assets/characters`, { recursive: true });
     let frame = null;
-    for (const look of LOOKS) {
+    for (const { id, look } of LOOKS) {
       const r = await page.evaluate((s) => window.renderCharacterAtlas(s), {
         ...CHARACTER,
-        character: `character-${look}`,
+        look,
         facings: FACINGS,
         anims: ANIMS,
         scale: CHARACTER_SCALE,
-        quality: 0.8,
+        quality: 0.75,
       });
       await writeFile(
-        `${ROOT}src/assets/characters/${look}.webp`,
+        `${ROOT}src/assets/characters/${id}.webp`,
         Buffer.from(r.dataURL.split(',')[1], 'base64'),
       );
       frame = { ...r };
       delete frame.dataURL;
-      console.log(look, r.frameWidth, r.frameHeight);
+      console.log(id, r.frameWidth, r.frameHeight);
     }
     const meta = {
       ...frame,
-      looks: LOOKS,
       anims: Object.fromEntries(
         ANIMS.map((a) => [a.name, { ...frame.layout[a.name], fps: a.fps }]),
       ),

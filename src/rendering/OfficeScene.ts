@@ -17,13 +17,10 @@ import { rotatedSize } from '../world/geometry';
 import { FURNITURE_CATALOG, type Furniture } from '../domain/furniture';
 import { agentPose, deskChairDepth, type AgentPose } from './agentPose';
 import {
-  createCharacterAnimations,
   createCharacterSprite,
   placeCharacterSprite,
-  preloadCharacters,
   type CharacterSprite,
 } from './characterSprites';
-import { personById } from '../domain/content/people';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import {
@@ -117,7 +114,6 @@ export class OfficeScene extends Phaser.Scene {
 
   preload(): void {
     for (const [key, url] of FURNITURE_TEXTURES) this.load.image(key, url);
-    preloadCharacters(this);
   }
 
   create(): void {
@@ -125,7 +121,6 @@ export class OfficeScene extends Phaser.Scene {
     for (const [key] of FURNITURE_TEXTURES) {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
-    createCharacterAnimations(this);
     this.drawFloor();
     this.drawWalls();
     this.syncFurniture();
@@ -223,8 +218,8 @@ export class OfficeScene extends Phaser.Scene {
       let sprite = this.agentSprites.get(agent.id);
       if (!sprite) {
         const employee = state.staff.employees[agent.id as EmployeeId];
-        const look = (employee && personById(employee.personId)?.look) ?? 'male-a';
-        sprite = createCharacterSprite(this, look);
+        if (!employee) continue;
+        sprite = createCharacterSprite(this, employee.personId);
         this.agentSprites.set(agent.id, sprite);
       }
       const pose = agentPose(state, agent, this.frameClock.alpha, this.engine.config);
@@ -374,7 +369,12 @@ export class OfficeScene extends Phaser.Scene {
         .setDepth(depth);
     };
     const images = [image(furniture.type, depthOfFootprint(rect, rect))];
-    if (furniture.type === 'desk') images.push(image('deskChair', deskChairDepth(furniture)));
+    if (furniture.type === 'desk') {
+      // Siedzisko zawsze pod siedzącą postacią (jej głębokość to krzesło ± SEAT_DEPTH_BIAS);
+      // oparcie zasłania ją tylko wtedy, gdy jest od strony kamery (obroty 0° i 270°).
+      const chair = deskChairDepth(furniture);
+      images.push(image('deskChairSeat', chair - 0.005), image('deskChairBack', chair));
+    }
     return images;
   }
 

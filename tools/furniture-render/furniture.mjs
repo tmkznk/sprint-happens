@@ -5,6 +5,14 @@ const M = 0.75; // metry na kafel
 // Środek krzesła biurka względem środka biurka (m, układ modelu) — gra liczy z tego miejsce
 // siedzącej postaci (src/rendering/agentPose.ts: DESK_SEAT).
 export const CHAIR = { x: -0.05, y: -0.33 };
+// Wysokość cięcia krzesła na siedzisko i oparcie (m nad podłogą): poduszka kończy się na 0,59 m,
+// słupek oparcia zaczyna się od 0,65 m.
+const CHAIR_CUT = 0.62;
+const chairItems = [
+  // Podstawa krzesła ma gwiazdę na wysokości 7 cm (bez kółek) — opuszczamy całe krzesło.
+  { model: 'Chair_Base', at: [CHAIR.x, CHAIR.y, -0.07] },
+  { model: 'Chair_Body', at: [CHAIR.x, CHAIR.y, -0.07], rotZ: 180 },
+];
 
 // Ekspres spoza paczki — proste bryły w stylu low poly (czerwony korpus jak na grafikach paczki).
 const espresso = (x, y, z) => ({
@@ -39,16 +47,20 @@ export const FURNITURE = {
       { model: 'Pc_Case', at: [0.58, 0.45, 0.95], rotZ: 0 },
     ],
   },
-  // Krzesło biurka jako osobny obrazek (ten sam footprint i kotwica): siedząca postać trafia
-  // między krzesło a blat, więc oparcie i biurko zasłaniają ją zależnie od obrotu.
-  deskChair: {
+  // Krzesło biurka w dwóch warstwach (ten sam footprint i kotwica): siedzisko z podstawą zawsze
+  // pod siedzącą postacią, oparcie — przed nią albo za nią zależnie od obrotu biurka.
+  deskChairSeat: {
     footprint: { w: 3, h: 2 },
     metersPerTile: M,
-    items: [
-      // Podstawa krzesła ma gwiazdę na wysokości 7 cm (bez kółek) — opuszczamy całe krzesło.
-      { model: 'Chair_Base', at: [CHAIR.x, CHAIR.y, -0.07] },
-      { model: 'Chair_Body', at: [CHAIR.x, CHAIR.y, -0.07], rotZ: 180 },
-    ],
+    clip: { keep: 'below', heightM: CHAIR_CUT },
+    items: chairItems,
+  },
+  deskChairBack: {
+    footprint: { w: 3, h: 2 },
+    metersPerTile: M,
+    clip: { keep: 'above', heightM: CHAIR_CUT },
+    shadow: false,
+    items: chairItems,
   },
   sofa: {
     footprint: { w: 3, h: 2 },
