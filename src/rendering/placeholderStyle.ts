@@ -24,8 +24,9 @@ export const FURNITURE_STYLE: Record<FurnitureType, { color: number; height: num
 };
 export const BACK_WALL_HEIGHT = 48;
 export const FRONT_WALL_HEIGHT = 12;
-// T:ART-02 (R): stojąca postać ma około 48 px wysokości.
-export const ACTOR_HEIGHT = 48;
+// Wysokość stojącej postaci w px gry (postacie Kenney: 1,2 m przy 0,75 m/kafel ≈ 62 px) —
+// trafianie dotykiem i zastępcze sylwetki sceny testowej ruchu.
+export const ACTOR_HEIGHT = 62;
 export const ACTOR_COLOR = 0xf2c14e;
 export const MARKER_COLOR = 0x55ff99;
 export const SELECTION_COLOR = 0xf2c14e;

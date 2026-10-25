@@ -15,13 +15,19 @@ export type FurnitureSpriteMeta = {
 
 const SPRITES = meta as Record<string, FurnitureSpriteMeta>;
 
-export function furnitureSpriteKey(type: FurnitureType, rotation: Rotation): string {
-  return `furniture-${type}-${rotation}`;
+// Część obrazka: typ mebla albo dodatkowa warstwa (`deskChair` — krzesło biurka).
+export type FurnitureSpritePart = FurnitureType | 'deskChair';
+
+export function furnitureSpriteKey(part: FurnitureSpritePart, rotation: Rotation): string {
+  return `furniture-${part}-${rotation}`;
 }
 
-export function furnitureSpriteMeta(type: FurnitureType, rotation: Rotation): FurnitureSpriteMeta {
-  const sprite = SPRITES[`${type}-${rotation}`];
-  if (!sprite) throw new Error(`Brak sprite'a mebla ${type}-${rotation}`);
+export function furnitureSpriteMeta(
+  part: FurnitureSpritePart,
+  rotation: Rotation,
+): FurnitureSpriteMeta {
+  const sprite = SPRITES[`${part}-${rotation}`];
+  if (!sprite) throw new Error(`Brak sprite'a mebla ${part}-${rotation}`);
   return sprite;
 }
 

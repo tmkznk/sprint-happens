@@ -41,9 +41,9 @@
   },
   "desk-90": {
     "width": 333,
-    "height": 234,
+    "height": 232,
     "anchorX": 199,
-    "anchorY": 68,
+    "anchorY": 66,
     "heightPx": 147,
     "scale": 2
   },
@@ -61,6 +61,38 @@
     "anchorX": 199,
     "anchorY": 124,
     "heightPx": 147,
+    "scale": 2
+  },
+  "deskChair-0": {
+    "width": 333,
+    "height": 182,
+    "anchorX": 135,
+    "anchorY": 16,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChair-90": {
+    "width": 333,
+    "height": 234,
+    "anchorX": 199,
+    "anchorY": 68,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChair-180": {
+    "width": 333,
+    "height": 230,
+    "anchorX": 135,
+    "anchorY": 64,
+    "heightPx": 104,
+    "scale": 2
+  },
+  "deskChair-270": {
+    "width": 333,
+    "height": 177,
+    "anchorX": 199,
+    "anchorY": 11,
+    "heightPx": 104,
     "scale": 2
   },
   "plant-0": {

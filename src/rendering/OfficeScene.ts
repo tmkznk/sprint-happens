@@ -15,10 +15,22 @@ import { interactionCells } from '../world/geometry';
 import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
 import { rotatedSize } from '../world/geometry';
 import { FURNITURE_CATALOG, type Furniture } from '../domain/furniture';
-import { createAgentSprite, placeAgentSprite, type AgentSprite } from './agentSprites';
+import { agentPose, deskChairDepth, type AgentPose } from './agentPose';
+import {
+  createCharacterAnimations,
+  createCharacterSprite,
+  placeCharacterSprite,
+  preloadCharacters,
+  type CharacterSprite,
+} from './characterSprites';
+import { personById } from '../domain/content/people';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
-import { furnitureSpriteKey, furnitureSpriteMeta } from './furnitureSpriteMeta';
+import {
+  furnitureSpriteKey,
+  furnitureSpriteMeta,
+  type FurnitureSpritePart,
+} from './furnitureSpriteMeta';
 import { doorThreshold, wallBands, wallFloorQuarters } from './wallGeometry';
 import { attachOfficeCamera } from './officeCamera';
 import { expandWaypoints, OCCLUSION_WAYPOINTS } from './occlusionPath';
@@ -83,7 +95,9 @@ export class OfficeScene extends Phaser.Scene {
   private readonly frameClock: FrameClock;
   private renderedEdit: FurnitureEdit | null = null;
   private readonly options: OfficeSceneOptions;
-  private readonly agentSprites = new Map<string, AgentSprite>();
+  private readonly agentSprites = new Map<string, CharacterSprite>();
+  // Ostatnie pozy postaci — do wybierania dotykiem tam, gdzie postać jest narysowana.
+  private agentPoses = new Map<string, AgentPose>();
   private furnitureGraphics: Phaser.GameObjects.GameObject[] = [];
   private renderedFurniture: GameState['world']['furniture'] | null = null;
   private renderedSelection: Selection = null;
@@ -103,6 +117,7 @@ export class OfficeScene extends Phaser.Scene {
 
   preload(): void {
     for (const [key, url] of FURNITURE_TEXTURES) this.load.image(key, url);
+    preloadCharacters(this);
   }
 
   create(): void {
@@ -110,6 +125,7 @@ export class OfficeScene extends Phaser.Scene {
     for (const [key] of FURNITURE_TEXTURES) {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
+    createCharacterAnimations(this);
     this.drawFloor();
     this.drawWalls();
     this.syncFurniture();
@@ -160,9 +176,11 @@ export class OfficeScene extends Phaser.Scene {
     const state = this.engine.getState();
     const agentId = pickAgent(
       world,
-      state.world.movement.agents,
-      this.frameClock.alpha,
-      this.engine.config.movement.stepsPerCell,
+      [...this.agentPoses].map(([id, pose]) => ({
+        id,
+        position: pose.position,
+        depth: pose.depth,
+      })),
     );
     const employee = agentId ? state.staff.employees[agentId as EmployeeId] : undefined;
     if (employee) {
@@ -198,27 +216,28 @@ export class OfficeScene extends Phaser.Scene {
   // Postacie z silnika (SH-011, SH-012): scena tylko przedstawia pozycje logiczne
   // i interpoluje je wizualnie — nie przesuwa ich i nie zwalnia rezerwacji (T:TIME-T02).
   private renderAgents(): void {
-    const { agents } = this.engine.getState().world.movement;
-    const present = new Set<string>();
-    agents.forEach((agent, index) => {
-      present.add(agent.id);
+    const state = this.engine.getState();
+    const selection = this.selection.get();
+    const poses = new Map<string, AgentPose>();
+    for (const agent of state.world.movement.agents) {
       let sprite = this.agentSprites.get(agent.id);
       if (!sprite) {
-        sprite = createAgentSprite(this, index);
+        const employee = state.staff.employees[agent.id as EmployeeId];
+        const look = (employee && personById(employee.personId)?.look) ?? 'male-a';
+        sprite = createCharacterSprite(this, look);
         this.agentSprites.set(agent.id, sprite);
       }
-      placeAgentSprite(
-        sprite,
-        agent,
-        this.frameClock.alpha,
-        this.engine.config.movement.stepsPerCell,
-      );
-    });
+      const pose = agentPose(state, agent, this.frameClock.alpha, this.engine.config);
+      poses.set(agent.id, pose);
+      const selected = selection?.kind === 'employee' && selection.id === agent.id;
+      placeCharacterSprite(sprite, pose, agent.status, state.mission.speed, selected);
+    }
     for (const [id, sprite] of this.agentSprites) {
-      if (present.has(id)) continue;
+      if (poses.has(id)) continue;
       sprite.destroy();
       this.agentSprites.delete(id);
     }
+    this.agentPoses = poses;
   }
 
   private drawFloor(): void {
@@ -293,10 +312,12 @@ export class OfficeScene extends Phaser.Scene {
     for (const furniture of Object.values(allFurniture)) {
       const rect = furnitureRect(furniture);
       const style = FURNITURE_STYLE[furniture.type];
-      const image = this.addFurnitureImage(furniture);
+      const images = this.addFurnitureImages(furniture);
       // Edytowany mebel zostaje w starym miejscu jako cień — anulowanie przywraca ten stan.
-      if (edit?.mode === 'move' && edit.furnitureId === furniture.id) image.setAlpha(0.3);
-      this.furnitureGraphics.push(image);
+      if (edit?.mode === 'move' && edit.furnitureId === furniture.id) {
+        for (const image of images) image.setAlpha(0.3);
+      }
+      this.furnitureGraphics.push(...images);
       if (!edit && selection?.kind === 'furniture' && selection.id === furniture.id) {
         const outline = this.add.graphics().setDepth(depthOfFootprint(rect, rect) + 0.001);
         outline.lineStyle(3, SELECTION_COLOR, 1);
@@ -324,10 +345,11 @@ export class OfficeScene extends Phaser.Scene {
     const valid = editProblem(state, this.engine.config, edit) === null;
     const rect = furnitureRect(candidate);
     // Kolor pól pod meblem mówi, czy ustawienie jest dozwolone; sam mebel półprzezroczysty.
-    const ghost = this.addFurnitureImage(candidate)
-      .setDepth(depthOfFootprint(rect, rect) + 0.02)
-      .setAlpha(0.8);
-    if (!valid) ghost.setTint(0xff9a9a);
+    const ghost = this.addFurnitureImages(candidate);
+    for (const image of ghost) {
+      image.setDepth(image.depth + 0.02).setAlpha(0.8);
+      if (!valid) image.setTint(0xff9a9a);
+    }
     const markers = this.add.graphics().setDepth(FLOOR_DEPTH + 1);
     markers.fillStyle(valid ? EDIT_VALID_COLOR : EDIT_INVALID_COLOR, 0.45);
     markers.fillPoints(toVectors(rectCorners(rect)), true);
@@ -335,19 +357,25 @@ export class OfficeScene extends Phaser.Scene {
       const inset = { x: point.x + 0.3, y: point.y + 0.3, width: 0.4, height: 0.4 };
       fillPolygon(markers, MARKER_COLOR, rectCorners(inset));
     }
-    this.furnitureGraphics.push(ghost, markers);
+    this.furnitureGraphics.push(...ghost, markers);
   }
 
-  // Kotwica obrazka = narożnik (0,0) footprintu; obrazek ma podwójną rozdzielczość.
-  private addFurnitureImage(furniture: Furniture): Phaser.GameObjects.Image {
+  // Kotwica obrazka = narożnik (0,0) footprintu; obrazek ma podwójną rozdzielczość. Biurko ma
+  // osobny obrazek krzesła z głębokością siedziska — siedząca postać trafia między krzesło a blat.
+  private addFurnitureImages(furniture: Furniture): Phaser.GameObjects.Image[] {
     const rect = furnitureRect(furniture);
-    const sprite = furnitureSpriteMeta(furniture.type, furniture.rotation);
     const corner = gridToScreen({ x: rect.x, y: rect.y });
-    return this.add
-      .image(corner.x, corner.y, furnitureSpriteKey(furniture.type, furniture.rotation))
-      .setOrigin(sprite.anchorX / sprite.width, sprite.anchorY / sprite.height)
-      .setScale(1 / sprite.scale)
-      .setDepth(depthOfFootprint(rect, rect));
+    const image = (part: FurnitureSpritePart, depth: number) => {
+      const sprite = furnitureSpriteMeta(part, furniture.rotation);
+      return this.add
+        .image(corner.x, corner.y, furnitureSpriteKey(part, furniture.rotation))
+        .setOrigin(sprite.anchorX / sprite.width, sprite.anchorY / sprite.height)
+        .setScale(1 / sprite.scale)
+        .setDepth(depth);
+    };
+    const images = [image(furniture.type, depthOfFootprint(rect, rect))];
+    if (furniture.type === 'desk') images.push(image('deskChair', deskChairDepth(furniture)));
+    return images;
   }
 
   private createTestActor(): void {

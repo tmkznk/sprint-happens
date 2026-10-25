@@ -4,12 +4,28 @@ import type { Seniority, Specialization } from '../employees';
 // Po trzy osoby na każdą parę specjalizacja × seniority; rynek pokazuje naraz jedną z każdej
 // pary, a po zatrudnieniu na jej miejsce wchodzi kolejna wolna osoba z tej samej puli.
 // `id` jest stałym kluczem: trafia do zapisu i wskazuje obrazek awatara
-// (`src/assets/avatars/<id>.png`).
+// (`src/assets/avatars/<id>.png`). `look` — model postaci w biurze.
 export type PersonId = string;
+
+// Wygląd postaci w biurze (Kenney Mini Characters, CC0) — zgodny z płcią imienia.
+export const LOOKS = [
+  'female-b',
+  'female-c',
+  'female-d',
+  'female-e',
+  'female-f',
+  'male-a',
+  'male-b',
+  'male-d',
+  'male-e',
+  'male-f',
+] as const;
+export type Look = (typeof LOOKS)[number];
 
 export type Person = {
   id: PersonId;
   name: string;
+  look: Look;
   specialization: Specialization;
   seniority: Seniority;
   bio: string;
@@ -19,6 +35,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'ola-pikselska',
     name: 'Ola Pikselska',
+    look: 'female-b',
     specialization: 'frontend',
     seniority: 'junior',
     bio: 'Wycentruje każdy div — za trzecim razem i z tutorialem z 2016 roku. Ulubiony framework? Ten, który wyszedł wczoraj.',
@@ -26,6 +43,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'kuba-flexowski',
     name: 'Kuba Flexowski',
+    look: 'male-a',
     specialization: 'frontend',
     seniority: 'junior',
     bio: 'Ma w zakładkach 214 artykułów o CSS. Przeczytanie ich zaplanował na sprint, który nigdy nie nadejdzie.',
@@ -33,6 +51,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'zuza-divanska',
     name: 'Zuza Divańska',
+    look: 'female-c',
     specialization: 'frontend',
     seniority: 'junior',
     bio: 'Na rozmowie rekrutacyjnej pokazała portfolio z animowanym kursorem. Kursor był najmocniejszą częścią portfolio.',
@@ -40,6 +59,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'bartek-responsywny',
     name: 'Bartek Responsywny',
+    look: 'male-b',
     specialization: 'frontend',
     seniority: 'mid',
     bio: 'Kiedy mówi „to kwestia dwóch pikseli”, zespół rezerwuje resztę sprintu. Ma osobną zakładkę przeglądarki na każdą emocję.',
@@ -47,6 +67,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'natalia-gridowska',
     name: 'Natalia Gridowska',
+    look: 'female-d',
     specialization: 'frontend',
     seniority: 'mid',
     bio: 'Rozróżnia dziewięć odcieni „prawie działa w Safari”. Folder node_modules traktuje jak zjawisko pogodowe — nie walczy, przeczekuje.',
@@ -54,6 +75,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'igor-komponentowski',
     name: 'Igor Komponentowski',
+    look: 'male-d',
     specialization: 'frontend',
     seniority: 'mid',
     bio: 'Każdy przycisk zamienia w komponent, a każdy komponent — w bibliotekę. Ostatnio wydzielił do osobnej paczki słowo „Zapisz”.',
@@ -61,6 +83,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'halina-stylowa',
     name: 'Halina Stylowa',
+    look: 'female-e',
     specialization: 'frontend',
     seniority: 'senior',
     bio: 'Pamięta czasy, gdy stronę robiło się bez tysiąca paczek. Na pytanie „czy da się szybciej?” odpowiada bardzo wolnym spojrzeniem.',
@@ -68,6 +91,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'marek-srednik',
     name: 'Marek Średnik',
+    look: 'male-e',
     specialization: 'frontend',
     seniority: 'senior',
     bio: 'Przeżył trzy wojny o średniki i żadnej nie przegrał. Code review zaczyna od westchnienia, a kończy na „ogólnie spoko”.',
@@ -75,6 +99,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'weronika-renderska',
     name: 'Weronika Renderska',
+    look: 'female-f',
     specialization: 'frontend',
     seniority: 'senior',
     bio: 'Słyszy zbędny re-render z drugiego końca biura. W wolnym czasie optymalizuje przepisy kulinarne pod kątem liczby kroków.',
@@ -82,6 +107,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'kacper-endpointowski',
     name: 'Kacper Endpointowski',
+    look: 'male-f',
     specialization: 'backend',
     seniority: 'junior',
     bio: 'Pierwszy endpoint napisał do sprawdzania, czy kawa jest gotowa. Drugi — do sprawdzania, czy działa pierwszy.',
@@ -89,6 +115,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'maja-selectowska',
     name: 'Maja Selectowska',
+    look: 'female-b',
     specialization: 'backend',
     seniority: 'junior',
     bio: 'Uważa, że SELECT * to nie problem, tylko styl życia. Logi czyta jak horoskop: szuka w nich czegoś o sobie.',
@@ -96,6 +123,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'oskar-nullowy',
     name: 'Oskar Nullowy',
+    look: 'male-a',
     specialization: 'backend',
     seniority: 'junior',
     bio: 'Wierzy, że null to stan umysłu. Na pytanie o obsługę błędów odpowiada, że błędów jeszcze nie było.',
@@ -103,6 +131,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'kinga-kolejkowska',
     name: 'Kinga Kolejkowska',
+    look: 'female-c',
     specialization: 'backend',
     seniority: 'mid',
     bio: 'Lubi czystą architekturę i brudne kubki. Bałagan na biurku nazywa systemem rozproszonym.',
@@ -110,6 +139,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'pawel-schematowski',
     name: 'Paweł Schematowski',
+    look: 'male-b',
     specialization: 'backend',
     seniority: 'mid',
     bio: 'Nazywa zmienne tak dokładnie, że dokumentacja czuje się zbędna. Na każde pytanie odpowiada „to zależy” — i rysuje diagram.',
@@ -117,6 +147,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'dominika-keszowska',
     name: 'Dominika Keszowska',
+    look: 'female-d',
     specialization: 'backend',
     seniority: 'mid',
     bio: 'Wszystko, co się da, trzyma w cache’u — łącznie z urazą do ostatniego piątkowego wdrożenia.',
@@ -124,6 +155,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'bogdan-indeksowski',
     name: 'Bogdan Indeksowski',
+    look: 'male-d',
     specialization: 'backend',
     seniority: 'senior',
     bio: 'Słyszy wolne zapytania przez ścianę. Po jego ostatniej optymalizacji bazy klient pytał, gdzie się podziała połowa danych.',
@@ -131,6 +163,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'grazyna-transakcyjna',
     name: 'Grażyna Transakcyjna',
+    look: 'female-e',
     specialization: 'backend',
     seniority: 'senior',
     bio: 'Nosi w głowie mapę wszystkich mikroserwisów i nikomu jej nie pokazuje — dla dobra psychicznego zespołu.',
@@ -138,6 +171,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'leszek-monolitowski',
     name: 'Leszek Monolitowski',
+    look: 'male-e',
     specialization: 'backend',
     seniority: 'senior',
     bio: 'Widział, jak mikroserwisy wchodziły w modę, i spokojnie czeka, aż z niej wyjdą. Jego monolit jest starszy niż niejeden junior.',
@@ -145,6 +179,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'wiktoria-emulatorska',
     name: 'Wiktoria Emulatorska',
+    look: 'female-f',
     specialization: 'mobile',
     seniority: 'junior',
     bio: 'Testuje aplikację na telefonie z pękniętym ekranem, bo „to prawdziwe warunki użytkownika”. Emulatorów ma więcej niż wolnych gniazdek.',
@@ -152,6 +187,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'szymon-apkowski',
     name: 'Szymon Apkowski',
+    look: 'male-f',
     specialization: 'mobile',
     seniority: 'junior',
     bio: 'Wierzy, że recenzja w sklepie z aplikacjami potrwa jeden dzień. Zespół nie ma serca wyprowadzić go z błędu.',
@@ -159,6 +195,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'amelia-swajpowska',
     name: 'Amelia Swajpowska',
+    look: 'female-b',
     specialization: 'mobile',
     seniority: 'junior',
     bio: 'Każdy ekran chce obsługiwać gestem. Na spotkaniach przesuwa palcem po stole, kiedy chce zmienić temat.',
@@ -166,6 +203,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'tomek-powiadomienski',
     name: 'Tomek Powiadomieński',
+    look: 'male-a',
     specialization: 'mobile',
     seniority: 'mid',
     bio: 'Zna trzy sposoby na obejście ograniczeń systemu. Czwarty to wpis w release notes, że to zamierzone zachowanie.',
@@ -173,6 +211,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'iga-androidowska',
     name: 'Iga Androidowska',
+    look: 'female-c',
     specialization: 'mobile',
     seniority: 'mid',
     bio: 'Każdą rozmowę zaczyna od „a na Androidzie…”. Ładowarki nosi przy sobie tak, jak inni chusteczki.',
@@ -180,6 +219,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'michal-buildowski',
     name: 'Michał Buildowski',
+    look: 'male-b',
     specialization: 'mobile',
     seniority: 'mid',
     bio: 'Zna na pamięć czas kompilacji każdego projektu i planuje wokół niego przerwy na kawę. Rekord: trzy kawy na jeden build.',
@@ -187,6 +227,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'ewa-natywna',
     name: 'Ewa Natywna',
+    look: 'female-d',
     specialization: 'mobile',
     seniority: 'senior',
     bio: 'Jej aplikacje działają nawet na telefonach z szuflady z kablami. Słowo „responsywny” stosuje też wobec ekspresu.',
@@ -194,6 +235,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'robert-synchroniczny',
     name: 'Robert Synchroniczny',
+    look: 'male-d',
     specialization: 'mobile',
     seniority: 'senior',
     bio: 'Pamięta każdą odrzuconą aktualizację i powód odrzucenia — z datą. Tryb ciemny włącza wszędzie, nawet w kalendarzu urlopów.',
@@ -201,6 +243,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'lena-tabletowska',
     name: 'Lena Tabletowska',
+    look: 'female-e',
     specialization: 'mobile',
     seniority: 'senior',
     bio: 'Testuje na czternastu urządzeniach jednocześnie i wszystkie trzyma w rękach. Nikt nie wie jak.',
@@ -208,6 +251,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'filip-yamlowski',
     name: 'Filip Yamlowski',
+    look: 'male-e',
     specialization: 'devops',
     seniority: 'junior',
     bio: 'Dostęp do produkcji ma od wczoraj, pokorę od dzisiaj rana. Wcięcia w YAML-u mierzy linijką.',
@@ -215,6 +259,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'hania-restartowska',
     name: 'Hania Restartowska',
+    look: 'female-f',
     specialization: 'devops',
     seniority: 'junior',
     bio: 'Na każdy problem ma jedno rozwiązanie: wyłączyć i włączyć. Działa częściej, niż seniorzy chcieliby przyznać.',
@@ -222,6 +267,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'adrian-pipelinowski',
     name: 'Adrian Pipelinowski',
+    look: 'male-f',
     specialization: 'devops',
     seniority: 'junior',
     bio: 'Pierwszy pipeline zbudował w weekend, drugi naprawiał przez cały tydzień. Twierdzi, że taki był plan.',
@@ -229,6 +275,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'agata-skryptowska',
     name: 'Agata Skryptowska',
+    look: 'female-b',
     specialization: 'devops',
     seniority: 'mid',
     bio: 'Automatyzuje wszystko, co musi zrobić drugi raz. Przy trzecim razie automatyzuje tłumaczenie, dlaczego automatyzacja nie zadziałała.',
@@ -236,6 +283,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'krzysztof-kontenerski',
     name: 'Krzysztof Kontenerski',
+    look: 'male-a',
     specialization: 'devops',
     seniority: 'mid',
     bio: 'Ma plan awaryjny do planu awaryjnego. Za najstabilniejsze środowisko uważa kanapę po pracy.',
@@ -243,6 +291,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'paulina-klastrowa',
     name: 'Paulina Klastrowa',
+    look: 'female-c',
     specialization: 'devops',
     seniority: 'mid',
     bio: 'Wszystko pakuje w kontenery — łącznie z drugim śniadaniem. Twierdzi, że teraz smakuje tak samo w każdej lodówce.',
@@ -250,6 +299,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'zbigniew-dyzurny',
     name: 'Zbigniew Dyżurny',
+    look: 'male-b',
     specialization: 'devops',
     seniority: 'senior',
     bio: 'Nie wierzy w pecha, wierzy w brak monitoringu. W piątki po piętnastej nie wyłącza serwerów, tylko możliwość negocjacji.',
@@ -257,6 +307,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'renata-monitorska',
     name: 'Renata Monitorska',
+    look: 'female-d',
     specialization: 'devops',
     seniority: 'senior',
     bio: 'Uptime liczy z dokładnością do sekundy, urlop — z dokładnością do incydentu. Do telefonu dyżurnego mówi po imieniu.',
@@ -264,6 +315,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'janusz-backupowski',
     name: 'Janusz Backupowski',
+    look: 'male-d',
     specialization: 'devops',
     seniority: 'senior',
     bio: 'Hasło „admin123” wyczuwa z odległości trzech serwerowni. Kopię zapasową ma nawet z kopii zapasowej.',
@@ -271,6 +323,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'julia-klikalska',
     name: 'Julia Klikalska',
+    look: 'female-e',
     specialization: 'qa',
     seniority: 'junior',
     bio: 'Kliknie tam, gdzie nikt rozsądny nie kliknąłby nawet przypadkiem. Nazywa to empatią wobec użytkownika.',
@@ -278,6 +331,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'mateusz-zgloszeniowski',
     name: 'Mateusz Zgłoszeniowski',
+    look: 'male-e',
     specialization: 'qa',
     seniority: 'junior',
     bio: 'Zgłasza błędy z taką radością, że developerzy podejrzewają premię od sztuki. Premii nie ma — jest pasja.',
@@ -285,6 +339,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'nina-brzegowa',
     name: 'Nina Brzegowa',
+    look: 'female-f',
     specialization: 'qa',
     seniority: 'junior',
     bio: 'Do każdego formularza wpisuje emoji, minus zero i swoje imię wspak. Formularze rzadko to przeżywają.',
@@ -292,6 +347,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'wojtek-regresyjny',
     name: 'Wojtek Regresyjny',
+    look: 'male-f',
     specialization: 'qa',
     seniority: 'mid',
     bio: 'Potrafi zepsuć kalkulator, wpisując do niego imię kota. Gdy mówi „mam tylko jedną uwagę”, developerzy zapisują wszystkie pliki.',
@@ -299,6 +355,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'ania-krokowska',
     name: 'Ania Krokowska',
+    look: 'female-b',
     specialization: 'qa',
     seniority: 'mid',
     bio: 'Nigdy nie mówi „a nie mówiłam” — po prostu wkleja numer zgłoszenia sprzed miesiąca. Jej ulubiony happy path prowadzi prosto do błędu krytycznego.',
@@ -306,6 +363,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'daniel-przypadkowski',
     name: 'Daniel Przypadkowski',
+    look: 'male-a',
     specialization: 'qa',
     seniority: 'mid',
     bio: 'Każde zgłoszenie opisuje w dwunastu krokach, z nagraniem i hipotezą. Developerzy boją się czytać do końca, bo zwykle ma rację.',
@@ -313,6 +371,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'beata-testowa',
     name: 'Beata Testowa',
+    look: 'female-c',
     specialization: 'qa',
     seniority: 'senior',
     bio: 'Wie, gdzie siedzi błąd, zanim powstanie kod. Testy regresji odpala z takim spokojem, jakby to była medytacja.',
@@ -320,6 +379,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'ryszard-bugajski',
     name: 'Ryszard Bugajski',
+    look: 'male-b',
     specialization: 'qa',
     seniority: 'senior',
     bio: 'Pamięta każdy błąd, który „już nigdy nie wróci”. Prowadzi ich listę. Lista jest długa.',
@@ -327,6 +387,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'elzbieta-akceptacyjna',
     name: 'Elżbieta Akceptacyjna',
+    look: 'female-d',
     specialization: 'qa',
     seniority: 'senior',
     bio: 'Kryteria akceptacji czyta jak umowę z diabłem — z lupą i drobnym drukiem. Nic jeszcze nie przeszło jej testów za pierwszym razem.',
@@ -334,6 +395,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'antek-fontowski',
     name: 'Antek Fontowski',
+    look: 'male-d',
     specialization: 'designer',
     seniority: 'junior',
     bio: 'Rozpoznaje font po literze „a”. Na spotkaniach zwraca uwagę głównie na odstępy między wypowiedziami.',
@@ -341,6 +403,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'zosia-inspiracka',
     name: 'Zosia Inspiracka',
+    look: 'female-e',
     specialization: 'designer',
     seniority: 'junior',
     bio: 'Ma moodboard na każdą okazję, w tym na moodboardy. Słowo „minimalizm” wypowiada z trzema wykrzyknikami.',
@@ -348,6 +411,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'kamila-gradientowa',
     name: 'Kamila Gradientowa',
+    look: 'female-f',
     specialization: 'designer',
     seniority: 'junior',
     bio: 'Do każdego projektu dodaje gradient, „żeby było nowocześnie”. Na urodziny dostała tort w kolorach od #ff7a59 do #ffd36e.',
@@ -355,6 +419,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'marta-odcieniowa',
     name: 'Marta Odcieniowa',
+    look: 'female-b',
     specialization: 'designer',
     seniority: 'mid',
     bio: 'Ma siedem odcieni bieli i konkretne zdanie o każdym. Słowo „ładniej” traktuje jak zgłoszenie bez kryteriów akceptacji.',
@@ -362,6 +427,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'sebastian-warstwowy',
     name: 'Sebastian Warstwowy',
+    look: 'male-e',
     specialization: 'designer',
     seniority: 'mid',
     bio: 'Warstwy w Figmie nazywa staranniej niż developerzy zmienne. Uwagi do makiet zostawia w kolorze pasującym do tła.',
@@ -369,6 +435,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'patrycja-siatkowska',
     name: 'Patrycja Siatkowska',
+    look: 'female-c',
     specialization: 'designer',
     seniority: 'mid',
     bio: 'Wszystko układa na siatce ośmiu pikseli, łącznie z kubkami na biurku. Siedem pikseli uważa za osobisty afront.',
@@ -376,6 +443,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'jerzy-makietowski',
     name: 'Jerzy Makietowski',
+    look: 'male-f',
     specialization: 'designer',
     seniority: 'senior',
     bio: 'Potrafi usunąć połowę przycisków i przekonać klienta, że dostał więcej. Na „zróbmy logo większe” ma gotową prezentację.',
@@ -383,6 +451,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'izabela-kontrastowa',
     name: 'Izabela Kontrastowa',
+    look: 'female-d',
     specialization: 'designer',
     seniority: 'senior',
     bio: 'Jednym spojrzeniem rozpoznaje, który przycisk dodał klient. Zwykle ten najbardziej czerwony.',
@@ -390,6 +459,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'wieslaw-kerningowski',
     name: 'Wiesław Kerningowski',
+    look: 'male-a',
     specialization: 'designer',
     seniority: 'senior',
     bio: 'Poprawia kerning na szyldach sklepów, obok których przechodzi. Ma zdanie o każdym logo w okolicy i chętnie się nim dzieli.',
@@ -397,6 +467,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'karolina-arkuszowa',
     name: 'Karolina Arkuszowa',
+    look: 'female-e',
     specialization: 'pm',
     seniority: 'junior',
     bio: 'Ma arkusz do śledzenia arkuszy, ale nie przyznaje się do tego na retrospektywie. Każde spotkanie kończy pytaniem o kolejne.',
@@ -404,6 +475,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'piotr-szacunkowy',
     name: 'Piotr Szacunkowy',
+    look: 'male-b',
     specialization: 'pm',
     seniority: 'junior',
     bio: 'Wciąż wierzy w estymaty. Zespół trzyma kciuki i nie pokazuje mu historii zadań.',
@@ -411,6 +483,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'alicja-tablicowa',
     name: 'Alicja Tablicowa',
+    look: 'female-f',
     specialization: 'pm',
     seniority: 'junior',
     bio: 'Karteczki samoprzylepne kupuje hurtowo, w dwunastu kolorach. Na tablicy ma już kolumnę „Do przemyślenia kiedyś”.',
@@ -418,6 +491,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'lukasz-zakresowy',
     name: 'Łukasz Zakresowy',
+    look: 'male-d',
     specialization: 'pm',
     seniority: 'mid',
     bio: 'Tłumaczy „to niemożliwe” na „wymaga zmiany zakresu”. Kalendarz koloruje tak starannie, że spotkania wyglądają na przyjemne.',
@@ -425,6 +499,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'magda-syncowska',
     name: 'Magda Syncowska',
+    look: 'female-b',
     specialization: 'pm',
     seniority: 'mid',
     bio: '„Szybki sync” w jej wykonaniu naprawdę bywa szybki — zespół wciąż to bada. Przy mailach od klienta ćwiczy oddychanie przeponą.',
@@ -432,6 +507,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'rafal-kamieniowski',
     name: 'Rafał Kamieniowski',
+    look: 'male-e',
     specialization: 'pm',
     seniority: 'mid',
     bio: 'Kamienie milowe rozstawia tak gęsto, że wyglądają jak żwir. Każdy z nich świętuje pączkiem.',
@@ -439,6 +515,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'dorota-terminowa',
     name: 'Dorota Terminowa',
+    look: 'female-c',
     specialization: 'pm',
     seniority: 'senior',
     bio: 'Potrafi zamknąć spotkanie, zanim ktoś zaproponuje kolejne. Terminy zapisuje ołówkiem, ustalenia z klientem — w trzech kopiach.',
@@ -446,6 +523,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'andrzej-priorytetowy',
     name: 'Andrzej Priorytetowy',
+    look: 'male-f',
     specialization: 'pm',
     seniority: 'senior',
     bio: 'Na „to mała zmiana” reaguje tylko uniesieniem brwi. Klienci po tym sami zmniejszają zakres.',
@@ -453,6 +531,7 @@ export const PEOPLE: readonly Person[] = [
   {
     id: 'teresa-retrospektywna',
     name: 'Teresa Retrospektywna',
+    look: 'female-d',
     specialization: 'pm',
     seniority: 'senior',
     bio: 'Prowadziła już tyle retrospektyw, że zna wnioski przed spotkaniem. Zapisuje je w kopercie i otwiera na końcu.',

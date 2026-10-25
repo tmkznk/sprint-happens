@@ -17,6 +17,8 @@
       import * as THREE from 'three';
       import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
       import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
       const cache = new Map();
       async function loadModel(name) {
@@ -234,6 +236,237 @@
           scale: S,
         };
       };
+
+      // Wspólne: światło, cień kontaktowy, kamera izometryczna 2:1 (azymut 45°, elewacja 30°).
+      function stage(scene, center, spread) {
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b0a0, 1.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+        sun.position.set(center.x - 3, 7, center.z + 1.5);
+        sun.target.position.copy(center);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(2048, 2048);
+        Object.assign(sun.shadow.camera, {
+          left: -spread,
+          right: spread,
+          top: spread,
+          bottom: -spread,
+          near: 0.1,
+          far: 30,
+        });
+        sun.shadow.radius = 4;
+        sun.shadow.bias = -0.0005;
+        scene.add(sun, sun.target);
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(20, 20),
+          new THREE.ShadowMaterial({ opacity: 0.22 }),
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(center.x, 0.001, center.z);
+        floor.receiveShadow = true;
+        floor.name = 'shadow-floor';
+        scene.add(floor);
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+        const el = THREE.MathUtils.degToRad(30);
+        camera.position.set(
+          (Math.cos(el) / Math.SQRT2) * 50,
+          Math.sin(el) * 50,
+          (Math.cos(el) / Math.SQRT2) * 50,
+        );
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        return camera;
+      }
+
+      const glbCache = new Map();
+      async function loadCharacter(name) {
+        if (!glbCache.has(name))
+          glbCache.set(name, new GLTFLoader().loadAsync(`/chars/${name}.glb`));
+        const gltf = await glbCache.get(name);
+        const model = SkeletonUtils.clone(gltf.scene);
+        model.traverse((child) => {
+          if (!child.isMesh) return;
+          const map = child.material.map;
+          if (map) {
+            map.magFilter = THREE.NearestFilter;
+            map.minFilter = THREE.NearestFilter;
+            map.generateMipmaps = false;
+            map.needsUpdate = true;
+          }
+          child.material = new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0 });
+          child.castShadow = true;
+          child.receiveShadow = true;
+        });
+        return { model, animations: gltf.animations };
+      }
+
+      // Klatki animacji postaci w stałej ramce (box w metrach wokół stóp), kotwica = punkt stóp.
+      // spec: { character, clip, frames, facing: kąt obrotu modelu (°), metersPerTile, heightM, box:{w,h,up}, scale }
+      window.renderCharacterFrames = async (spec) => {
+        const S = spec.scale ?? 2;
+        const k = 32 * S * Math.SQRT2;
+        const scene = new THREE.Scene();
+        const { model, animations } = await loadCharacter(spec.character);
+        const holder = new THREE.Group();
+        const unit = spec.heightM / spec.metersPerTile / 0.7755; // wysokość modelu ≈ 0,7755 j.
+        holder.scale.setScalar(unit);
+        holder.rotation.y = THREE.MathUtils.degToRad(spec.facing);
+        holder.add(model);
+        holder.position.y = (spec.lift ?? 0) / spec.metersPerTile;
+        scene.add(holder);
+        if (spec.props) {
+          // Kalibracja: meble z paczki w tym samym układzie (metry, z w górę).
+          const zup = new THREE.Group();
+          zup.rotation.x = -Math.PI / 2;
+          for (const item of spec.props) {
+            const node = await loadModel(item.model);
+            node.position.set(...item.at);
+            node.rotation.z = THREE.MathUtils.degToRad(item.rotZ ?? 0);
+            zup.add(node);
+          }
+          const scaled = new THREE.Group();
+          scaled.scale.setScalar(1 / spec.metersPerTile);
+          scaled.add(zup);
+          scene.add(scaled);
+        }
+        const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
+        const mixer = new THREE.AnimationMixer(model);
+        const clip = animations.find((a) => a.name === spec.clip);
+        if (!clip) throw new Error(`Brak animacji ${spec.clip}`);
+        const action = mixer.clipAction(clip);
+        action.play();
+        // Stała ramka w pikselach: szerokość/wysokość z boxu, stopy w ustalonym punkcie.
+        const width = Math.round(spec.box.w * k),
+          height = Math.round(spec.box.h * k);
+        const anchorX = Math.round(width / 2),
+          anchorY = Math.round(spec.box.up * k);
+        Object.assign(camera, {
+          left: -anchorX / k,
+          right: (width - anchorX) / k,
+          top: anchorY / k,
+          bottom: -(height - anchorY) / k,
+        });
+        camera.updateProjectionMatrix();
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+        });
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        const frames = [];
+        for (let i = 0; i < spec.frames; i++) {
+          mixer.setTime((clip.duration * i) / spec.frames);
+          renderer.render(scene, camera);
+          frames.push(renderer.domElement.toDataURL('image/png'));
+        }
+        renderer.dispose();
+        return { frames, width, height, anchorX, anchorY, scale: S };
+      };
+
+      // Atlas postaci: kierunki × animacje w jednej siatce klatek, zakodowany jako WebP z alfą.
+      // spec: { character, metersPerTile, heightM, box:{w,h,up} (kafle), scale,
+      //         facings:[{name, angle}], anims:[{name, clip, frames, lift (m)}] }
+      window.renderCharacterAtlas = async (spec) => {
+        const S = spec.scale ?? 2;
+        const k = 32 * S * Math.SQRT2;
+        const scene = new THREE.Scene();
+        const { model, animations } = await loadCharacter(spec.character);
+        const holder = new THREE.Group();
+        holder.scale.setScalar(spec.heightM / spec.metersPerTile / 0.7755);
+        holder.add(model);
+        scene.add(holder);
+        const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
+        const frameWidth = Math.round(spec.box.w * k),
+          frameHeight = Math.round(spec.box.h * k);
+        const anchorX = Math.round(frameWidth / 2),
+          anchorY = Math.round(spec.box.up * k);
+        Object.assign(camera, {
+          left: -anchorX / k,
+          right: (frameWidth - anchorX) / k,
+          top: anchorY / k,
+          bottom: -(frameHeight - anchorY) / k,
+        });
+        camera.updateProjectionMatrix();
+
+        const clipByName = (name) => {
+          if (name === 'typing') {
+            // Pisanie przy biurku: nogi i tułów z pozy siedzącej, ręce z animacji obsługi.
+            const sit = clipByName('sit'),
+              interact = clipByName('interact-right');
+            const arms = (t) => /^arm-(left|right)\./.test(t.name);
+            return new THREE.AnimationClip('typing', interact.duration, [
+              ...sit.tracks.filter((t) => !arms(t)),
+              ...interact.tracks.filter(arms),
+            ]);
+          }
+          const clip = animations.find((a) => a.name === name);
+          if (!clip) throw new Error(`Brak animacji ${name}`);
+          return clip;
+        };
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+        });
+        renderer.setPixelRatio(1);
+        renderer.setSize(frameWidth, frameHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        const columns = spec.anims.reduce((sum, a) => sum + a.frames, 0);
+        const atlas = document.createElement('canvas');
+        atlas.width = frameWidth * columns;
+        atlas.height = frameHeight * spec.facings.length;
+        const ctx = atlas.getContext('2d');
+        const layout = {};
+        let column = 0;
+        for (const anim of spec.anims) {
+          layout[anim.name] = { start: column, frames: anim.frames };
+          column += anim.frames;
+        }
+        spec.facings.forEach((facing, row) => {
+          holder.rotation.y = THREE.MathUtils.degToRad(facing.angle);
+          for (const anim of spec.anims) {
+            holder.position.y = (anim.lift ?? 0) / spec.metersPerTile;
+            // Siedząca postać nie rzuca cienia na podłogę — cień daje mebel, na którym siedzi.
+            scene.getObjectByName('shadow-floor').visible = !anim.lift;
+            const mixer = new THREE.AnimationMixer(model);
+            const clip = clipByName(anim.clip);
+            mixer.clipAction(clip).play();
+            for (let i = 0; i < anim.frames; i++) {
+              mixer.setTime((clip.duration * i) / anim.frames);
+              renderer.render(scene, camera);
+              ctx.drawImage(
+                renderer.domElement,
+                (layout[anim.name].start + i) * frameWidth,
+                row * frameHeight,
+              );
+            }
+            mixer.stopAllAction();
+            mixer.uncacheRoot(model);
+          }
+        });
+        renderer.dispose();
+        return {
+          dataURL: atlas.toDataURL('image/webp', spec.quality ?? 0.88),
+          frameWidth,
+          frameHeight,
+          anchorX,
+          anchorY,
+          scale: S,
+          columns,
+          rows: spec.facings.map((f) => f.name),
+          layout,
+        };
+      };
+
       window.ready = true;
     </script>
   </body>

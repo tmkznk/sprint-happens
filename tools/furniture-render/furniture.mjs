@@ -2,6 +2,10 @@
 // przód mebla w stronę −y = strona punktów korzystania w grze, +y siatki).
 const M = 0.75; // metry na kafel
 
+// Środek krzesła biurka względem środka biurka (m, układ modelu) — gra liczy z tego miejsce
+// siedzącej postaci (src/rendering/agentPose.ts: DESK_SEAT).
+export const CHAIR = { x: -0.05, y: -0.33 };
+
 // Ekspres spoza paczki — proste bryły w stylu low poly (czerwony korpus jak na grafikach paczki).
 const espresso = (x, y, z) => ({
   boxes: [
@@ -33,9 +37,17 @@ export const FURNITURE = {
       { model: 'Pc_Mouse_Pad', at: [0.32, 0.22, 0.95] },
       { model: 'Pc_Mouse', at: [0.32, 0.22, 0.965] },
       { model: 'Pc_Case', at: [0.58, 0.45, 0.95], rotZ: 0 },
+    ],
+  },
+  // Krzesło biurka jako osobny obrazek (ten sam footprint i kotwica): siedząca postać trafia
+  // między krzesło a blat, więc oparcie i biurko zasłaniają ją zależnie od obrotu.
+  deskChair: {
+    footprint: { w: 3, h: 2 },
+    metersPerTile: M,
+    items: [
       // Podstawa krzesła ma gwiazdę na wysokości 7 cm (bez kółek) — opuszczamy całe krzesło.
-      { model: 'Chair_Base', at: [-0.05, -0.33, -0.07] },
-      { model: 'Chair_Body', at: [-0.05, -0.33, -0.07], rotZ: 180 },
+      { model: 'Chair_Base', at: [CHAIR.x, CHAIR.y, -0.07] },
+      { model: 'Chair_Body', at: [CHAIR.x, CHAIR.y, -0.07], rotZ: 180 },
     ],
   },
   sofa: {

@@ -1,0 +1,53 @@
+{
+  "frameWidth": 122,
+  "frameHeight": 156,
+  "anchorX": 61,
+  "anchorY": 132,
+  "scale": 1.5,
+  "columns": 20,
+  "rows": ["px", "py", "nx", "ny"],
+  "looks": [
+    "female-b",
+    "female-c",
+    "female-d",
+    "female-e",
+    "female-f",
+    "male-a",
+    "male-b",
+    "male-d",
+    "male-e",
+    "male-f"
+  ],
+  "anims": {
+    "idle": {
+      "start": 0,
+      "frames": 2,
+      "fps": 2
+    },
+    "walk": {
+      "start": 2,
+      "frames": 8,
+      "fps": 12
+    },
+    "sitChair": {
+      "start": 10,
+      "frames": 1,
+      "fps": 1
+    },
+    "typing": {
+      "start": 11,
+      "frames": 4,
+      "fps": 6
+    },
+    "sitSofa": {
+      "start": 15,
+      "frames": 1,
+      "fps": 1
+    },
+    "coffee": {
+      "start": 16,
+      "frames": 4,
+      "fps": 6
+    }
+  }
+}

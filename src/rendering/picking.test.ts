@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Furniture, FurnitureId } from '../domain/furniture';
 import { FURNITURE_STYLE } from './placeholderStyle';
-import { createAgent } from '../domain/movement';
+import { createAgent, type ReadonlyAgent } from '../domain/movement';
+import { displayPosition } from './agentPosition';
 import { pickAgent, pickFurniture, pointInPolygon } from './picking';
-import { cellCenter, gridToScreen } from './projection';
+import { cellCenter, depthOfPoint, gridToScreen } from './projection';
 
 const desk: Furniture = {
   id: 'furniture-1' as FurnitureId,
@@ -51,26 +52,32 @@ describe('pickFurniture', () => {
 describe('pickAgent', () => {
   const front = createAgent('employee-1', { x: 4, y: 4 });
   const behind = createAgent('employee-2', { x: 3, y: 3 });
+  // Postać tam, gdzie jest narysowana (jak poza z agentPose dla stojącej/idącej postaci).
+  const placed = (...agents: ReadonlyAgent[]) =>
+    agents.map((agent) => {
+      const position = displayPosition(agent, 0, 4);
+      return { id: agent.id, position, depth: depthOfPoint(position) };
+    });
 
   it('trafia postać w jej sylwetkę, także w głowę', () => {
     const feet = gridToScreen(cellCenter({ x: 4, y: 4 }));
 
-    expect(pickAgent(feet, [front], 0, 4)).toBe('employee-1');
-    expect(pickAgent({ x: feet.x, y: feet.y - 44 }, [front], 0, 4)).toBe('employee-1');
-    expect(pickAgent({ x: feet.x + 30, y: feet.y }, [front], 0, 4)).toBeNull();
+    expect(pickAgent(feet, placed(front))).toBe('employee-1');
+    expect(pickAgent({ x: feet.x, y: feet.y - 58 }, placed(front))).toBe('employee-1');
+    expect(pickAgent({ x: feet.x + 30, y: feet.y }, placed(front))).toBeNull();
   });
 
   it('przy nakładaniu wybiera postać bliższą kamerze', () => {
     const point = gridToScreen(cellCenter({ x: 4, y: 4 }));
 
-    expect(pickAgent({ x: point.x, y: point.y - 30 }, [behind, front], 0, 4)).toBe('employee-1');
+    expect(pickAgent({ x: point.x, y: point.y - 30 }, placed(behind, front))).toBe('employee-1');
   });
 
   it('uwzględnia pozycję w trakcie przejścia', () => {
     const walking = { ...front, move: { to: { x: 5, y: 4 }, elapsed: 2 } };
     const halfway = gridToScreen({ x: 5, y: 4.5 });
 
-    expect(pickAgent(halfway, [walking], 0, 4)).toBe('employee-1');
+    expect(pickAgent(halfway, placed(walking))).toBe('employee-1');
   });
 });
 
