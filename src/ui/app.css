@@ -511,7 +511,7 @@ h4 {
 
 /* Przyciski karty powitalnej w jednym wierszu (wzór SH2). */
 .intro-actions .primary-button,
-.intro-actions .link-button {
+.intro-actions .secondary-button {
   padding: 0 10px;
   font-size: var(--fs-small);
 }

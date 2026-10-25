@@ -156,7 +156,7 @@ function IntroCard() {
             </button>
           )}
           {stage !== 'project' && (
-            <button type="button" className="link-button" onClick={() => open('recruit')}>
+            <button type="button" className="secondary-button" onClick={() => open('recruit')}>
               Poznaj kandydatów
             </button>
           )}
