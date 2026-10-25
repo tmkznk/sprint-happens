@@ -49,6 +49,7 @@ export const FURNITURE_NAMES: Record<FurnitureType, string> = {
   desk: 'Stanowisko pracy',
   sofa: 'Kanapa',
   coffeeMachine: 'Ekspres do kawy',
+  plant: 'Roślina',
 };
 
 // EMP-07 (Z): interfejs sygnalizuje brak pracy.

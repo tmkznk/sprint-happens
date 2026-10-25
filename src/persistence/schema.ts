@@ -18,7 +18,7 @@ import {
   type ProjectId,
 } from '../domain/contracts';
 import { OPERATION_KINDS } from '../domain/finance';
-import { ROTATIONS, type FurnitureId } from '../domain/furniture';
+import { FURNITURE_TYPES, ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { SPEEDS, type GameState } from '../domain/state';
 import { DAY_LENGTH_MS } from '../simulation/time';
@@ -184,7 +184,7 @@ const financeSchema = z.strictObject({
 
 const furnitureSchema = z.strictObject({
   id: furnitureId,
-  type: z.enum(['desk', 'sofa', 'coffeeMachine']),
+  type: z.enum(FURNITURE_TYPES),
   origin: point,
   rotation: z.literal(ROTATIONS),
 });

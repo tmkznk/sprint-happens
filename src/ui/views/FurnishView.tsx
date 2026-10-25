@@ -1,4 +1,4 @@
-import { Armchair, CodeXml, Coffee, type LucideIcon } from 'lucide-react';
+import { Armchair, CodeXml, Coffee, Sprout, type LucideIcon } from 'lucide-react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import { useFurnitureEditStore } from '../../application/furnitureEditHooks';
 import { useClearSelection } from '../../application/selectionHooks';
@@ -7,19 +7,26 @@ import { FURNITURE_NAMES, money } from '../labels';
 import { useNavigation } from '../navigation';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
-const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine'];
+const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine', 'plant'];
 
 const ICONS: Record<FurnitureType, LucideIcon> = {
   desk: CodeXml,
   sofa: Armchair,
   coffeeMachine: Coffee,
+  plant: Sprout,
 };
 
 const DESCRIPTIONS: Record<FurnitureType, string> = {
   desk: 'Stanowisko pracy — bez biurka nikt nie pracuje.',
   sofa: 'Regeneracja dla najbardziej zmęczonych.',
   coffeeMachine: 'Szybki zastrzyk energii między taskami.',
+  plant: 'Dekoracja. Biuro od razu wygląda na mniej korpo.',
 };
+
+function places(type: FurnitureType): string {
+  const count = FURNITURE_CATALOG[type].interactionPoints.length;
+  return count === 0 ? 'dekoracja' : `miejsca: ${count}`;
+}
 
 // Zakładka „Urządź” (SH-033, wzór SH2). OFF-03 (Z): wybór wyposażenia, potem ustawienie w biurze
 // w trybie edycji (OFF-07: pauza). Przesuwanie i sprzedaż — dotknięcie mebla w biurze.
@@ -56,8 +63,7 @@ export function FurnishView() {
               </span>
               <span>{DESCRIPTIONS[type]}</span>
               <span>
-                {money.format(config.furniture.prices[type])} zł · miejsca:{' '}
-                {FURNITURE_CATALOG[type].interactionPoints.length}
+                {money.format(config.furniture.prices[type])} zł · {places(type)}
               </span>
               <button
                 type="button"

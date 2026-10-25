@@ -563,3 +563,22 @@ describe('postacie z listy w zapisie', () => {
     );
   });
 });
+
+describe('roślina w zapisie', () => {
+  it('kupiona roślina przetrwa zapis', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 3),
+    });
+    expect(
+      engine.dispatch({
+        type: 'BuyFurniture',
+        furnitureType: 'plant',
+        origin: { x: 6, y: 8 },
+        rotation: 0,
+      }),
+    ).toEqual({ ok: true });
+    const state = engine.getState();
+    expect(roundTrip(state)).toEqual(state);
+  });
+});

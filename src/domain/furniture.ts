@@ -1,7 +1,8 @@
 import type { GridPoint, Size } from './grid';
 import type { EntityId } from './ids';
 
-export type FurnitureType = 'desk' | 'sofa' | 'coffeeMachine';
+export const FURNITURE_TYPES = ['desk', 'sofa', 'coffeeMachine', 'plant'] as const;
+export type FurnitureType = (typeof FURNITURE_TYPES)[number];
 
 // OFF-03 (Z): obrót co 90°; kamera ma stały kąt (UX-03).
 export const ROTATIONS = [0, 90, 180, 270] as const;
@@ -38,4 +39,7 @@ export const FURNITURE_CATALOG: Readonly<Record<FurnitureType, FurnitureSpec>> =
   },
   // NEED-02 (Z): ekspres obsługuje jedną osobę.
   coffeeMachine: { footprint: { width: 1, height: 1 }, interactionPoints: [{ x: 0, y: 1 }] },
+  // Roślina — dekoracja (decyzja właściciela 2026-10-25): pole jak ekspres, nikt z niej nie korzysta.
+  // W MVP nie wpływa na rozgrywkę; docelowo ma poprawiać zadowolenie pracowników (poza MVP).
+  plant: { footprint: { width: 1, height: 1 }, interactionPoints: [] },
 };

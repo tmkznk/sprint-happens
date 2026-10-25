@@ -5,8 +5,8 @@ import type { FurnitureId } from '../domain/furniture';
 import type { GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
 import { testState } from '../test/engineFixture';
-import { interactionCells } from '../world/geometry';
-import { destinationId } from '../world/movement/officeEnv';
+import { interactionCells, occupiedCells } from '../world/geometry';
+import { destinationId, destinationsOf } from '../world/movement/officeEnv';
 import { createEngine } from './engine';
 import { recordOperation } from './finance';
 import { validatePlacement } from './furniture';
@@ -252,6 +252,31 @@ describe('SellFurniture (OFF-06, OFF-07, FIN-06)', () => {
 describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
   const PRICES = DEFAULT_BALANCE.furniture.prices;
 
+  it('roślina zajmuje jedno pole i nie jest celem dla nikogo (MVP: bez wpływu na rozgrywkę)', () => {
+    const engine = engineFor();
+    const origin = { x: 6, y: 8 };
+    engine.dispatch({ type: 'BuyFurniture', furnitureType: 'plant', origin, rotation: 0 });
+    const state = engine.getState();
+    const plant = 'furniture-5' as FurnitureId;
+    const item = state.world.furniture[plant];
+    if (!item) throw new Error('brak rośliny');
+    expect(occupiedCells(item)).toEqual([origin]);
+    expect(
+      destinationsOf(Object.values(state.world.furniture)).some((d) =>
+        d.id.startsWith(`${plant}#`),
+      ),
+    ).toBe(false);
+    // Na zajętym polu nie postawi się innego mebla.
+    expect(
+      engine.dispatch({
+        type: 'BuyFurniture',
+        furnitureType: 'coffeeMachine',
+        origin,
+        rotation: 0,
+      }),
+    ).toEqual({ ok: false, rejection: { code: 'collision' } });
+  });
+
   it.each([
     ['biurko', 'desk', { x: 2, y: 7 }, 0, [{ x: 3, y: 9 }]],
     [
@@ -265,6 +290,7 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
       ],
     ],
     ['ekspres obrócony o 180°', 'coffeeMachine', { x: 6, y: 8 }, 180, [{ x: 6, y: 7 }]],
+    ['roślinę (dekoracja bez punktów korzystania)', 'plant', { x: 6, y: 8 }, 0, []],
   ] as const)(
     'kupuje %s: cena pobrana raz, obrót zmienia punkty korzystania',
     (_, type, origin, rotation, points) => {

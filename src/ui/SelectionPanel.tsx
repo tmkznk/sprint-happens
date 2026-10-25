@@ -145,8 +145,12 @@ function FurnitureDetails({ id }: { id: FurnitureId }) {
           <dd>{owner ?? 'Wolne'}</dd>
         </>
       )}
-      <dt>Miejsca</dt>
-      <dd>{FURNITURE_CATALOG[furniture.type].interactionPoints.length}</dd>
+      {FURNITURE_CATALOG[furniture.type].interactionPoints.length > 0 && (
+        <>
+          <dt>Miejsca</dt>
+          <dd>{FURNITURE_CATALOG[furniture.type].interactionPoints.length}</dd>
+        </>
+      )}
       <dt>Obrót</dt>
       <dd>{furniture.rotation}°</dd>
       {furniture.type === 'coffeeMachine' && (
