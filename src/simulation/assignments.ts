@@ -1,5 +1,10 @@
 import type { BalanceConfig } from '../domain/config';
-import type { Project, ReadonlyProject } from '../domain/contracts';
+import {
+  TECH_SPECIALIZATIONS,
+  type Project,
+  type ReadonlyProject,
+  type TechSpecialization,
+} from '../domain/contracts';
 import type { Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { openBugs } from './bugs';
@@ -63,4 +68,18 @@ function hasRoleInProject(employee: Employee, project: ReadonlyProject): boolean
 
 export function projectTeam(state: GameState, project: Pick<Project, 'id'>): Employee[] {
   return Object.values(state.staff.employees).filter((e) => e.projectId === project.id);
+}
+
+// PROJ-02, PROJ-03 (Z): stanowiska techniczne bez obsady — zakres projektu z pracą do zrobienia,
+// a w zespole nikt tej specjalizacji. QA, Designer i PM są opcjonalni (nie są „brakujący”).
+// Kolejność specjalizacji jak w TECH_SPECIALIZATIONS.
+export function missingRoles(
+  project: ReadonlyProject,
+  team: readonly Pick<Employee, 'specialization'>[],
+): TechSpecialization[] {
+  return TECH_SPECIALIZATIONS.filter(
+    (specialization) =>
+      remainingPoints(project, specialization) > 0 &&
+      !team.some((member) => member.specialization === specialization),
+  );
 }

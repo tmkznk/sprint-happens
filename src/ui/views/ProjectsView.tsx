@@ -1,4 +1,4 @@
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import {
@@ -8,10 +8,13 @@ import {
   type ProjectId,
   type ReadonlyProject,
 } from '../../domain/contracts';
+import type { Employee } from '../../domain/employees';
+import { missingRoles } from '../../simulation/assignments';
 import { isReadyForDelivery, paymentPreview } from '../../simulation/delivery';
 import { detectedBugCount, testCoverage } from '../../simulation/qa';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { EmptyState } from '../EmptyState';
+import { useNavigation } from '../navigation';
 import { ModalLayer } from '../ModalLayer';
 import { designPercent, pmBonusPermille, progressPercent } from '../../simulation/work';
 import { money, SCOPE_LABELS, SPECIALIZATION_LABELS } from '../labels';
@@ -157,9 +160,10 @@ function ActiveProjects({
         <p className="hint">
           Zespół:{' '}
           {team.length === 0
-            ? 'nikt nie jest przypisany — przydziel ludzi w zakładce Zespół.'
+            ? 'nikt nie jest przypisany.'
             : team.map((e) => `${e.name} (${SPECIALIZATION_LABELS[e.specialization]})`).join(', ')}
         </p>
+        <StaffingPrompt project={project} team={team} />
         <ul className="progress-list" aria-label="Postęp prac">
           {TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined).map((s) => (
             <li key={s}>
@@ -396,4 +400,29 @@ function PmBonusLine({ project }: { project: ReadonlyProject }) {
   const bonus = useGameSelector((state) => pmBonusPermille(state, project.id, config));
   if (bonus === 0) return null;
   return <p className="hint">Premia PM-a: +{bonus / 10}% wydajności zespołu</p>;
+}
+
+// PROJ-02, PROJ-03: brak obsady stanowisk technicznych z pracą do zrobienia — skrót do zakładki
+// Zespół, gdzie przydziela się ludzi (QA, Designer i PM są opcjonalni).
+function StaffingPrompt({
+  project,
+  team,
+}: {
+  project: ReadonlyProject;
+  team: readonly Pick<Employee, 'specialization'>[];
+}) {
+  const { open } = useNavigation();
+  const missing = missingRoles(project, team);
+  if (missing.length === 0) return null;
+  return (
+    <div className="staffing-prompt">
+      <p className="warning">
+        Brakuje: {missing.map((specialization) => SCOPE_LABELS[specialization]).join(', ')}
+      </p>
+      <button type="button" className="secondary-button" onClick={() => open('team')}>
+        <Users size={16} aria-hidden="true" />
+        Przydziel zespół
+      </button>
+    </div>
+  );
 }

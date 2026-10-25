@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
-import type { ProjectId } from '../domain/contracts';
+import { POINT_SCALE, type Project, type ProjectId } from '../domain/contracts';
 import type { Employee, EmployeeId, Specialization } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { testState } from '../test/engineFixture';
-import { workStatus } from './assignments';
+import { missingRoles, workStatus } from './assignments';
 import { createEngine } from './engine';
 
 type Engine = ReturnType<typeof createEngine>;
@@ -141,5 +141,31 @@ describe('workStatus (EMP-07, EMP-04)', () => {
     expect(
       workStatus(engine.getState(), employee(engine.getState(), frontend), DEFAULT_BALANCE),
     ).toBe('noAssignment');
+  });
+});
+
+describe('missingRoles (PROJ-02, PROJ-03)', () => {
+  const project = {
+    scopes: { frontend: 60, backend: 40 },
+    progress: { frontend: 0, backend: 40 * POINT_SCALE },
+  } as unknown as Project;
+
+  it('zakres z pracą do zrobienia i bez osoby tej specjalizacji', () => {
+    expect(missingRoles(project, [])).toEqual(['frontend']);
+    expect(missingRoles({ ...project, progress: {} } as Project, [])).toEqual([
+      'frontend',
+      'backend',
+    ]);
+  });
+
+  it('obsadzony zakres, ukończony zakres i role opcjonalne nie są brakujące', () => {
+    expect(missingRoles(project, [{ specialization: 'frontend' }])).toEqual([]);
+    expect(
+      missingRoles({ ...project, progress: {} } as Project, [
+        { specialization: 'qa' },
+        { specialization: 'pm' },
+        { specialization: 'designer' },
+      ]),
+    ).toEqual(['frontend', 'backend']);
   });
 });

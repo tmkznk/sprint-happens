@@ -1039,6 +1039,23 @@ h4 {
   font-size: 13px;
 }
 
+.staffing-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--yellow-soft);
+}
+
+.staffing-prompt p {
+  margin: 0;
+  font-size: var(--fs-small);
+}
+
 dl.contract-terms {
   display: grid;
   grid-template-columns: auto 1fr;
