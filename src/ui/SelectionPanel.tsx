@@ -3,29 +3,18 @@ import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
+import type { EmployeeId } from '../domain/employees';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
-import { ENERGY_SCALE, SATISFACTION_SCALE, type EmployeeId } from '../domain/employees';
-import { workStatus } from '../simulation/assignments';
-import { activityOf } from '../simulation/needs';
-import { isTesting } from '../simulation/qa';
-import { hasBadConditions, isUnhappy } from '../simulation/satisfaction';
-import { isWorking } from '../simulation/work';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
+import { hasBadConditions, isUnhappy } from '../simulation/satisfaction';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
+import { EmployeeBio, EmployeeHead, EmployeeNeeds, EmployeeStatus } from './EmployeeCard';
 import { FireEmployeeButton } from './FireEmployeeButton';
-import { ProjectSelect } from './ProjectSelect';
 import { FurnitureEditBar } from './FurnitureEditBar';
-import {
-  ACTIVITY_LABELS,
-  AGENT_STATUS_LABELS,
-  FURNITURE_NAMES,
-  money,
-  SENIORITY_LABELS,
-  SPECIALIZATION_LABELS,
-  WORK_STATUS_LABELS,
-} from './labels';
+import { AGENT_STATUS_LABELS, FURNITURE_NAMES, money } from './labels';
+import { ProjectSelect } from './ProjectSelect';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 // UX-01 (Z): dotknięcie pracownika lub mebla otwiera dolny panel szczegółów.
@@ -234,81 +223,43 @@ function takenDesksKey(state: GameState): string {
     .join('|');
 }
 
+// Karta pracownika w biurze — jak w zakładce Zespół (wzór SH2), z decyzjami: projekt, biurko,
+// zwolnienie. Ostrzeżenia o złych warunkach, odejściu i ruchu — pod statusem.
 function EmployeeDetails({ id }: { id: EmployeeId }) {
-  const config = useBalanceConfig();
   const employee = useGameSelector((state) => state.staff.employees[id]);
-  const status = useGameSelector(
-    (state) => state.world.movement.agents.find((agent) => agent.id === id)?.status,
-  );
-  const work = useGameSelector((state) => {
-    const current = state.staff.employees[id];
-    return current ? workStatus(state, current, config) : null;
-  });
-  const activity = useGameSelector((state) => {
-    const current = state.staff.employees[id];
-    if (!current) return null;
-    return activityOf(
-      state,
-      current,
-      isWorking(state, current, config) || isTesting(state, current, config),
-    );
-  });
-  const energy = useGameSelector((state) =>
-    Math.round((state.staff.employees[id]?.energy ?? 0) / ENERGY_SCALE),
-  );
+  const clear = useClearSelection();
   if (!employee) return null;
   return (
-    <Panel title={employee.name} actions={<FireEmployeeButton employeeId={employee.id} />}>
-      <dt>Rola</dt>
-      <dd>
-        {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}
-      </dd>
-      <dt>Pensja</dt>
-      <dd>{money.format(employee.dailyWage)} / dzień</dd>
-      <dt>Projekt</dt>
-      <dd>
-        <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
-      </dd>
-      <dt>Biurko</dt>
-      <dd>
-        <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
-      </dd>
-      {work && (
-        <>
-          <dt>Praca</dt>
-          <dd className={work === 'ready' ? undefined : 'warning'}>{WORK_STATUS_LABELS[work]}</dd>
-        </>
-      )}
-      <dt>Energia</dt>
-      <dd className="energy">
-        <progress max={100} value={energy} aria-label="Energia" />
-        <span className={energy <= 15 ? 'negative' : undefined}>{energy}%</span>
-      </dd>
-      <SatisfactionRow employeeId={employee.id} />
-      {activity && (
-        <>
-          <dt>Teraz</dt>
-          <dd className={activity === 'exhausted' ? 'negative' : undefined}>
-            {ACTIVITY_LABELS[activity]}
-          </dd>
-        </>
-      )}
-      {(status === 'noRoute' || status === 'deadlocked') && (
-        <>
-          <dt>Ruch</dt>
-          <dd className="negative">{AGENT_STATUS_LABELS[status]}</dd>
-        </>
-      )}
-    </Panel>
+    <section className="selection-panel employee-panel" aria-label={employee.name}>
+      <EmployeeHead employee={employee}>
+        <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
+          ✕
+        </button>
+      </EmployeeHead>
+      <EmployeeBio employee={employee} />
+      <EmployeeNeeds employee={employee} />
+      <EmployeeStatus employeeId={employee.id} />
+      <EmployeeAlerts employeeId={employee.id} />
+      <div className="field">
+        <span className="field-label">Przydział projektu</span>
+        <span className="field-row">
+          <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
+          <FireEmployeeButton employeeId={employee.id} variant="icon" />
+        </span>
+      </div>
+      <div className="field">
+        <span className="field-label">Biurko</span>
+        <span className="field-row">
+          <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
+        </span>
+      </div>
+    </section>
   );
 }
 
-// NEED-03, NEED-05 (Z): zadowolenie, złe warunki i ostrzeżenie przed odejściem.
-function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
+// NEED-03, NEED-05 (Z): złe warunki i czas do odejścia; MOVE: brak drogi lub blokada.
+function EmployeeAlerts({ employeeId }: { employeeId: EmployeeId }) {
   const config = useBalanceConfig();
-  const level = useGameSelector((state) =>
-    Math.round((state.staff.employees[employeeId]?.satisfaction ?? 0) / SATISFACTION_SCALE),
-  );
   const unhappy = useGameSelector((state) => {
     const current = state.staff.employees[employeeId];
     return current ? isUnhappy(current, config) : false;
@@ -323,25 +274,26 @@ function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
     const left = config.satisfaction.quitAfterSeconds * 1000 - current.lowSatisfactionMs;
     return Math.max(1, Math.ceil(left / 60_000));
   });
+  const movement = useGameSelector(
+    (state) => state.world.movement.agents.find((agent) => agent.id === employeeId)?.status,
+  );
+  const blocked = movement === 'noRoute' || movement === 'deadlocked';
+  if (!bad && !unhappy && !blocked) return null;
   return (
-    <>
-      <dt>Zadowolenie</dt>
-      <dd className="energy">
-        <progress max={100} value={level} aria-label="Zadowolenie" />
-        <span className={unhappy ? 'negative' : undefined}>{level}</span>
-      </dd>
+    <div className="employee-alerts">
       {bad && (
-        <dd className="warning full-row">
+        <p className="warning">
           Złe warunki — brak biurka, wyczerpanie albo brak miejsca odpoczynku.
-        </dd>
+        </p>
       )}
       {unhappy && (
-        <dd className="negative full-row" role="alert">
-          Chce odejść! Odejdzie za ok. {minutesLeft} min gry, jeśli zadowolenie nie wzrośnie powyżej{' '}
+        <p className="negative" role="alert">
+          Odejdzie za ok. {minutesLeft} min gry, jeśli zadowolenie nie wzrośnie powyżej{' '}
           {config.satisfaction.warningThreshold}.
-        </dd>
+        </p>
       )}
-    </>
+      {blocked && <p className="negative">{AGENT_STATUS_LABELS[movement]}</p>}
+    </div>
   );
 }
 

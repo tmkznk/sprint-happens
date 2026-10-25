@@ -2145,11 +2145,39 @@ progress::-moz-progress-bar {
   text-overflow: ellipsis;
 }
 
-.selection-panel dd.energy {
-  display: grid;
-  grid-template-columns: 1fr 40px;
-  align-items: center;
-  gap: 8px;
+/* Karta pracownika w biurze — te same klasy co karta w zakładce Zespół. */
+.employee-panel {
+  padding: 14px;
+}
+
+.employee-panel .panel-close {
+  flex: none;
+  min-width: 36px;
+  min-height: 36px;
+  margin: -6px -6px 0 0;
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.employee-panel .field-row select {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--paper);
+  font-size: var(--fs-small);
+}
+
+.employee-alerts {
+  margin-top: 8px;
+}
+
+.employee-alerts p {
+  margin: 4px 0 0;
+  font-size: var(--fs-small);
 }
 
 .selection-panel .panel-actions,
