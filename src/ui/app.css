@@ -335,6 +335,16 @@ h4 {
   font-size: var(--fs-label);
 }
 
+.settings-menu .install-hint {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.install-hint svg {
+  vertical-align: -2px;
+}
+
 /* Nawigacja: na telefonie dolny pasek, na desktopie kolumna po lewej (UX — jedna ręka). */
 .main-nav {
   grid-area: nav;

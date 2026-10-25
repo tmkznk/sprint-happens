@@ -4,11 +4,12 @@ import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
 import { money } from './labels';
 import { NewGameButton } from './NewGameButton';
+import { InstallButton } from './InstallButton';
 import { OfflineBadge } from './OfflineBadge';
 import { SaveIndicator } from './SaveIndicator';
 
 // SH-033 (wzór SH2): logo, budżet i reputacja (REP-01) zawsze widoczne; ustawienia z nową grą,
-// stanem zapisu i gotowością offline.
+// stanem zapisu, gotowością offline i instalacją aplikacji (PWA-01).
 export function TopBar({ manager, onNewGame }: { manager: SaveManager; onNewGame(): void }) {
   const cash = useGameSelector((state) => state.finance.cash);
   const reputation = useGameSelector((state) => state.mission.reputation);
@@ -62,6 +63,7 @@ export function TopBar({ manager, onNewGame }: { manager: SaveManager; onNewGame
             <div className="settings-menu">
               <SaveIndicator manager={manager} />
               <OfflineBadge />
+              <InstallButton />
               <NewGameButton
                 onConfirm={() => {
                   setMenu(false);
