@@ -375,7 +375,7 @@ h4 {
   flex-direction: column;
   gap: var(--gap-page);
   min-height: 0;
-  padding: 19px var(--pad-page) 0;
+  padding: 19px var(--pad-page) var(--pad-page);
   overflow-y: auto;
 }
 
@@ -649,8 +649,10 @@ h4 {
   margin-left: auto;
 }
 
+/* Dziennik „Z życia biura”: na telefonie ukryty (miejsce na biuro — uwaga właściciela
+   z 2026-10-25), widoczny od desktopu. */
 .office-log {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 6px;
   min-height: 43px;
@@ -1554,6 +1556,7 @@ progress::-moz-progress-bar {
   }
 
   .office-log {
+    display: flex;
     gap: 9px;
     min-height: 50px;
   }
