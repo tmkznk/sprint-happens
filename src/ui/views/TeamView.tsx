@@ -3,6 +3,7 @@ import { useBalanceConfig, useGameSelector } from '../../application/engineHooks
 import { useSelect } from '../../application/selectionHooks';
 import { ENERGY_SCALE, SATISFACTION_SCALE, type Employee } from '../../domain/employees';
 import type { BalanceConfig } from '../../domain/config';
+import { bioFor } from '../../domain/content/bios';
 import type { GameState } from '../../domain/state';
 import { workStatus } from '../../simulation/assignments';
 import { activityOf } from '../../simulation/needs';
@@ -93,6 +94,7 @@ function TeamMember({ employee }: { employee: Employee }) {
           <small>/ dzień</small>
         </strong>
       </div>
+      <p className="bio">{bioFor(employee)}</p>
       <div className="needs">
         <span>
           <span className="need-label">

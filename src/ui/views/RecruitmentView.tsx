@@ -6,6 +6,7 @@ import {
   type Candidate,
   type Specialization,
 } from '../../domain/employees';
+import { bioFor } from '../../domain/content/bios';
 import { isInDebt } from '../../simulation/finance';
 import { freeDeskCount } from '../../simulation/staff';
 import { Avatar } from '../Avatar';
@@ -100,6 +101,7 @@ export function RecruitmentView() {
             >
               Zatrudnij
             </button>
+            <p className="bio">{bioFor(candidate)}</p>
           </li>
         ))}
       </ul>
