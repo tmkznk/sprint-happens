@@ -75,8 +75,14 @@ function TeamMember({ employee }: { employee: Employee }) {
         <span className="candidate-wage">
           {money.format(employee.dailyWage)} zł / dzień · {projectName ?? 'bez przydziału'}
         </span>
-        {status && status !== 'ready' && status !== 'noAssignment' && (
-          <span className="warning">{WORK_STATUS_LABELS[status]}</span>
+        {/* Brak biurka widoczny także u osoby bez projektu (status „brak przydziału” ma
+            w silniku pierwszeństwo, a biurko to osobny problem — EMP-04). */}
+        {!employee.deskId ? (
+          <span className="warning">{WORK_STATUS_LABELS.noDesk}</span>
+        ) : (
+          status &&
+          status !== 'ready' &&
+          status !== 'noAssignment' && <span className="warning">{WORK_STATUS_LABELS[status]}</span>
         )}
         {isUnhappy(employee, config) && <span className="negative">Chce odejść!</span>}
       </div>

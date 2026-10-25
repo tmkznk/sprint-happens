@@ -363,12 +363,12 @@ function SatisfactionRow({ employeeId }: { employeeId: EmployeeId }) {
         <span className={unhappy ? 'negative' : undefined}>{level}</span>
       </dd>
       {bad && (
-        <dd className="warning">
+        <dd className="warning full-row">
           Złe warunki — brak biurka, wyczerpanie albo brak miejsca odpoczynku.
         </dd>
       )}
       {unhappy && (
-        <dd className="negative" role="alert">
+        <dd className="negative full-row" role="alert">
           Chce odejść! Odejdzie za ok. {minutesLeft} min gry, jeśli zadowolenie nie wzrośnie powyżej{' '}
           {config.satisfaction.warningThreshold}.
         </dd>
