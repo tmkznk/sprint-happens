@@ -64,6 +64,8 @@ export const MAX_SATISFACTION = 100 * SATISFACTION_SCALE;
 // EMP-08, NEED-05 (Z): odejście z firmy — zwolnienie przez gracza albo samodzielne.
 export type Departure = {
   employeeId: EmployeeId;
+  // Postać, która odeszła, nie wraca na rynek pracy.
+  personId: PersonId;
   name: string;
   day: number;
   reason: 'fired' | 'quit';
@@ -73,14 +75,14 @@ export type WageTable = Readonly<Record<Seniority, number>>;
 
 // EMP-03 (Z): rynek ma po jednym kandydacie na każdą parę specjalizacja × seniority, w stałej
 // kolejności. Puste miejsca zajmuje losowa (z ziarnem — TIME-T04) osoba z listy postaci, która
-// nie jest zatrudniona ani już wystawiona; osoby, które odeszły z firmy, wracają do puli. Miejsce
-// zostaje puste tylko wtedy, gdy cała pula tej pary pracuje w firmie.
+// nie jest już wystawiona ani niedostępna (zatrudniona albo po odejściu z firmy — zwolnieni
+// i ci, którzy odeszli sami, nie wracają). Miejsce zostaje puste, gdy pula pary się wyczerpie.
 export function fillMarket(
   market: { candidates: readonly Candidate[]; ids: IdSequence; rng: RngState },
-  employed: readonly Pick<Employee, 'personId'>[],
+  unavailable: readonly { personId: PersonId }[],
   wages: WageTable,
 ): { candidates: Candidate[]; ids: IdSequence; rng: RngState } {
-  const taken = new Set([...market.candidates, ...employed].map((p) => p.personId));
+  const taken = new Set([...market.candidates, ...unavailable].map((p) => p.personId));
   const candidates: Candidate[] = [];
   let { ids, rng } = market;
   for (const specialization of SPECIALIZATIONS) {

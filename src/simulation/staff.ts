@@ -1,5 +1,5 @@
 import type { BalanceConfig } from '../domain/config';
-import { fillMarket, type Departure, type Employee, type EmployeeId } from '../domain/employees';
+import type { Departure, Employee, EmployeeId } from '../domain/employees';
 import type { FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { createAgent, type Task } from '../domain/movement';
@@ -110,35 +110,31 @@ export function compareIds(a: string, b: string): number {
 // przydział, rezerwacje i kolejki postaci; postęp funkcji i napraw zostaje przy projekcie;
 // dzisiejsza dniówka pozostaje należna (FIN-03); premia PM-a znika, bo wynika z przydziału.
 // Brak odpraw i wpływu na resztę zespołu.
-// Osoba, która odchodzi, wraca do puli rynku; jeśli jej para nie miała kandydata (cała pula
-// pracowała), rynek od razu go uzupełnia (EMP-03).
+// Postać, która odchodzi, nie wraca na rynek pracy (historia odejść ją wyklucza).
 export function removeEmployee(
   state: GameState,
   employeeId: EmployeeId,
   reason: Departure['reason'],
-  config: BalanceConfig,
 ): GameState {
   const employee = state.staff.employees[employeeId];
   if (!employee) return state;
   const employees = Object.fromEntries(
     Object.entries(state.staff.employees).filter(([id]) => id !== employeeId),
   ) as typeof state.staff.employees;
-  const market = fillMarket(
-    { candidates: state.staff.candidates, ids: state.ids, rng: state.rng },
-    Object.values(employees),
-    config.staff.dailyWage,
-  );
   return {
     ...state,
-    ids: market.ids,
-    rng: market.rng,
     staff: {
       ...state.staff,
       employees,
-      candidates: market.candidates,
       departures: [
         ...state.staff.departures,
-        { employeeId, name: employee.name, day: state.mission.day, reason },
+        {
+          employeeId,
+          personId: employee.personId,
+          name: employee.name,
+          day: state.mission.day,
+          reason,
+        },
       ],
     },
     world: { ...state.world, movement: removeAgent(state.world.movement, employeeId) },

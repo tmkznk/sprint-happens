@@ -138,6 +138,7 @@ const staffSchema = z.strictObject({
   departures: z.array(
     z.strictObject({
       employeeId,
+      personId: z.string().min(1),
       name: z.string().min(1),
       day: z.int().min(1),
       reason: z.enum(['fired', 'quit']),
@@ -516,7 +517,8 @@ function staffIssues(state: GameState): Issue[] {
       issues.push({ path, message: 'ID kandydata spoza przydzielonej sekwencji' });
     }
   });
-  // Postacie z listy: istnieją, zgadzają się z kopią imienia i cech, nie występują dwa razy.
+  // Postacie z listy: istnieją, zgadzają się z kopią imienia i cech, nie występują dwa razy
+  // (także po odejściu z firmy).
   const people = new Set<string>();
   const checkPerson = (
     path: (string | number)[],
@@ -536,6 +538,17 @@ function staffIssues(state: GameState): Issue[] {
     }
     people.add(entry.personId);
   };
+  // Odejścia rezerwują postać na stałe — nie może wrócić jako kandydat ani pracownik.
+  state.staff.departures.forEach((departure, index) => {
+    const path = ['staff', 'departures', index];
+    if (personById(departure.personId)?.name !== departure.name) {
+      issues.push({ path, message: `Postać ${departure.personId} niezgodna z listą` });
+    }
+    if (people.has(departure.personId)) {
+      issues.push({ path, message: `Postać ${departure.personId} występuje dwa razy` });
+    }
+    people.add(departure.personId);
+  });
   for (const [key, employee] of Object.entries(employees)) {
     checkPerson(['staff', 'employees', key], employee);
   }

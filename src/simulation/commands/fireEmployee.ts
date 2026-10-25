@@ -5,8 +5,8 @@ import { reject, type CommandHandler, type FireEmployeeCommand } from './types';
 // z przydziałem i pełną należną dniówką pokazuje interfejs; dniówka zostaje w należnościach dnia.
 export const fireEmployee: CommandHandler<FireEmployeeCommand> = {
   category: 'workDay',
-  execute(state, command, config) {
+  execute(state, command) {
     if (!state.staff.employees[command.employeeId]) return reject('unknownEmployee');
-    return { ok: true, state: removeEmployee(state, command.employeeId, 'fired', config) };
+    return { ok: true, state: removeEmployee(state, command.employeeId, 'fired') };
   },
 };

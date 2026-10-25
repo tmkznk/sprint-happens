@@ -171,7 +171,13 @@ describe('ostrzeżenie i odejście (NEED-05, EMP-08)', () => {
     const gone = run(almost, 1);
     expect(gone.staff.employees[id]).toBeUndefined();
     expect(gone.staff.departures).toEqual([
-      { employeeId: id, name: employee(state, id).name, day: 1, reason: 'quit' },
+      {
+        employeeId: id,
+        personId: employee(state, id).personId,
+        name: employee(state, id).name,
+        day: 1,
+        reason: 'quit',
+      },
     ]);
     expect(gone.world.movement.agents.some((a) => a.id === id)).toBe(false);
     expect(gone.finance.wagesDueToday[id]).toBe(employee(state, id).dailyWage);

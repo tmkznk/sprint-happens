@@ -551,5 +551,15 @@ describe('postacie z listy w zapisie', () => {
       withJsonEdit((s) => (s.staff.candidates[1].personId = s.staff.candidates[0].personId)),
       'występuje dwa razy',
     );
+    expectInvalidState(
+      withJsonEdit((s) => {
+        const { personId, name } = s.staff.candidates[0];
+        s.staff.departures = [
+          { employeeId: 'employee-1', personId, name, day: 1, reason: 'fired' },
+        ];
+        s.ids.employee = 1;
+      }),
+      'występuje dwa razy',
+    );
   });
 });

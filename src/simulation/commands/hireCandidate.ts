@@ -1,5 +1,6 @@
 import { fillMarket, MAX_ENERGY, SATISFACTION_SCALE, type Employee } from '../../domain/employees';
 import { allocateId } from '../../domain/ids';
+import type { GameState } from '../../domain/state';
 import { canHire, registerWageDue } from '../finance';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
 import { reject, type CommandHandler, type HireCandidateCommand } from './types';
@@ -34,15 +35,18 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
     };
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi kolejna osoba
-    // z listy postaci tej samej specjalizacji i seniority.
-    const employees = { ...state.staff.employees, [employee.id]: employee };
+    // z listy postaci tej samej specjalizacji i seniority (bez osób, które odeszły z firmy).
+    const employees: GameState['staff']['employees'] = {
+      ...state.staff.employees,
+      [employee.id]: employee,
+    };
     const market = fillMarket(
       {
         candidates: state.staff.candidates.filter((c) => c.id !== candidate.id),
         ids: allocated.sequence,
         rng: state.rng,
       },
-      Object.values(employees),
+      [...Object.values(employees), ...state.staff.departures],
       config.staff.dailyWage,
     );
     const hired = registerWageDue(

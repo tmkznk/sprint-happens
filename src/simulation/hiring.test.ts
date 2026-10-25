@@ -220,7 +220,7 @@ describe('rynek z listy postaci', () => {
     expect(new Set(candidates.map((c) => c.personId)).size).toBe(candidates.length);
   });
 
-  it('po zatrudnieniu całej puli miejsce jest puste; odejście przywraca osobę na rynek', () => {
+  it('po zatrudnieniu całej puli miejsce jest puste', () => {
     const engine = engineFor();
     const hired = [hireQaSenior(engine), hireQaSenior(engine), hireQaSenior(engine)];
     expect(new Set(hired.map((c) => c.personId)).size).toBe(3);
@@ -228,10 +228,19 @@ describe('rynek z listy postaci', () => {
     expect(engine.getState().staff.candidates).toHaveLength(
       SPECIALIZATIONS.length * SENIORITIES.length - 1,
     );
+  });
 
-    const leaving = Object.values(engine.getState().staff.employees)[1];
-    if (!leaving) throw new Error('brak pracownika');
-    engine.dispatch({ type: 'FireEmployee', employeeId: leaving.id });
-    expect(slot(engine.getState()).map((c) => c.personId)).toEqual([leaving.personId]);
+  it('osoba, która odeszła, nie wraca na rynek', () => {
+    const engine = engineFor();
+    const first = hireQaSenior(engine);
+    const employee = Object.values(engine.getState().staff.employees)[0];
+    if (!employee) throw new Error('brak pracownika');
+    engine.dispatch({ type: 'FireEmployee', employeeId: employee.id });
+    expect(engine.getState().staff.departures.at(-1)?.personId).toBe(first.personId);
+
+    // Zostały dwie osoby z puli: obie da się zatrudnić, potem miejsce jest puste na stałe.
+    const rest = [hireQaSenior(engine), hireQaSenior(engine)];
+    expect(rest.map((c) => c.personId)).not.toContain(first.personId);
+    expect(slot(engine.getState())).toHaveLength(0);
   });
 });
