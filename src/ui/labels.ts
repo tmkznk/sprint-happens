@@ -15,6 +15,17 @@ export const SPECIALIZATION_LABELS: Record<Specialization, string> = {
   pm: 'Project Manager',
 };
 
+// Krótkie nazwy stanowisk (filtry, pastylki).
+export const SPECIALIZATION_SHORT_LABELS: Record<Specialization, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  mobile: 'Mobile',
+  devops: 'DevOps',
+  qa: 'QA',
+  designer: 'Designer',
+  pm: 'PM',
+};
+
 export const SENIORITY_LABELS: Record<Seniority, string> = {
   junior: 'Junior',
   mid: 'Mid',
