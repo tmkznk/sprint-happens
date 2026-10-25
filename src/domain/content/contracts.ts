@@ -265,7 +265,7 @@ export const CONTRACT_TEMPLATES: readonly ContractTemplate[] = [
     level: 1,
     name: 'R.I.P. — Rezerwacje Internetowe Pogrzebów',
     description:
-      'Strona z rezerwacjami dla zakładu pogrzebowego. Wymagania spisane, makiety gotowe, budżet z zapasem. Jedyna uwaga klienta: „Bez pośpiechu, nasi klienci nigdzie się nie wybierają”.',
+      'Strona dla zakładu pogrzebowego. Przycisk „Zapisz się na zawsze” trzeba zmienić na coś mniej dosłownego, a z koszyka usunąć „Wróć”. Klient zapewnia, że reklamacji jeszcze nie było.',
     scopes: { frontend: 25, backend: 25, devops: 5 },
     design: 15,
     deadlineDays: 10,
