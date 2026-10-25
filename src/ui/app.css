@@ -1307,6 +1307,8 @@ progress::-moz-progress-bar {
 .selection-panel dl {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
+  /* Etykieta na środku wiersza — także przy wyższych listach wyboru (Projekt, Biurko). */
+  align-items: center;
   gap: 6px 16px;
   margin: 8px 0 0;
   font-size: var(--fs-body);
