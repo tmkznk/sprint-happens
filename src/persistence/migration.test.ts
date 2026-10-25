@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
+import { PEOPLE } from '../domain/content/people';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import fixture from './fixtures/save-older-format.json?raw';
 import type { ValidationContext } from './schema';
@@ -19,7 +20,8 @@ type Loose = Record<string, any>;
 // Do pierwszego wydania nie istnieje prawdziwy starszy format: fixture to zapis w wersji 1
 // sprzed zdarzeń (SH-031) i zadowolenia (SH-019), a test udaje bieżący format 2.
 // Migracja testowa 1 → 2:
-// dodaje stan zdarzeń, historię odejść i zadowolenie. Celowo modyfikuje wejście — sprawdzamy,
+// dodaje stan zdarzeń, historię odejść, zadowolenie i postacie z listy (imiona dawniej losowane).
+// Celowo modyfikuje wejście — sprawdzamy,
 // że dostaje kopię, a nie oryginał.
 const toV2: Migration = (input) => {
   const state = input as Loose;
@@ -35,6 +37,23 @@ const toV2: Migration = (input) => {
     employee.satisfaction = 70 * 60_000;
     employee.badConditionsMs = 0;
     employee.lowSatisfactionMs = 0;
+  }
+  const used = new Set<string>();
+  const people = [
+    ...(Object.values(state.staff.employees) as Loose[]),
+    ...(state.staff.candidates as Loose[]),
+  ];
+  for (const entry of people) {
+    const person = PEOPLE.find(
+      (p) =>
+        p.specialization === entry.specialization &&
+        p.seniority === entry.seniority &&
+        !used.has(p.id),
+    );
+    if (!person) throw new Error('brak postaci');
+    used.add(person.id);
+    entry.personId = person.id;
+    entry.name = person.name;
   }
   return state;
 };

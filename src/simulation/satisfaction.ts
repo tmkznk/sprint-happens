@@ -88,6 +88,6 @@ export function updateSatisfaction(state: GameState, config: BalanceConfig): Gam
   }
 
   let next: GameState = { ...state, staff: { ...state.staff, employees } };
-  for (const id of leaving) next = removeEmployee(next, id, 'quit');
+  for (const id of leaving) next = removeEmployee(next, id, 'quit', config);
   return next;
 }

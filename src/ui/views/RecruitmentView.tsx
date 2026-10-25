@@ -6,7 +6,7 @@ import {
   type Candidate,
   type Specialization,
 } from '../../domain/employees';
-import { bioFor } from '../../domain/content/bios';
+import { personById } from '../../domain/content/people';
 import { isInDebt } from '../../simulation/finance';
 import { freeDeskCount } from '../../simulation/staff';
 import { Avatar } from '../Avatar';
@@ -83,7 +83,7 @@ export function RecruitmentView() {
       <ul className="candidate-list">
         {visible.map((candidate) => (
           <li key={candidate.id}>
-            <Avatar name={candidate.name} specialization={candidate.specialization} />
+            <Avatar person={candidate} />
             <div className="candidate-info">
               <span className="candidate-name">{candidate.name}</span>
               <span className="candidate-role">
@@ -101,7 +101,7 @@ export function RecruitmentView() {
             >
               Zatrudnij
             </button>
-            <p className="bio">{bioFor(candidate)}</p>
+            <p className="bio">{personById(candidate.personId)?.bio}</p>
           </li>
         ))}
       </ul>

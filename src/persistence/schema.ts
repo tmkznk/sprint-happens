@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { EVENT_TEMPLATES } from '../domain/content/events';
+import { PEOPLE, personById } from '../domain/content/people';
 import type { BalanceConfig } from '../domain/config';
 import {
   SENIORITIES,
   MAX_ENERGY,
   MAX_SATISFACTION,
   SPECIALIZATIONS,
+  type Candidate,
   type CandidateId,
   type EmployeeId,
 } from '../domain/employees';
@@ -45,6 +47,7 @@ const candidateId = z.custom<CandidateId>(
   'Niepoprawne ID kandydata',
 );
 const person = {
+  personId: z.string().min(1),
   name: z.string().min(1),
   specialization: z.enum(SPECIALIZATIONS),
   seniority: z.enum(SENIORITIES),
@@ -505,7 +508,6 @@ function staffIssues(state: GameState): Issue[] {
     }
   }
   const candidateIds = new Set<string>();
-  const offered = new Set<string>();
   candidates.forEach((candidate, index) => {
     const path = ['staff', 'candidates', index];
     if (candidateIds.has(candidate.id)) issues.push({ path, message: 'Powtórzony kandydat' });
@@ -513,14 +515,48 @@ function staffIssues(state: GameState): Issue[] {
     if (sequenceNumber(candidate.id) > (state.ids.candidate ?? 0)) {
       issues.push({ path, message: 'ID kandydata spoza przydzielonej sekwencji' });
     }
-    offered.add(`${candidate.specialization}/${candidate.seniority}`);
   });
+  // Postacie z listy: istnieją, zgadzają się z kopią imienia i cech, nie występują dwa razy.
+  const people = new Set<string>();
+  const checkPerson = (
+    path: (string | number)[],
+    entry: Pick<Candidate, 'personId' | 'name' | 'specialization' | 'seniority'>,
+  ) => {
+    const person = personById(entry.personId);
+    if (
+      !person ||
+      person.name !== entry.name ||
+      person.specialization !== entry.specialization ||
+      person.seniority !== entry.seniority
+    ) {
+      issues.push({ path, message: `Postać ${entry.personId} niezgodna z listą` });
+    }
+    if (people.has(entry.personId)) {
+      issues.push({ path, message: `Postać ${entry.personId} występuje dwa razy` });
+    }
+    people.add(entry.personId);
+  };
+  for (const [key, employee] of Object.entries(employees)) {
+    checkPerson(['staff', 'employees', key], employee);
+  }
+  candidates.forEach((candidate, index) => checkPerson(['staff', 'candidates', index], candidate));
+  // EMP-03: po jednym kandydacie na parę; puste miejsce tylko przy wyczerpanej puli postaci.
   for (const specialization of SPECIALIZATIONS) {
     for (const seniority of SENIORITIES) {
-      if (!offered.has(`${specialization}/${seniority}`)) {
+      const slot = `${specialization}/${seniority}`;
+      const count = candidates.filter(
+        (c) => c.specialization === specialization && c.seniority === seniority,
+      ).length;
+      const free = PEOPLE.some(
+        (p) =>
+          p.specialization === specialization && p.seniority === seniority && !people.has(p.id),
+      );
+      if (count > 1) {
+        issues.push({ path: ['staff', 'candidates'], message: `Kilku kandydatów ${slot}` });
+      } else if (count === 0 && free) {
         issues.push({
           path: ['staff', 'candidates'],
-          message: `Brak kandydata ${specialization}/${seniority} (EMP-03)`,
+          message: `Brak kandydata ${slot} (EMP-03)`,
         });
       }
     }

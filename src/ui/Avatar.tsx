@@ -1,4 +1,18 @@
+import type { PersonId } from '../domain/content/people';
 import type { Specialization } from '../domain/employees';
+
+// Portrety postaci: plik `src/assets/avatars/<id postaci>.png` (lub .webp/.jpg) jest podpinany
+// automatycznie — trafia do paczki z haszem w nazwie i do cache'u offline. Bez pliku awatar
+// jest zastępczy.
+const PORTRAITS: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<string>('../assets/avatars/*.{png,webp,jpg}', {
+      eager: true,
+      query: '?url',
+      import: 'default',
+    }),
+  ).map(([path, url]) => [path.replace(/^.*\/(.+)\.\w+$/, '$1'), url]),
+);
 
 // Kolor tła zastępczego awatara według stanowiska (paleta zgodna z motywem).
 const ROLE_COLORS: Record<Specialization, { background: string; color: string }> = {
@@ -20,19 +34,16 @@ function initials(name: string): string {
     .join('');
 }
 
-// Awatar osoby. Bez `src` — zastępczy (inicjały na tle w kolorze stanowiska); po dodaniu
-// obrazków wystarczy przekazać ich adres. Dekoracyjny: imię jest obok w tekście.
+// Awatar postaci: portret albo zastępczy (inicjały na tle w kolorze stanowiska).
+// Dekoracyjny: imię jest obok w tekście.
 export function Avatar({
-  name,
-  specialization,
-  src,
+  person: { personId, name, specialization },
   size = 44,
 }: {
-  name: string;
-  specialization: Specialization;
-  src?: string;
+  person: { personId: PersonId; name: string; specialization: Specialization };
   size?: number;
 }) {
+  const src = PORTRAITS[personId];
   const style = { width: size, height: size, ...ROLE_COLORS[specialization] };
   if (src) {
     return <img className="avatar" src={src} alt="" width={size} height={size} style={style} />;

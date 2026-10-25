@@ -525,3 +525,31 @@ describe('serializeSnapshot', () => {
     });
   });
 });
+
+describe('postacie z listy w zapisie', () => {
+  it('kandydaci i zatrudnieni przetrwają zapis z ID postaci', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 5),
+    });
+    const first = engine.getState().staff.candidates[0];
+    if (first) engine.dispatch({ type: 'HireCandidate', candidateId: first.id });
+    const state = engine.getState();
+    expect(roundTrip(state)).toEqual(state);
+  });
+
+  it('odrzuca nieznaną postać, imię niezgodne z listą i tę samą postać dwa razy', () => {
+    expectInvalidState(
+      withJsonEdit((s) => (s.staff.candidates[0].personId = 'jan-nieznany')),
+      'Postać jan-nieznany niezgodna z listą',
+    );
+    expectInvalidState(
+      withJsonEdit((s) => (s.staff.candidates[0].name = 'Ktoś Inny')),
+      'niezgodna z listą',
+    );
+    expectInvalidState(
+      withJsonEdit((s) => (s.staff.candidates[1].personId = s.staff.candidates[0].personId)),
+      'występuje dwa razy',
+    );
+  });
+});

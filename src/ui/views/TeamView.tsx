@@ -3,7 +3,7 @@ import { useBalanceConfig, useGameSelector } from '../../application/engineHooks
 import { useSelect } from '../../application/selectionHooks';
 import { ENERGY_SCALE, SATISFACTION_SCALE, type Employee } from '../../domain/employees';
 import type { BalanceConfig } from '../../domain/config';
-import { bioFor } from '../../domain/content/bios';
+import { personById } from '../../domain/content/people';
 import type { GameState } from '../../domain/state';
 import { workStatus } from '../../simulation/assignments';
 import { activityOf } from '../../simulation/needs';
@@ -81,7 +81,7 @@ function TeamMember({ employee }: { employee: Employee }) {
   return (
     <li className="employee-card">
       <div className="employee-head">
-        <Avatar name={employee.name} specialization={employee.specialization} size={42} />
+        <Avatar person={employee} size={42} />
         <div className="employee-name">
           <h3>{employee.name}</h3>
           <p>
@@ -94,7 +94,7 @@ function TeamMember({ employee }: { employee: Employee }) {
           <small>/ dzień</small>
         </strong>
       </div>
-      <p className="bio">{bioFor(employee)}</p>
+      <p className="bio">{personById(employee.personId)?.bio}</p>
       <div className="needs">
         <span>
           <span className="need-label">

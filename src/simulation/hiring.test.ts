@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
+import { personById } from '../domain/content/people';
 import { SENIORITIES, SPECIALIZATIONS, type CandidateId } from '../domain/employees';
 import { createInitialState, type GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
@@ -63,6 +64,7 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
     expect(Object.values(state.staff.employees)).toEqual([
       {
         id: 'employee-1',
+        personId: candidate.personId,
         name: candidate.name,
         specialization: candidate.specialization,
         seniority: candidate.seniority,
@@ -191,5 +193,45 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
     expect(next.getState().finance.wagesDueToday).toEqual(
       Object.fromEntries(employees.map((e) => [e.id, e.dailyWage])),
     );
+  });
+});
+
+describe('rynek z listy postaci', () => {
+  const slot = (state: GameState) =>
+    state.staff.candidates.filter((c) => c.specialization === 'qa' && c.seniority === 'senior');
+  const hireQaSenior = (engine: ReturnType<typeof engineFor>) => {
+    const candidate = slot(engine.getState())[0];
+    if (!candidate) throw new Error('brak kandydata');
+    expect(engine.dispatch({ type: 'HireCandidate', candidateId: candidate.id })).toEqual({
+      ok: true,
+    });
+    return candidate;
+  };
+
+  it('kandydaci to postacie z listy, każda najwyżej raz', () => {
+    const { candidates } = createInitialState(DEFAULT_BALANCE, 7).staff;
+    for (const c of candidates) {
+      expect(personById(c.personId)).toMatchObject({
+        name: c.name,
+        specialization: c.specialization,
+        seniority: c.seniority,
+      });
+    }
+    expect(new Set(candidates.map((c) => c.personId)).size).toBe(candidates.length);
+  });
+
+  it('po zatrudnieniu całej puli miejsce jest puste; odejście przywraca osobę na rynek', () => {
+    const engine = engineFor();
+    const hired = [hireQaSenior(engine), hireQaSenior(engine), hireQaSenior(engine)];
+    expect(new Set(hired.map((c) => c.personId)).size).toBe(3);
+    expect(slot(engine.getState())).toHaveLength(0);
+    expect(engine.getState().staff.candidates).toHaveLength(
+      SPECIALIZATIONS.length * SENIORITIES.length - 1,
+    );
+
+    const leaving = Object.values(engine.getState().staff.employees)[1];
+    if (!leaving) throw new Error('brak pracownika');
+    engine.dispatch({ type: 'FireEmployee', employeeId: leaving.id });
+    expect(slot(engine.getState()).map((c) => c.personId)).toEqual([leaving.personId]);
   });
 });

@@ -1,3 +1,4 @@
+import { PEOPLE, type PersonId } from './content/people';
 import type { ProjectId } from './contracts';
 import type { FurnitureId } from './furniture';
 import { allocateId, type EntityId, type IdSequence } from './ids';
@@ -23,6 +24,8 @@ export type CandidateId = EntityId<'candidate'>;
 
 export type Candidate = {
   id: CandidateId;
+  // Postać z listy (imię, opis, awatar); imię kopiowane dla czytelności zapisu i historii odejść.
+  personId: PersonId;
   name: string;
   specialization: Specialization;
   seniority: Seniority;
@@ -32,6 +35,7 @@ export type Candidate = {
 
 export type Employee = {
   id: EmployeeId;
+  personId: PersonId;
   name: string;
   specialization: Specialization;
   seniority: Seniority;
@@ -65,87 +69,49 @@ export type Departure = {
   reason: 'fired' | 'quit';
 };
 
-// Imiona i nazwiska kandydatów — neutralne, wyłącznie kosmetyczne.
-export const FIRST_NAMES = [
-  'Ada',
-  'Bartek',
-  'Celina',
-  'Damian',
-  'Ewa',
-  'Filip',
-  'Gosia',
-  'Hubert',
-  'Iga',
-  'Jacek',
-  'Kasia',
-  'Leon',
-  'Marta',
-  'Nikodem',
-  'Ola',
-  'Piotr',
-  'Renata',
-  'Szymon',
-  'Tamara',
-  'Wiktor',
-  'Zuza',
-] as const;
-
-export const LAST_NAMES = [
-  'Bugajska',
-  'Commitowski',
-  'Deployer',
-  'Fiksiński',
-  'Gitowska',
-  'Hotfixowski',
-  'Kodowska',
-  'Lintowski',
-  'Mergowska',
-  'Pushowski',
-  'Refaktor',
-  'Sprintowska',
-  'Stackowski',
-  'Tasiemiec',
-  'Ticketowska',
-] as const;
-
 export type WageTable = Readonly<Record<Seniority, number>>;
 
-// EMP-03 (Z): nowy kandydat danej specjalizacji i seniority. Imię losuje generator z ziarnem,
-// więc rynek jest deterministyczny i odtwarzalny z zapisu (TIME-T04).
-export function generateCandidate(
-  ids: IdSequence,
-  rng: RngState,
-  specialization: Specialization,
-  seniority: Seniority,
-  wages: WageTable,
-): { candidate: Candidate; ids: IdSequence; rng: RngState } {
-  const allocated = allocateId(ids, 'candidate');
-  const first = nextRandom(rng);
-  const last = nextRandom(first.state);
-  const name = `${pick(FIRST_NAMES, first.value)} ${pick(LAST_NAMES, last.value)}`;
-  return {
-    candidate: { id: allocated.id, name, specialization, seniority, dailyWage: wages[seniority] },
-    ids: allocated.sequence,
-    rng: last.state,
-  };
-}
-
-// Rynek startowy: po jednym kandydacie dla każdej pary specjalizacja × seniority (EMP-03).
-export function generateMarket(
-  ids: IdSequence,
-  rng: RngState,
+// EMP-03 (Z): rynek ma po jednym kandydacie na każdą parę specjalizacja × seniority, w stałej
+// kolejności. Puste miejsca zajmuje losowa (z ziarnem — TIME-T04) osoba z listy postaci, która
+// nie jest zatrudniona ani już wystawiona; osoby, które odeszły z firmy, wracają do puli. Miejsce
+// zostaje puste tylko wtedy, gdy cała pula tej pary pracuje w firmie.
+export function fillMarket(
+  market: { candidates: readonly Candidate[]; ids: IdSequence; rng: RngState },
+  employed: readonly Pick<Employee, 'personId'>[],
   wages: WageTable,
 ): { candidates: Candidate[]; ids: IdSequence; rng: RngState } {
+  const taken = new Set([...market.candidates, ...employed].map((p) => p.personId));
   const candidates: Candidate[] = [];
-  let state = { ids, rng };
+  let { ids, rng } = market;
   for (const specialization of SPECIALIZATIONS) {
     for (const seniority of SENIORITIES) {
-      const next = generateCandidate(state.ids, state.rng, specialization, seniority, wages);
-      candidates.push(next.candidate);
-      state = next;
+      const offered = market.candidates.find(
+        (c) => c.specialization === specialization && c.seniority === seniority,
+      );
+      if (offered) {
+        candidates.push(offered);
+        continue;
+      }
+      const pool = PEOPLE.filter(
+        (p) => p.specialization === specialization && p.seniority === seniority && !taken.has(p.id),
+      );
+      if (pool.length === 0) continue;
+      const roll = nextRandom(rng);
+      const person = pick(pool, roll.value);
+      const allocated = allocateId(ids, 'candidate');
+      candidates.push({
+        id: allocated.id,
+        personId: person.id,
+        name: person.name,
+        specialization,
+        seniority,
+        dailyWage: wages[seniority],
+      });
+      ids = allocated.sequence;
+      rng = roll.state;
     }
   }
-  return { candidates, ...state };
+  return { candidates, ids, rng };
 }
 
 function pick<T>(items: readonly T[], value: number): T {

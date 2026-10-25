@@ -2,7 +2,7 @@ import type { BalanceConfig } from './config';
 import { fillBoard } from './contractBoard';
 import type { Offer, Project, ProjectId } from './contracts';
 import {
-  generateMarket,
+  fillMarket,
   type Candidate,
   type Departure,
   type Employee,
@@ -113,7 +113,11 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
     furniture[allocated.id] = { ...placement, id: allocated.id };
   }
 
-  const market = generateMarket(ids, seedRng(seed), config.staff.dailyWage);
+  const market = fillMarket(
+    { candidates: [], ids, rng: seedRng(seed) },
+    [],
+    config.staff.dailyWage,
+  );
   const board = fillBoard({ offers: [], ids: market.ids, rng: market.rng }, 0, config, {
     guaranteeStarter: true,
   });

@@ -266,7 +266,7 @@ function AssignedRow({
   team,
 }: {
   project: ReadonlyProject;
-  team: readonly Pick<Employee, 'id' | 'name' | 'specialization'>[];
+  team: readonly Pick<Employee, 'id' | 'personId' | 'name' | 'specialization'>[];
 }) {
   const { open } = useNavigation();
   const missing = missingRoles(project, team);
@@ -278,12 +278,7 @@ function AssignedRow({
           aria-label={`Zespół: ${team.map((e) => e.name).join(', ')}`}
         >
           {team.map((member) => (
-            <Avatar
-              key={member.id}
-              name={member.name}
-              specialization={member.specialization}
-              size={26}
-            />
+            <Avatar key={member.id} person={member} size={26} />
           ))}
         </span>
       )}

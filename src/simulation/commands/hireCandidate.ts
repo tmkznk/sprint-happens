@@ -1,9 +1,4 @@
-import {
-  generateCandidate,
-  MAX_ENERGY,
-  SATISFACTION_SCALE,
-  type Employee,
-} from '../../domain/employees';
+import { fillMarket, MAX_ENERGY, SATISFACTION_SCALE, type Employee } from '../../domain/employees';
 import { allocateId } from '../../domain/ids';
 import { canHire, registerWageDue } from '../finance';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
@@ -23,6 +18,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
     const allocated = allocateId(state.ids, 'employee');
     const employee: Employee = {
       id: allocated.id,
+      personId: candidate.personId,
       name: candidate.name,
       specialization: candidate.specialization,
       seniority: candidate.seniority,
@@ -37,12 +33,16 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       lowSatisfactionMs: 0,
     };
 
-    // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi nowy kandydat.
-    const replacement = generateCandidate(
-      allocated.sequence,
-      state.rng,
-      candidate.specialization,
-      candidate.seniority,
+    // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi kolejna osoba
+    // z listy postaci tej samej specjalizacji i seniority.
+    const employees = { ...state.staff.employees, [employee.id]: employee };
+    const market = fillMarket(
+      {
+        candidates: state.staff.candidates.filter((c) => c.id !== candidate.id),
+        ids: allocated.sequence,
+        rng: state.rng,
+      },
+      Object.values(employees),
       config.staff.dailyWage,
     );
     const hired = registerWageDue(
@@ -50,13 +50,11 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
         ...state,
         staff: {
           ...state.staff,
-          employees: { ...state.staff.employees, [employee.id]: employee },
-          candidates: state.staff.candidates.map((c) =>
-            c.id === candidate.id ? replacement.candidate : c,
-          ),
+          employees,
+          candidates: market.candidates,
         },
-        ids: replacement.ids,
-        rng: replacement.rng,
+        ids: market.ids,
+        rng: market.rng,
       },
       employee.id,
       employee.dailyWage,
