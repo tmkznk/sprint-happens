@@ -1371,15 +1371,18 @@ progress::-moz-progress-bar {
   z-index: 40;
   display: grid;
   place-items: center;
-  padding: 16px;
+  /* Poziomo jak treść strony (--pad-page) — na telefonie okno ma szerokość karty biura. */
+  padding: 16px var(--pad-page);
   background: rgb(24 56 46 / 35%);
 }
 
+/* border-box: szerokość 100% obejmuje padding okna — okno nie wystaje poza ekran. */
 .modal {
+  box-sizing: border-box;
   width: min(460px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: 100%;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow);
   overflow-y: auto;
