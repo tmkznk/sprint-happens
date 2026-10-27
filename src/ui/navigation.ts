@@ -5,7 +5,12 @@ import { createContext, use } from 'react';
 // odmontowywana przy przełączaniu (T:VIEW-05).
 export type Tab = 'office' | 'projects' | 'team' | 'recruit' | 'furnish' | 'finance' | 'goals';
 
-export type Navigation = { tab: Tab; open(tab: Tab): void };
+export type Navigation = {
+  tab: Tab;
+  open(tab: Tab): void;
+  // Krótki komunikat (toast) nad nawigacją, np. warunek dostępu w prologu.
+  notify(message: string): void;
+};
 
 // Nowa gra: właściwa misja albo prolog (samouczek).
 export type MissionKind = 'mission' | 'prologue';

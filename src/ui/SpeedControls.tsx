@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit } from '../application/furnitureEditHooks';
 import { SPEEDS, type Speed } from '../domain/state';
+import { useNavigation } from './navigation';
 import { LOCKS } from './prologue/copy';
 import { spotlight, useGuide } from './prologue/hooks';
 import { REJECTION_MESSAGES } from './rejectionMessages';
@@ -24,11 +25,17 @@ export function SpeedControls() {
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
   const resume = useGuide()?.kind === 'resume';
+  const { notify } = useNavigation();
 
   function select(next: Speed) {
     const result = dispatch({ type: 'SetSpeed', speed: next });
     const code = result.ok ? null : result.rejection.code;
-    setMessage(code === 'prologueLocked' ? LOCKS.speed : code ? REJECTION_MESSAGES[code] : null);
+    // Prolog: warunek w toaście nad nawigacją, nie w pasku tempa (nie rozpycha karty dnia).
+    if (code === 'prologueLocked') {
+      notify(LOCKS.speed);
+      return;
+    }
+    setMessage(code ? REJECTION_MESSAGES[code] : null);
   }
 
   return (

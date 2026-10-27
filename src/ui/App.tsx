@@ -76,6 +76,7 @@ export function App({
         setNotice(lock);
         if (!lock) setTab(next);
       },
+      notify: setNotice,
     }),
     [tab, engine],
   );
