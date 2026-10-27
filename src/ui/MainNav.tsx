@@ -26,7 +26,8 @@ export function MainNav() {
       .join(','),
   ).split(',');
   const target = navTarget(useGuide(), tab);
-  // Na telefonie „Cel misji” jest w nawigacji tylko w prologu (bieżące zadanie samouczka).
+  // Na telefonie „Cel misji” jest w nawigacji tylko w prologu (bieżące zadanie samouczka);
+  // w zamian w prologu nie ma tam Finansów (mniej ikon w dolnym pasku).
   const prologue = useGameSelector((state) => state.prologue !== null);
   return (
     <nav className="main-nav" aria-label="Nawigacja">
@@ -41,6 +42,7 @@ export function MainNav() {
                 item.className,
                 isLocked ? 'nav-locked' : undefined,
                 prologue && item.tab === 'goals' ? 'nav-prologue' : undefined,
+                prologue && item.tab === 'finance' ? 'nav-prologue-hidden' : undefined,
               ]
                 .filter(Boolean)
                 .join(' ') || undefined,

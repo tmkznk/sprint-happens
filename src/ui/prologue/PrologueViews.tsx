@@ -10,7 +10,8 @@ import { FINALE, GOALS, STEP_COPY } from './copy';
 import { usePrologueStep } from './hooks';
 
 // Komunikat etapu prologu w formie karty „Kawa jest. Brakuje tylko zespołu.”: pokazuje się sam
-// na początku etapu; po zamknięciu bieżące zadanie jest dostępne w „Cel misji”.
+// na początku etapu; po zamknięciu bieżące zadanie jest dostępne w „Cel misji”. Bez przycisku —
+// miejsce, w które trzeba dotknąć, wskazuje pulsująca obwódka.
 export function PrologueCard() {
   const step = usePrologueStep();
   const selection = useSelection();
@@ -26,7 +27,7 @@ export function PrologueCard() {
         <Coffee size={22} />
       </span>
       <div>
-        <StepContent step={step} onAction={() => setClosed(step)} />
+        <StepContent step={step} />
       </div>
       <button
         type="button"
@@ -40,13 +41,14 @@ export function PrologueCard() {
   );
 }
 
-// Tytuł, tekst fabularny, zadanie i przycisk do panelu, w którym gracz sam wykonuje czynność.
+// Tytuł, tekst fabularny i zadanie; opcjonalnie przycisk do panelu, w którym gracz sam wykonuje
+// czynność.
 function StepContent({
   step,
-  onAction,
+  withAction = false,
 }: {
   step: Exclude<PrologueStep, 'finished'>;
-  onAction?(): void;
+  withAction?: boolean;
 }) {
   const { open } = useNavigation();
   const copy = STEP_COPY[step];
@@ -59,18 +61,13 @@ function StepContent({
       <p className="prologue-task">
         <Flag size={14} aria-hidden="true" /> {copy.task}
       </p>
-      <div className="intro-actions">
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => {
-            onAction?.();
-            open(copy.action.tab);
-          }}
-        >
-          {copy.action.label} <ArrowUpRight size={16} />
-        </button>
-      </div>
+      {withAction && (
+        <div className="intro-actions">
+          <button type="button" className="primary-button" onClick={() => open(copy.action.tab)}>
+            {copy.action.label} <ArrowUpRight size={16} />
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -107,7 +104,7 @@ export function PrologueGoalsView({ onSkip }: { onSkip(): void }) {
       {step !== 'finished' && (
         <section className="card prologue-step">
           <p className="kicker">Prolog · JanuszSoft</p>
-          <StepContent step={step} />
+          <StepContent step={step} withAction />
         </section>
       )}
       <section className="card">

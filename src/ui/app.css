@@ -544,24 +544,24 @@ h4 {
 
 .prologue-close {
   position: absolute;
-  top: 6px;
+  /* Środek przycisku (40 px — cel dotyku) na wysokości linii tytułu; odstęp karty jest różny
+     na telefonie i desktopie. */
+  top: calc(var(--pad-card) + 9px - 20px);
   right: 6px;
-  width: 28px;
-  height: 28px;
 }
 
 .prologue-task {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin: 8px 0 10px;
+  margin: 8px 0 0;
   color: var(--ink);
   font-size: var(--fs-small);
   font-weight: 650;
 }
 
 .prologue-card .prologue-task {
-  margin-bottom: 10px;
+  margin-bottom: 0;
   color: var(--ink);
 }
 
@@ -653,6 +653,10 @@ h4 {
   display: flex;
 }
 
+.main-nav .nav-prologue-hidden {
+  display: none;
+}
+
 /* Zablokowana zakładka: widoczna, ale wyciszona; dotknięcie pokazuje warunek dostępu. */
 .main-nav button.nav-locked {
   opacity: 0.55;
@@ -678,26 +682,28 @@ h4 {
 .spotlight {
   position: relative;
   z-index: 1;
+  /* Obwódka i puls wewnątrz obrysu elementu — nic nie wychodzi poza jego krawędź. */
   outline: 2px solid var(--yellow);
-  outline-offset: 2px;
-  animation: spotlight-pulse 1.6s ease-out infinite;
+  outline-offset: -2px;
+  animation: spotlight-pulse 0.9s ease-in-out infinite alternate;
 }
 
+/* Poświata rozmyta (nie samo rozszerzenie cienia) — miękka, z zaokrąglonymi rogami; narasta
+   i zanika równomiernie (animacja w obie strony). */
 @keyframes spotlight-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgb(239 190 89 / 75%);
+  from {
+    box-shadow: inset 0 0 6px 0 rgb(239 190 89 / 15%);
   }
 
-  70%,
-  100% {
-    box-shadow: 0 0 0 9px rgb(239 190 89 / 0%);
+  to {
+    box-shadow: inset 0 0 14px 4px rgb(239 190 89 / 85%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .spotlight {
     animation: none;
-    box-shadow: 0 0 0 4px rgb(239 190 89 / 45%);
+    box-shadow: inset 0 0 8px 2px rgb(239 190 89 / 45%);
   }
 }
 
@@ -2127,6 +2133,11 @@ progress::-moz-progress-bar {
   .main-nav .nav-goals {
     display: flex;
     margin-top: auto;
+  }
+
+  /* Na desktopie Finanse są w kolumnie nawigacji także w prologu. */
+  .main-nav .nav-prologue-hidden {
+    display: flex;
   }
 
   .office-main {
