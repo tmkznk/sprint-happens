@@ -58,11 +58,10 @@ export const PROLOGUE_CLIENT = 'Mirek — usługi remontowe';
 // i pensję pomocnika przy obecnych kosztach gry (sprawdza test silnika).
 export const PROLOGUE_STARTING_CASH = 3_000;
 
-// Małe biuro prologu (PROLOGUE_LAYOUT): jedno stanowisko, ekspres, kanapa i roślina; wolne
-// miejsce tylko na drugie stanowisko obok pierwszego.
+// Małe biuro prologu (PROLOGUE_LAYOUT): stanowisko Janusza, ekspres w prawym narożniku i roślina
+// w lewym; wolne miejsce tylko na drugie stanowisko. Bez kanapy — odpoczynek przy ekspresie.
 export const PROLOGUE_FURNITURE: readonly Omit<Furniture, 'id'>[] = [
   { type: 'desk', origin: { x: 1, y: 1 }, rotation: 0 },
-  { type: 'coffeeMachine', origin: { x: 6, y: 3 }, rotation: 0 },
-  { type: 'sofa', origin: { x: 2, y: 4 }, rotation: 0 },
-  { type: 'plant', origin: { x: 6, y: 6 }, rotation: 0 },
+  { type: 'coffeeMachine', origin: { x: 6, y: 1 }, rotation: 0 },
+  { type: 'plant', origin: { x: 1, y: 5 }, rotation: 0 },
 ];

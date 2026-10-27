@@ -50,7 +50,7 @@ export function FurnishView() {
   const choose = (furnitureType: FurnitureType) => {
     if (speed !== 0) dispatch({ type: 'SetSpeed', speed: 0 });
     clearSelection();
-    edit.set({ mode: 'buy', furnitureType, origin: placementStart, rotation: 0 });
+    edit.set({ mode: 'buy', furnitureType, ...placementStart });
     open('office');
   };
 

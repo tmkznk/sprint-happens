@@ -174,7 +174,8 @@ describe('prolog', () => {
       origin: { x, y },
       rotation,
     });
-    const second = desk(90, PROLOGUE_LAYOUT.placementStart.x, PROLOGUE_LAYOUT.placementStart.y, 0);
+    const { origin, rotation } = PROLOGUE_LAYOUT.placementStart;
+    const second = desk(90, origin.x, origin.y, rotation);
     expect(validateCandidate(state, second)).toBeNull();
 
     // Z drugim stanowiskiem trzecie nie zmieści się nigdzie.

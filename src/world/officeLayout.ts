@@ -1,3 +1,4 @@
+import type { Rotation } from '../domain/furniture';
 import type { GridPoint, Size } from '../domain/grid';
 
 export type Rect = GridPoint & Size;
@@ -14,8 +15,8 @@ export type OfficeLayout = {
   doors: readonly Door[];
   // Okna leżą na polach ścian; obecnie dekoracyjne (OFF-08).
   windows: readonly GridPoint[];
-  // Pole, od którego zaczyna się ustawianie kupionego mebla (tryb „Urządź”).
-  placementStart: GridPoint;
+  // Ustawienie, od którego zaczyna się stawianie kupionego mebla (tryb „Urządź”).
+  placementStart: { origin: GridPoint; rotation: Rotation };
 };
 
 export type CellKind = 'floor' | 'wall' | 'door';
@@ -43,21 +44,20 @@ export const OFFICE_LAYOUT: OfficeLayout = {
     { x: 0, y: 4 },
     { x: 0, y: 9 },
   ],
-  placementStart: { x: 4, y: 8 },
+  placementStart: { origin: { x: 4, y: 8 }, rotation: 0 },
 };
 
-// Prolog: małe biuro w jednym pokoju — miejsce na dwa stanowiska, kanapę, ekspres i roślinę.
+// Prolog: małe biuro w jednym pokoju — miejsce tylko na dwa stanowiska, ekspres i roślinę.
 export const PROLOGUE_LAYOUT: OfficeLayout = {
-  size: { width: 8, height: 8 },
-  rooms: [{ id: 'main', bounds: { x: 1, y: 1, width: 6, height: 6 } }],
-  doors: [{ position: { x: 3, y: 7 }, isEntrance: true }],
+  size: { width: 8, height: 7 },
+  rooms: [{ id: 'main', bounds: { x: 1, y: 1, width: 6, height: 5 } }],
+  doors: [{ position: { x: 3, y: 6 }, isEntrance: true }],
   windows: [
     { x: 2, y: 0 },
-    { x: 5, y: 0 },
-    { x: 0, y: 4 },
+    { x: 0, y: 3 },
   ],
-  // Wolne miejsce na drugie stanowisko, obok pierwszego.
-  placementStart: { x: 4, y: 1 },
+  // Jedyne wolne miejsce na drugie stanowisko: pod prawą ścianą, przodem do pokoju.
+  placementStart: { origin: { x: 5, y: 3 }, rotation: 90 },
 };
 
 // Układ biura misji: w prologu małe biuro, we właściwej misji — pełne.
