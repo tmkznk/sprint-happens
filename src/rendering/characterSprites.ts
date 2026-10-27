@@ -86,6 +86,8 @@ export type CharacterSprite = {
   personId: PersonId;
   ready: boolean;
   facing: Facing;
+  // Narysowany znacznik pod stopami — Graphics przerysowujemy tylko przy jego zmianie.
+  ringKey: string;
   destroy(): void;
 };
 
@@ -102,6 +104,7 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
     personId,
     ready: false,
     facing: 'px',
+    ringKey: '',
     destroy() {
       body.destroy();
       ring.destroy();
@@ -133,10 +136,14 @@ export function placeCharacterSprite(
   }
 
   // Znacznik pod stopami: zaznaczenie albo problem z ruchem (brak drogi, blokada).
-  sprite.ring.clear();
-  if (WARNING_STATUSES.includes(status)) {
-    sprite.ring.fillStyle(0xff3b3b, 0.55).fillEllipse(0, 0, 30, 13);
+  const warning = WARNING_STATUSES.includes(status);
+  const ringKey = `${String(warning)}|${String(selected)}`;
+  if (ringKey !== sprite.ringKey) {
+    sprite.ringKey = ringKey;
+    sprite.ring.clear();
+    if (warning) sprite.ring.fillStyle(0xff3b3b, 0.55).fillEllipse(0, 0, 30, 13);
+    if (selected) sprite.ring.lineStyle(3, SELECTION_COLOR, 1).strokeEllipse(0, 0, 34, 16);
   }
-  if (selected) sprite.ring.lineStyle(3, SELECTION_COLOR, 1).strokeEllipse(0, 0, 34, 16);
+  sprite.ring.setVisible(warning || selected);
   sprite.ring.setPosition(screen.x, screen.y).setDepth(pose.depth - 0.001);
 }

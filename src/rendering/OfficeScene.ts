@@ -21,6 +21,7 @@ import {
   placeCharacterSprite,
   type CharacterSprite,
 } from './characterSprites';
+import { bakePieces, type BakedPiece } from './bake';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import {
@@ -121,8 +122,8 @@ export class OfficeScene extends Phaser.Scene {
     for (const [key] of FURNITURE_TEXTURES) {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
-    this.drawFloor();
-    this.drawWalls();
+    // Podłoga i ściany się nie zmieniają — rysowane raz do tekstury, nie w każdej klatce.
+    bakePieces(this, 'office-static', [floorPiece(), ...wallPieces()]);
     this.syncFurniture();
     const unsubscribeEngine = this.engine.subscribe(() => this.syncFurniture());
     const unsubscribeSelection = this.selection.subscribe(() => this.syncFurniture());
@@ -235,57 +236,6 @@ export class OfficeScene extends Phaser.Scene {
     this.agentPoses = poses;
   }
 
-  private drawFloor(): void {
-    const graphics = this.add.graphics().setDepth(FLOOR_DEPTH);
-    const { width, height } = OFFICE_LAYOUT.size;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const cell = { x, y };
-        const kind = cellKindAt(OFFICE_LAYOUT, cell);
-        if (kind !== 'floor') continue;
-        const room = roomAt(OFFICE_LAYOUT, cell);
-        const color = room ? FLOOR_COLORS[room.id] : DOOR_COLOR;
-        const corners = rectCorners({ ...cell, width: 1, height: 1 });
-        fillPolygon(graphics, color, corners);
-        graphics.lineStyle(1, shade(color, 0.8), 1);
-        graphics.strokePoints(toVectors(corners), true);
-      }
-    }
-    // Pola ścian i drzwi: podłoga przyległych pokojów aż do cienkiej tafli; w drzwiach próg.
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        for (const { rect, room } of wallFloorQuarters(OFFICE_LAYOUT, { x, y })) {
-          fillPolygon(graphics, FLOOR_COLORS[room.id], rectCorners(rect));
-        }
-        const threshold = doorThreshold(OFFICE_LAYOUT, { x, y });
-        if (threshold) fillPolygon(graphics, DOOR_COLOR, rectCorners(threshold));
-      }
-    }
-  }
-
-  private drawWalls(): void {
-    const { width, height } = OFFICE_LAYOUT.size;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (cellKindAt(OFFICE_LAYOUT, { x, y }) !== 'wall') continue;
-        for (const { rect, axis, back } of wallBands(OFFICE_LAYOUT, { x, y })) {
-          // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
-          const wallHeight = back ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
-          const graphics = this.add.graphics().setDepth(depthOfFootprint(rect, rect));
-          drawPrism(graphics, rect, wallHeight, WALL_COLOR);
-          // Okno (dwa pola) rysowane częściami razem z taflą pola, na którym leży — ta sama
-          // głębokość co ściana, więc postać przy ścianie zawsze jest przed oknem.
-          if (back) {
-            for (const span of windowSpans()) {
-              const part = spanPart(span, { x, y }, axis);
-              if (part) drawWindow(graphics, span.rect, BACK_WALL_HEIGHT, span.axis, part);
-            }
-          }
-        }
-      }
-    }
-  }
-
   private syncFurniture(): void {
     const state = this.engine.getState();
     const { furniture: allFurniture } = state.world;
@@ -386,6 +336,83 @@ export class OfficeScene extends Phaser.Scene {
     actor.fillStyle(0xf5d6b4, 1).fillCircle(0, -ACTOR_HEIGHT + 7, 7);
     this.actor = actor;
   }
+}
+
+function floorPiece(): BakedPiece {
+  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...OFFICE_LAYOUT.size });
+  return {
+    bounds: {
+      left: left?.x ?? 0,
+      right: right?.x ?? 0,
+      top: (top?.y ?? 0) - 1,
+      bottom: (bottom?.y ?? 0) + 1,
+    },
+    depth: FLOOR_DEPTH,
+    draw: drawFloor,
+  };
+}
+
+function drawFloor(graphics: Phaser.GameObjects.Graphics): void {
+  const { width, height } = OFFICE_LAYOUT.size;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const cell = { x, y };
+      const kind = cellKindAt(OFFICE_LAYOUT, cell);
+      if (kind !== 'floor') continue;
+      const room = roomAt(OFFICE_LAYOUT, cell);
+      const color = room ? FLOOR_COLORS[room.id] : DOOR_COLOR;
+      const corners = rectCorners({ ...cell, width: 1, height: 1 });
+      fillPolygon(graphics, color, corners);
+      graphics.lineStyle(1, shade(color, 0.8), 1);
+      graphics.strokePoints(toVectors(corners), true);
+    }
+  }
+  // Pola ścian i drzwi: podłoga przyległych pokojów aż do cienkiej tafli; w drzwiach próg.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      for (const { rect, room } of wallFloorQuarters(OFFICE_LAYOUT, { x, y })) {
+        fillPolygon(graphics, FLOOR_COLORS[room.id], rectCorners(rect));
+      }
+      const threshold = doorThreshold(OFFICE_LAYOUT, { x, y });
+      if (threshold) fillPolygon(graphics, DOOR_COLOR, rectCorners(threshold));
+    }
+  }
+}
+
+// Każda tafla ściany osobno, z własną głębokością — postać może stać przed nią albo za nią.
+function wallPieces(): BakedPiece[] {
+  const pieces: BakedPiece[] = [];
+  const { width, height } = OFFICE_LAYOUT.size;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (cellKindAt(OFFICE_LAYOUT, { x, y }) !== 'wall') continue;
+      for (const { rect, axis, back } of wallBands(OFFICE_LAYOUT, { x, y })) {
+        // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
+        const wallHeight = back ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
+        const [top, right, bottom, left] = rectCorners(rect);
+        pieces.push({
+          bounds: {
+            left: (left?.x ?? 0) - 1,
+            right: (right?.x ?? 0) + 1,
+            top: (top?.y ?? 0) - wallHeight - 1,
+            bottom: (bottom?.y ?? 0) + 1,
+          },
+          depth: depthOfFootprint(rect, rect),
+          draw(graphics) {
+            drawPrism(graphics, rect, wallHeight, WALL_COLOR);
+            // Okno (dwa pola) rysowane częściami razem z taflą pola, na którym leży — ta sama
+            // głębokość co ściana, więc postać przy ścianie zawsze jest przed oknem.
+            if (!back) return;
+            for (const span of windowSpans()) {
+              const part = spanPart(span, { x, y }, axis);
+              if (part) drawWindow(graphics, span.rect, BACK_WALL_HEIGHT, span.axis, part);
+            }
+          },
+        });
+      }
+    }
+  }
+  return pieces;
 }
 
 // Granice biura na ekranie świata, łącznie z wysokością tylnych ścian.
