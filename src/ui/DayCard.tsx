@@ -7,10 +7,13 @@ import { SpeedControls } from './SpeedControls';
 // (TIME-08: przycisk tylko w fazie końca pracy; silnik pilnuje tego niezależnie).
 export function DayCard() {
   const day = useGameSelector((state) => state.mission.day);
-  const timeInDayMs = useGameSelector((state) => state.mission.timeInDayMs);
+  // Wartości wyświetlane, nie surowy czas — karta odświeża się raz na minutę gry, nie co krok.
+  const clock = useGameSelector((state) => clockLabel(state.mission.timeInDayMs));
+  const progress = useGameSelector((state) =>
+    Math.floor((state.mission.timeInDayMs / DAY_LENGTH_MS) * 100),
+  );
   const phase = useGameSelector((state) => state.mission.phase);
   const dispatch = useDispatch();
-  const progress = Math.floor((timeInDayMs / DAY_LENGTH_MS) * 100);
 
   return (
     <section className="day-card" aria-label="Dzień pracy">
@@ -18,7 +21,7 @@ export function DayCard() {
       <div className="day-info">
         <strong>Dzień {day}</strong>
         <span>
-          {clockLabel(timeInDayMs)} · {phase === 'working' ? 'Dzień pracy' : 'Koniec pracy'}
+          {clock} · {phase === 'working' ? 'Dzień pracy' : 'Koniec pracy'}
         </span>
       </div>
       <div className="day-progress">

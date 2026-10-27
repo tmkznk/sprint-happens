@@ -8,8 +8,26 @@ import { useNavigation } from './navigation';
 // Desktop (SH-033, wzór SH2): „Plan na dzisiaj” — cele misji, projekty w toku, rekrutacja.
 export function PlanAside() {
   const { open } = useNavigation();
-  const projects = useGameSelector((state) => state.contracts.projects);
-  const active = Object.values(projects).filter((p) => p.status === 'active');
+  // Klucz z widocznych wartości — mapa projektów zmienia się w każdym kroku (T:VIEW-02).
+  const activeKey = useGameSelector((state) =>
+    Object.values(state.contracts.projects)
+      .filter((p) => p.status === 'active')
+      .map((project) => {
+        const scopes = TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined);
+        const done = Math.floor(
+          scopes.reduce((sum, s) => sum + progressPercent(project, s), 0) /
+            Math.max(1, scopes.length),
+        );
+        return `${project.id}\t${done}\t${project.name}`;
+      })
+      .join('\n'),
+  );
+  const active = activeKey
+    ? activeKey.split('\n').map((line) => {
+        const [id = '', done = '0', name = ''] = line.split('\t');
+        return { id, name, done: Number(done) };
+      })
+    : [];
 
   return (
     <aside className="plan" aria-label="Plan na dzisiaj">
@@ -44,24 +62,17 @@ export function PlanAside() {
           </div>
         ) : (
           <ul className="goal-list">
-            {active.map((project) => {
-              const scopes = TECH_SPECIALIZATIONS.filter((s) => project.scopes[s] !== undefined);
-              const done = Math.floor(
-                scopes.reduce((sum, s) => sum + progressPercent(project, s), 0) /
-                  Math.max(1, scopes.length),
-              );
-              return (
-                <li key={project.id}>
-                  <div>
-                    <span>{project.name}</span>
-                    <strong>{done}%</strong>
-                  </div>
-                  <span className="bar">
-                    <span style={{ width: `${done}%` }} />
-                  </span>
-                </li>
-              );
-            })}
+            {active.map((project) => (
+              <li key={project.id}>
+                <div>
+                  <span>{project.name}</span>
+                  <strong>{project.done}%</strong>
+                </div>
+                <span className="bar">
+                  <span style={{ width: `${project.done}%` }} />
+                </span>
+              </li>
+            ))}
           </ul>
         )}
       </section>

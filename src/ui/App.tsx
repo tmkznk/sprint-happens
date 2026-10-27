@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type * as Phaser from 'phaser';
 import { EngineContext } from '../application/engineHooks';
 import { browserEnvironment, startGameLoop, type FrameClock } from '../application/gameLoop';
 import { attachAutosave, type SaveManager } from '../application/saveManager';
@@ -11,6 +12,7 @@ import type { Engine } from '../simulation/engine';
 import { DayReportDialog } from './DayReportDialog';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
+import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
 import { NavigationContext, type Navigation, type Tab } from './navigation';
 import { OfficeView } from './OfficeView';
 import { PlanAside } from './PlanAside';
@@ -53,6 +55,11 @@ export function App({
   const [tab, setTab] = useState<Tab>('office');
   const navigation = useMemo<Navigation>(() => ({ tab, open: setTab }), [tab]);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Phaser.Game | null>(null);
+  // Na telefonie panel zarządzania jest pełnoekranowy i zasłania biuro.
+  const sceneCovered = useMediaQuery(PHONE_LAYOUT) && tab !== 'office';
+  // „Plan na dzisiaj” jest widoczny tylko na szerokim ekranie — gdzie indziej się nie renderuje.
+  const wide = useMediaQuery(WIDE_LAYOUT);
 
   useEffect(() => startGameLoop(engine, browserEnvironment, frameClock), [engine, frameClock]);
 
@@ -65,8 +72,21 @@ export function App({
     if (!sceneRef.current) return;
     const presentation = { selection, edit, frameClock };
     const game = createOfficeGame(sceneRef.current, engine, presentation, { occlusionTest });
-    return () => game.destroy(true);
+    gameRef.current = game;
+    return () => {
+      gameRef.current = null;
+      game.destroy(true);
+    };
   }, [engine, selection, edit, frameClock]);
+
+  // Zasłonięta scena nie rysuje klatek (oszczędność baterii); symulacja biegnie dalej we własnej
+  // pętli, a po odsłonięciu scena od razu pokazuje bieżący stan.
+  useEffect(() => {
+    const game = gameRef.current;
+    if (!game) return;
+    if (sceneCovered) game.loop.sleep();
+    else game.loop.wake();
+  }, [sceneCovered]);
 
   const sheet = tab === 'office' ? null : SHEETS[tab];
 
@@ -79,7 +99,7 @@ export function App({
               <TopBar manager={saveManager} onNewGame={onNewGame} />
               <MainNav />
               <OfficeView sceneRef={sceneRef} engine={engine} manager={saveManager} />
-              <PlanAside />
+              {wide && <PlanAside />}
               {sheet && (
                 <Sheet title={sheet.title} onClose={() => setTab('office')}>
                   {sheet.view()}

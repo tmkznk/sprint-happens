@@ -20,7 +20,8 @@ export function FireEmployeeButton({
   const selection = useSelection();
   const clearSelection = useClearSelection();
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
-  const employee = useGameSelector((state) => state.staff.employees[employeeId]);
+  // Samo imię — obiekt pracownika zmienia się w każdym kroku (energia, zadowolenie).
+  const name = useGameSelector((state) => state.staff.employees[employeeId]?.name);
   const projectName = useGameSelector((state) => {
     const projectId = state.staff.employees[employeeId]?.projectId;
     return projectId ? (state.contracts.projects[projectId]?.name ?? null) : null;
@@ -28,7 +29,7 @@ export function FireEmployeeButton({
   const wageDue = useGameSelector((state) => state.finance.wagesDueToday[employeeId] ?? 0);
   const [asking, setAsking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  if (!employee) return null;
+  if (name === undefined) return null;
 
   const fire = () => {
     setAsking(false);
@@ -47,7 +48,7 @@ export function FireEmployeeButton({
         type="button"
         className={variant === 'icon' ? 'secondary-button icon-only' : 'secondary-button'}
         disabled={!isWorking}
-        aria-label={variant === 'icon' ? `Zwolnij: ${employee.name}` : undefined}
+        aria-label={variant === 'icon' ? `Zwolnij: ${name}` : undefined}
         title={variant === 'icon' ? 'Zwolnij' : undefined}
         onClick={() => setAsking(true)}
       >
@@ -56,7 +57,7 @@ export function FireEmployeeButton({
       {message && <span className="warning">{message}</span>}
       {asking && (
         <ConfirmDialog
-          title={`Zwolnić: ${employee.name}?`}
+          title={`Zwolnić: ${name}?`}
           message={`Przydział: ${projectName ?? 'brak'}. Za dziś należy się pełna dniówka ${money.format(
             wageDue,
           )} zł — zostanie pobrana w rozliczeniu. Bez odpraw; wykonana praca zostaje w projekcie.`}

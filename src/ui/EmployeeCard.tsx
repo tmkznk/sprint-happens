@@ -3,12 +3,7 @@ import type { ReactNode } from 'react';
 import { useBalanceConfig, useGameSelector } from '../application/engineHooks';
 import type { BalanceConfig } from '../domain/config';
 import { personById } from '../domain/content/people';
-import {
-  ENERGY_SCALE,
-  SATISFACTION_SCALE,
-  type Employee,
-  type EmployeeId,
-} from '../domain/employees';
+import type { Employee, EmployeeId } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { workStatus } from '../simulation/assignments';
 import { activityOf } from '../simulation/needs';
@@ -16,6 +11,7 @@ import { isTesting } from '../simulation/qa';
 import { isUnhappy } from '../simulation/satisfaction';
 import { isWorking } from '../simulation/work';
 import { Avatar } from './Avatar';
+import { energyPercent, satisfactionPercent } from './employeeDisplay';
 import {
   ACTIVITY_LABELS,
   money,
@@ -52,8 +48,8 @@ export function EmployeeBio({ employee }: { employee: Employee }) {
 
 // NEED-01, NEED-03: energia i zadowolenie obok siebie.
 export function EmployeeNeeds({ employee }: { employee: Employee }) {
-  const energy = Math.round(employee.energy / ENERGY_SCALE);
-  const satisfaction = Math.round(employee.satisfaction / SATISFACTION_SCALE);
+  const energy = energyPercent(employee);
+  const satisfaction = satisfactionPercent(employee);
   return (
     <div className="needs">
       <span>

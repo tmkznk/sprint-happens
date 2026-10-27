@@ -13,11 +13,22 @@ export function ProjectSelect({
   employeeId: EmployeeId;
   projectId: ProjectId | null;
 }) {
-  const projects = useGameSelector((state) => state.contracts.projects);
+  // Klucz zamiast mapy projektów — postęp prac zmienia ją w każdym kroku (T:VIEW-02).
+  const activeKey = useGameSelector((state) =>
+    Object.values(state.contracts.projects)
+      .filter((project) => project.status === 'active')
+      .map((project) => `${project.id}\t${project.name}`)
+      .join('\n'),
+  );
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
-  const active = Object.values(projects).filter((project) => project.status === 'active');
+  const active = activeKey
+    ? activeKey.split('\n').map((line) => {
+        const [id = '', name = ''] = line.split('\t');
+        return { id, name };
+      })
+    : [];
 
   return (
     <>

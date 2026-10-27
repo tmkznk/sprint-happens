@@ -1,9 +1,11 @@
 import { MapPin, UserPlus, Users } from 'lucide-react';
+import { memo } from 'react';
 import { useGameSelector } from '../../application/engineHooks';
 import { useSelect } from '../../application/selectionHooks';
 import type { Employee } from '../../domain/employees';
 import { compareIds } from '../../simulation/staff';
 import { EmployeeBio, EmployeeHead, EmployeeNeeds, EmployeeStatus } from '../EmployeeCard';
+import { sameEmployeeCard } from '../employeeDisplay';
 import { EmptyState } from '../EmptyState';
 import { FireEmployeeButton } from '../FireEmployeeButton';
 import { money } from '../labels';
@@ -49,35 +51,38 @@ export function TeamView() {
 
 // Karta pracownika (wzór karty z SH2): awatar, stanowisko i dniówka; energia i zadowolenie
 // obok siebie; status; przydział projektu z akcjami „Pokaż w biurze” i „Zwolnij”.
-function TeamMember({ employee }: { employee: Employee }) {
-  const { open } = useNavigation();
-  const select = useSelect();
+const TeamMember = memo(
+  function TeamMember({ employee }: { employee: Employee }) {
+    const { open } = useNavigation();
+    const select = useSelect();
 
-  return (
-    <li className="employee-card">
-      <EmployeeHead employee={employee} />
-      <EmployeeBio employee={employee} />
-      <EmployeeNeeds employee={employee} />
-      <EmployeeStatus employeeId={employee.id} />
-      <div className="field">
-        <span className="field-label">Przydział projektu</span>
-        <span className="field-row">
-          <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
-          <button
-            type="button"
-            className="secondary-button icon-only"
-            aria-label={`Pokaż w biurze: ${employee.name}`}
-            title="Pokaż w biurze"
-            onClick={() => {
-              select({ kind: 'employee', id: employee.id });
-              open('office');
-            }}
-          >
-            <MapPin size={18} />
-          </button>
-          <FireEmployeeButton employeeId={employee.id} variant="icon" />
-        </span>
-      </div>
-    </li>
-  );
-}
+    return (
+      <li className="employee-card">
+        <EmployeeHead employee={employee} />
+        <EmployeeBio employee={employee} />
+        <EmployeeNeeds employee={employee} />
+        <EmployeeStatus employeeId={employee.id} />
+        <div className="field">
+          <span className="field-label">Przydział projektu</span>
+          <span className="field-row">
+            <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
+            <button
+              type="button"
+              className="secondary-button icon-only"
+              aria-label={`Pokaż w biurze: ${employee.name}`}
+              title="Pokaż w biurze"
+              onClick={() => {
+                select({ kind: 'employee', id: employee.id });
+                open('office');
+              }}
+            >
+              <MapPin size={18} />
+            </button>
+            <FireEmployeeButton employeeId={employee.id} variant="icon" />
+          </span>
+        </div>
+      </li>
+    );
+  },
+  (prev, next) => sameEmployeeCard(prev.employee, next.employee),
+);

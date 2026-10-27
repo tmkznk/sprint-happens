@@ -1,9 +1,9 @@
 import { Coffee } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
-import type { EmployeeId } from '../domain/employees';
+import type { Employee, EmployeeId } from '../domain/employees';
 import { FURNITURE_CATALOG, type FurnitureId, type FurnitureType } from '../domain/furniture';
 import type { GameState } from '../domain/state';
 import { furnitureUsers, salePrice } from '../simulation/furniture';
@@ -11,6 +11,7 @@ import { hasBadConditions, isUnhappy } from '../simulation/satisfaction';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EmployeeBio, EmployeeHead, EmployeeNeeds, EmployeeStatus } from './EmployeeCard';
+import { sameEmployeeCard } from './employeeDisplay';
 import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import { AGENT_STATUS_LABELS, FURNITURE_NAMES, money } from './labels';
@@ -227,35 +228,42 @@ function takenDesksKey(state: GameState): string {
 // zwolnienie. Ostrzeżenia o złych warunkach, odejściu i ruchu — pod statusem.
 function EmployeeDetails({ id }: { id: EmployeeId }) {
   const employee = useGameSelector((state) => state.staff.employees[id]);
-  const clear = useClearSelection();
   if (!employee) return null;
-  return (
-    <section className="selection-panel employee-panel" aria-label={employee.name}>
-      <EmployeeHead employee={employee}>
-        <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
-          ✕
-        </button>
-      </EmployeeHead>
-      <EmployeeBio employee={employee} />
-      <EmployeeNeeds employee={employee} />
-      <EmployeeStatus employeeId={employee.id} />
-      <EmployeeAlerts employeeId={employee.id} />
-      <div className="field">
-        <span className="field-label">Przydział projektu</span>
-        <span className="field-row">
-          <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
-          <FireEmployeeButton employeeId={employee.id} variant="icon" />
-        </span>
-      </div>
-      <div className="field">
-        <span className="field-label">Biurko</span>
-        <span className="field-row">
-          <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
-        </span>
-      </div>
-    </section>
-  );
+  return <EmployeePanel employee={employee} />;
 }
+
+const EmployeePanel = memo(
+  function EmployeePanel({ employee }: { employee: Employee }) {
+    const clear = useClearSelection();
+    return (
+      <section className="selection-panel employee-panel" aria-label={employee.name}>
+        <EmployeeHead employee={employee}>
+          <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
+            ✕
+          </button>
+        </EmployeeHead>
+        <EmployeeBio employee={employee} />
+        <EmployeeNeeds employee={employee} />
+        <EmployeeStatus employeeId={employee.id} />
+        <EmployeeAlerts employeeId={employee.id} />
+        <div className="field">
+          <span className="field-label">Przydział projektu</span>
+          <span className="field-row">
+            <ProjectSelect employeeId={employee.id} projectId={employee.projectId} />
+            <FireEmployeeButton employeeId={employee.id} variant="icon" />
+          </span>
+        </div>
+        <div className="field">
+          <span className="field-label">Biurko</span>
+          <span className="field-row">
+            <DeskSelect employeeId={employee.id} deskId={employee.deskId} />
+          </span>
+        </div>
+      </section>
+    );
+  },
+  (prev, next) => sameEmployeeCard(prev.employee, next.employee),
+);
 
 // NEED-03, NEED-05 (Z): złe warunki i czas do odejścia; MOVE: brak drogi lub blokada.
 function EmployeeAlerts({ employeeId }: { employeeId: EmployeeId }) {
