@@ -1,5 +1,4 @@
 import type { Seniority, Specialization } from '../employees';
-import { PROLOGUE_OWNER } from './prologue';
 
 // Stała lista postaci rynku pracy — treść gry, wyłącznie kosmetyczna (imię, opis, awatar).
 // Po trzy osoby na każdą parę specjalizacja × seniority; rynek pokazuje naraz jedną z każdej
@@ -539,7 +538,17 @@ export const PEOPLE: readonly Person[] = [
   },
 ];
 
-// Właściciel z prologu jest postacią gry, ale nie kandydatem rynku pracy.
+// Prolog: Janusz jest w zespole od początku i nie trafia na rynek pracy (poza listą PEOPLE).
+// W biurze ma własny atlas z ciemnozieloną koszulką (tools/furniture-render, characters.mjs).
+export const PROLOGUE_OWNER: Person = {
+  id: 'janusz-wlasciciel',
+  name: 'Janusz',
+  specialization: 'frontend',
+  seniority: 'mid',
+  appearance: { skin: '#f5d3b8', hair: '#2a1d14', hairStyle: 'quiff', glasses: false },
+  bio: 'Założyciel, prezes, programista i osoba upoważniona do wynoszenia śmieci. Zna frontend, backend i numer do człowieka, który zna resztę. Odszedł z etatu, bo nie chciał, żeby ktoś mówił mu, co ma robić. Teraz robią to wszyscy klienci.',
+};
+
 const BY_ID = new Map([...PEOPLE, PROLOGUE_OWNER].map((person) => [person.id, person]));
 
 export function personById(id: PersonId): Person | undefined {

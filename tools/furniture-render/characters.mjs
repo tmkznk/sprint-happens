@@ -1,6 +1,6 @@
 // Własne postacie low poly: wygląd z listy postaci gry, kolor koszulki wg stanowiska,
 // kierunki i animacje atlasu.
-import { PEOPLE } from '../../src/domain/content/people.ts';
+import { PEOPLE, PROLOGUE_OWNER } from '../../src/domain/content/people.ts';
 
 // Koszulka wg stanowiska (czytelność w biurze; paleta zgodna z tłem awatarów).
 const SHIRTS = {
@@ -16,11 +16,14 @@ const PANTS = ['#2f3e5c', '#30333a', '#4a4a68', '#2b2b2b', '#5a4a3a', '#3b4a3f']
 
 const hash = (text) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-export const LOOKS = PEOPLE.map((person) => ({
+// Janusz (właściciel z prologu) — własna, ciemnozielona koszulka zamiast koloru stanowiska.
+const SHIRT_OVERRIDES = { [PROLOGUE_OWNER.id]: '#2f5236' };
+
+export const LOOKS = [...PEOPLE, PROLOGUE_OWNER].map((person) => ({
   id: person.id,
   look: {
     ...person.appearance,
-    shirt: SHIRTS[person.specialization],
+    shirt: SHIRT_OVERRIDES[person.id] ?? SHIRTS[person.specialization],
     pants: PANTS[hash(person.id) % PANTS.length],
   },
 }));

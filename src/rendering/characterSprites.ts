@@ -1,6 +1,5 @@
 import * as Phaser from 'phaser';
 import type { PersonId } from '../domain/content/people';
-import { PROLOGUE_OWNER } from '../domain/content/prologue';
 import type { AgentStatus } from '../domain/movement';
 import type { AgentPose, Facing, PoseKind } from './agentPose';
 import meta from './characterSprites.json';
@@ -92,13 +91,7 @@ export type CharacterSprite = {
   destroy(): void;
 };
 
-// Postacie bez własnego atlasu (Janusz z prologu) korzystają z atlasu innej osoby.
-const ATLAS_ALIASES: Readonly<Record<PersonId, PersonId>> = {
-  [PROLOGUE_OWNER.id]: PROLOGUE_OWNER.sprite,
-};
-
-export function createCharacterSprite(scene: Phaser.Scene, person: PersonId): CharacterSprite {
-  const personId = ATLAS_ALIASES[person] ?? person;
+export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): CharacterSprite {
   const ring = scene.add.graphics();
   const body = scene.add
     .sprite(0, 0, '__MISSING')

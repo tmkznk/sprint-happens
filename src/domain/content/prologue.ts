@@ -1,21 +1,11 @@
 import type { Furniture } from '../furniture';
 import type { ContractTemplate } from './contracts';
-import type { Person } from './people';
 
 // Treść prologu (JanuszSoft): właściciel, pierwszy pomocnik, dwa zlecenia Mirka i wyposażenie
-// garażu. Prolog korzysta z obecnych reguł gry — tu są tylko jego dane startowe (B).
+// biura. Prolog korzysta z obecnych reguł gry — tu są tylko jego dane startowe (B).
 
-// Janusz jest w zespole od początku i nie trafia na rynek pracy (poza listą PEOPLE).
-// Wygląd w biurze: atlas istniejącej postaci (`sprite`), dopóki nie powstanie własny.
-export const PROLOGUE_OWNER: Person & { sprite: string } = {
-  id: 'janusz-wlasciciel',
-  name: 'Janusz',
-  specialization: 'frontend',
-  seniority: 'mid',
-  appearance: { skin: '#f5d3b8', hair: '#2a1d14', hairStyle: 'quiff', glasses: false },
-  bio: 'Założyciel, prezes, programista i osoba upoważniona do wynoszenia śmieci. Zna frontend, backend i numer do człowieka, który zna resztę. Odszedł z etatu, bo nie chciał, żeby ktoś mówił mu, co ma robić. Teraz robią to wszyscy klienci.',
-  sprite: 'marek-srednik',
-};
+// Janusz (właściciel) jest zdefiniowany przy liście postaci, aby `personById` go znał.
+export { PROLOGUE_OWNER } from './people';
 
 // Jedyny kandydat prologu — postać z obsady gry (karta, poziom i pensja bez zmian).
 export const PROLOGUE_HELPER_ID = 'pawel-schematowski';
@@ -58,10 +48,10 @@ export const PROLOGUE_CLIENT = 'Mirek — usługi remontowe';
 // i pensję pomocnika przy obecnych kosztach gry (sprawdza test silnika).
 export const PROLOGUE_STARTING_CASH = 3_000;
 
-// Małe biuro prologu (PROLOGUE_LAYOUT): stanowisko Janusza, ekspres w prawym narożniku i roślina
-// w lewym; wolne miejsce tylko na drugie stanowisko. Bez kanapy — odpoczynek przy ekspresie.
+// Małe biuro prologu (PROLOGUE_LAYOUT): stanowisko Janusza i ekspres w prawym narożniku; wolne
+// miejsce tylko na drugie stanowisko. Bez kanapy (odpoczynek przy ekspresie) i bez rośliny
+// (zasłaniała wejście).
 export const PROLOGUE_FURNITURE: readonly Omit<Furniture, 'id'>[] = [
   { type: 'desk', origin: { x: 1, y: 1 }, rotation: 0 },
   { type: 'coffeeMachine', origin: { x: 6, y: 1 }, rotation: 0 },
-  { type: 'plant', origin: { x: 1, y: 5 }, rotation: 0 },
 ];
