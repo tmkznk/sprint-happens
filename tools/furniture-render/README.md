@@ -13,6 +13,7 @@ VNB_PACK="/path/to/VNB Low Poly Office Set 2" npm run render   # optionally: npm
 Output:
 
 - `src/assets/furniture/<type>-<rotation>.png` (2× resolution, anchor = footprint corner) and `src/rendering/furnitureSprites.json`; the desk chair is a separate layer (`deskChair-<rotation>`).
+- `src/assets/rooms/<room id>-back.png` / `-front.png` (target `rooms`, specs in `rooms.mjs`) and `src/rendering/roomSprites.json` — whole rooms (floor, walls, doors, wall decor) rendered on the game grid; rules for new rooms in [ROOMS.md](ROOMS.md).
 - `src/assets/characters/<person id>.webp` — one atlas per person (1× resolution): rows = facing (`px`, `py`, `nx`, `ny`), columns = frames of `idle`, `walk`, `sitChair`, `typing`, `sitSofa`, `coffee` (sipping from a cup); layout in `src/rendering/characterSprites.json`.
 
 The camera matches the game projection (2:1 isometric, 64×32 px tiles); scale 0.75 m per tile. Requires Google Chrome (`CHROME` env var to override the path).
