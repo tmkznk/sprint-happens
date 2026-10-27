@@ -8,7 +8,7 @@ import { interactionCells } from '../world/geometry';
 import { cellKey, neighbours } from '../world/movement/grid';
 import { occupiedCellKeys, removeAgent } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { OFFICE_LAYOUT } from '../world/officeLayout';
+import { officeLayoutOf } from '../world/officeLayout';
 
 // OFF-04 (Z): wolne biurko przydziela się automatycznie — pierwsze według ID mebla.
 export function firstFreeDesk(state: GameState): FurnitureId | null {
@@ -43,7 +43,7 @@ export function tasksForEmployee(
 
 // Pole wejścia nowej postaci: drzwi wejściowe, a gdy są zajęte — najbliższe wolne pole.
 export function spawnCell(state: GameState, config: BalanceConfig): GridPoint | null {
-  const entrance = OFFICE_LAYOUT.doors.find((door) => door.isEntrance)?.position;
+  const entrance = officeLayoutOf(state).doors.find((door) => door.isEntrance)?.position;
   return entrance ? nearestFreeCell(state, config, entrance, false) : null;
 }
 
@@ -63,7 +63,7 @@ function nearestFreeCell(
   }
   if (avoidUsePoints) {
     for (const destination of destinations) blocked.add(cellKey(destination.cell));
-    for (const door of OFFICE_LAYOUT.doors) blocked.add(cellKey(door.position));
+    for (const door of officeLayoutOf(state).doors) blocked.add(cellKey(door.position));
   }
   const seen = new Set([cellKey(from)]);
   const queue: GridPoint[] = [from];

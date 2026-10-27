@@ -12,7 +12,13 @@ import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
-import { cellKindAt, OFFICE_LAYOUT, roomAt, type Rect } from '../world/officeLayout';
+import {
+  cellKindAt,
+  officeLayoutOf,
+  roomAt,
+  type OfficeLayout,
+  type Rect,
+} from '../world/officeLayout';
 import { rotatedSize } from '../world/geometry';
 import { FURNITURE_CATALOG, type Furniture } from '../domain/furniture';
 import { agentPose, deskChairDepth, type AgentPose } from './agentPose';
@@ -123,7 +129,9 @@ export class OfficeScene extends Phaser.Scene {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
     // Podłoga i ściany się nie zmieniają — rysowane raz do tekstury, nie w każdej klatce.
-    bakePieces(this, 'office-static', [floorPiece(), ...wallPieces()]);
+    // Układ biura jest stały w czasie sesji (prolog i misja to osobne sesje).
+    const layout = officeLayoutOf(this.engine.getState());
+    bakePieces(this, 'office-static', [floorPiece(layout), ...wallPieces(layout)]);
     this.syncFurniture();
     const unsubscribeEngine = this.engine.subscribe(() => this.syncFurniture());
     const unsubscribeSelection = this.selection.subscribe(() => this.syncFurniture());
@@ -132,7 +140,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.options.occlusionTest) this.createTestActor();
 
     const detachCamera = attachOfficeCamera(this, {
-      bounds: officeBounds(),
+      bounds: officeBounds(layout),
       onTap: (world) => this.select(world),
     });
 
@@ -338,8 +346,8 @@ export class OfficeScene extends Phaser.Scene {
   }
 }
 
-function floorPiece(): BakedPiece {
-  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...OFFICE_LAYOUT.size });
+function floorPiece(layout: OfficeLayout): BakedPiece {
+  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...layout.size });
   return {
     bounds: {
       left: left?.x ?? 0,
@@ -348,18 +356,18 @@ function floorPiece(): BakedPiece {
       bottom: (bottom?.y ?? 0) + 1,
     },
     depth: FLOOR_DEPTH,
-    draw: drawFloor,
+    draw: (graphics) => drawFloor(graphics, layout),
   };
 }
 
-function drawFloor(graphics: Phaser.GameObjects.Graphics): void {
-  const { width, height } = OFFICE_LAYOUT.size;
+function drawFloor(graphics: Phaser.GameObjects.Graphics, layout: OfficeLayout): void {
+  const { width, height } = layout.size;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const cell = { x, y };
-      const kind = cellKindAt(OFFICE_LAYOUT, cell);
+      const kind = cellKindAt(layout, cell);
       if (kind !== 'floor') continue;
-      const room = roomAt(OFFICE_LAYOUT, cell);
+      const room = roomAt(layout, cell);
       const color = room ? FLOOR_COLORS[room.id] : DOOR_COLOR;
       const corners = rectCorners({ ...cell, width: 1, height: 1 });
       fillPolygon(graphics, color, corners);
@@ -370,23 +378,23 @@ function drawFloor(graphics: Phaser.GameObjects.Graphics): void {
   // Pola ścian i drzwi: podłoga przyległych pokojów aż do cienkiej tafli; w drzwiach próg.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      for (const { rect, room } of wallFloorQuarters(OFFICE_LAYOUT, { x, y })) {
+      for (const { rect, room } of wallFloorQuarters(layout, { x, y })) {
         fillPolygon(graphics, FLOOR_COLORS[room.id], rectCorners(rect));
       }
-      const threshold = doorThreshold(OFFICE_LAYOUT, { x, y });
+      const threshold = doorThreshold(layout, { x, y });
       if (threshold) fillPolygon(graphics, DOOR_COLOR, rectCorners(threshold));
     }
   }
 }
 
 // Każda tafla ściany osobno, z własną głębokością — postać może stać przed nią albo za nią.
-function wallPieces(): BakedPiece[] {
+function wallPieces(layout: OfficeLayout): BakedPiece[] {
   const pieces: BakedPiece[] = [];
-  const { width, height } = OFFICE_LAYOUT.size;
+  const { width, height } = layout.size;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (cellKindAt(OFFICE_LAYOUT, { x, y }) !== 'wall') continue;
-      for (const { rect, axis, back } of wallBands(OFFICE_LAYOUT, { x, y })) {
+      if (cellKindAt(layout, { x, y }) !== 'wall') continue;
+      for (const { rect, axis, back } of wallBands(layout, { x, y })) {
         // OFF-08 (O): ściany od strony kamery są obniżone, aby nie zasłaniać wnętrza.
         const wallHeight = back ? BACK_WALL_HEIGHT : FRONT_WALL_HEIGHT;
         const [top, right, bottom, left] = rectCorners(rect);
@@ -403,7 +411,7 @@ function wallPieces(): BakedPiece[] {
             // Okno (dwa pola) rysowane częściami razem z taflą pola, na którym leży — ta sama
             // głębokość co ściana, więc postać przy ścianie zawsze jest przed oknem.
             if (!back) return;
-            for (const span of windowSpans()) {
+            for (const span of windowSpans(layout)) {
               const part = spanPart(span, { x, y }, axis);
               if (part) drawWindow(graphics, span.rect, BACK_WALL_HEIGHT, span.axis, part);
             }
@@ -416,8 +424,8 @@ function wallPieces(): BakedPiece[] {
 }
 
 // Granice biura na ekranie świata, łącznie z wysokością tylnych ścian.
-function officeBounds(): Bounds {
-  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...OFFICE_LAYOUT.size });
+function officeBounds(layout: OfficeLayout): Bounds {
+  const [top, right, bottom, left] = rectCorners({ x: 0, y: 0, ...layout.size });
   return {
     left: left?.x ?? 0,
     right: right?.x ?? 0,
@@ -470,13 +478,13 @@ type WindowSpan = { rect: Rect; axis: 'x' | 'y'; cells: GridPoint[] };
 
 // Okno na tylnej ścianie (y = 0 wzdłuż X, x = 0 wzdłuż Y) rozciągnięte na następne pole,
 // jeśli to nadal prosta ściana tylna; tafla o grubości ściany.
-function windowSpan(window: GridPoint): WindowSpan | null {
+function windowSpan(layout: OfficeLayout, window: GridPoint): WindowSpan | null {
   const axis = window.y === 0 ? 'x' : window.x === 0 ? 'y' : null;
   if (!axis) return null;
   const next = axis === 'x' ? { x: window.x + 1, y: 0 } : { x: 0, y: window.y + 1 };
-  const own = wallBands(OFFICE_LAYOUT, window).find((b) => b.axis === axis);
+  const own = wallBands(layout, window).find((b) => b.axis === axis);
   if (!own) return null;
-  const following = wallBands(OFFICE_LAYOUT, next);
+  const following = wallBands(layout, next);
   const wide = following.length === 1 && following[0]?.axis === axis;
   const length = wide ? 2 : 1;
   const rect =
@@ -486,10 +494,14 @@ function windowSpan(window: GridPoint): WindowSpan | null {
   return { rect, axis, cells: wide ? [window, next] : [window] };
 }
 
-let cachedSpans: WindowSpan[] | null = null;
-function windowSpans(): WindowSpan[] {
-  cachedSpans ??= OFFICE_LAYOUT.windows.flatMap((w) => windowSpan(w) ?? []);
-  return cachedSpans;
+const cachedSpans = new WeakMap<OfficeLayout, WindowSpan[]>();
+function windowSpans(layout: OfficeLayout): WindowSpan[] {
+  let spans = cachedSpans.get(layout);
+  if (!spans) {
+    spans = layout.windows.flatMap((w) => windowSpan(layout, w) ?? []);
+    cachedSpans.set(layout, spans);
+  }
+  return spans;
 }
 
 // Zakres długości okna przypadający na pole `cell` (tylko tafla wzdłuż osi okna).

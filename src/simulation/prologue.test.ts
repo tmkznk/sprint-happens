@@ -11,6 +11,10 @@ import type { ProjectId } from '../domain/contracts';
 import type { CandidateId, EmployeeId } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { createPlayer, type Player } from '../test/player';
+import { ROTATIONS, type Furniture, type FurnitureId } from '../domain/furniture';
+import { validateAccess } from '../world/movement/access';
+import { PROLOGUE_LAYOUT } from '../world/officeLayout';
+import { validateCandidate } from './furniture';
 import { createPrologueState, prologueHelper, prologueOwner, prologueProject } from './prologue';
 
 const SEED = 20261027;
@@ -154,5 +158,40 @@ describe('prolog', () => {
     expect(player.engine.dispatch({ type: 'SetSpeed', speed: 1 })).toMatchObject({
       rejection: { code: 'prologueLocked' },
     });
+  });
+
+  it('małe biuro mieści dokładnie drugie stanowisko obok wyposażenia startowego', () => {
+    const state = createPrologueState(DEFAULT_BALANCE, SEED);
+    expect(validateAccess(PROLOGUE_LAYOUT, Object.values(state.world.furniture))).toEqual([]);
+    const desk = (
+      id: number,
+      x: number,
+      y: number,
+      rotation: Furniture['rotation'],
+    ): Furniture => ({
+      id: `furniture-${id}` as FurnitureId,
+      type: 'desk',
+      origin: { x, y },
+      rotation,
+    });
+    const second = desk(90, PROLOGUE_LAYOUT.placementStart.x, PROLOGUE_LAYOUT.placementStart.y, 0);
+    expect(validateCandidate(state, second)).toBeNull();
+
+    // Z drugim stanowiskiem trzecie nie zmieści się nigdzie.
+    const full = {
+      ...state,
+      world: { ...state.world, furniture: { ...state.world.furniture, [second.id]: second } },
+    };
+    const { width, height } = PROLOGUE_LAYOUT.size;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        for (const rotation of ROTATIONS) {
+          expect(
+            validateCandidate(full, desk(91, x, y, rotation)),
+            `${x},${y},${rotation}`,
+          ).not.toBeNull();
+        }
+      }
+    }
   });
 });

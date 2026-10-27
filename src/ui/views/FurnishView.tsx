@@ -3,6 +3,7 @@ import { useBalanceConfig, useDispatch, useGameSelector } from '../../applicatio
 import { useFurnitureEditStore } from '../../application/furnitureEditHooks';
 import { useClearSelection } from '../../application/selectionHooks';
 import { FURNITURE_CATALOG, type FurnitureType } from '../../domain/furniture';
+import { officeLayoutOf } from '../../world/officeLayout';
 import { FURNITURE_NAMES, money } from '../labels';
 import { useNavigation } from '../navigation';
 import { LOCKS } from '../prologue/copy';
@@ -36,6 +37,7 @@ export function FurnishView() {
   const config = useBalanceConfig();
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const speed = useGameSelector((state) => state.mission.speed);
+  const { placementStart } = useGameSelector(officeLayoutOf);
   const edit = useFurnitureEditStore();
   const clearSelection = useClearSelection();
   const dispatch = useDispatch();
@@ -48,7 +50,7 @@ export function FurnishView() {
   const choose = (furnitureType: FurnitureType) => {
     if (speed !== 0) dispatch({ type: 'SetSpeed', speed: 0 });
     clearSelection();
-    edit.set({ mode: 'buy', furnitureType, origin: { x: 4, y: 8 }, rotation: 0 });
+    edit.set({ mode: 'buy', furnitureType, origin: placementStart, rotation: 0 });
     open('office');
   };
 

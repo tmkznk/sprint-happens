@@ -6,7 +6,7 @@ import { interactionCells, occupiedCells } from '../world/geometry';
 import { validateAccess } from '../world/movement/access';
 import { cellKey } from '../world/movement/grid';
 import { occupiedCellKeys } from '../world/movement/movement';
-import { cellKindAt, OFFICE_LAYOUT } from '../world/officeLayout';
+import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
 import { tasksForEmployee } from './staff';
 
 // OFF-05 (Z): niedozwolone ustawienie jest blokowane i wyjaśniane komunikatem.
@@ -38,8 +38,9 @@ export function validateCandidate(
   candidate: Furniture,
 ): PlacementRejection | null {
   if (!(ROTATIONS as readonly number[]).includes(candidate.rotation)) return 'invalidRotation';
+  const layout = officeLayoutOf(state);
   const cells = occupiedCells(candidate);
-  if (cells.some((cell) => cellKindAt(OFFICE_LAYOUT, cell) !== 'floor')) return 'outOfFloor';
+  if (cells.some((cell) => cellKindAt(layout, cell) !== 'floor')) return 'outOfFloor';
 
   const others = Object.values(state.world.furniture).filter((other) => other.id !== candidate.id);
   const taken = new Set(others.flatMap(occupiedCells).map(cellKey));
@@ -53,7 +54,7 @@ export function validateCandidate(
   const people = new Set(state.world.movement.agents.flatMap(occupiedCellKeys));
   if (cells.some((cell) => people.has(cellKey(cell)))) return 'occupiedByPerson';
 
-  if (validateAccess(OFFICE_LAYOUT, [...others, candidate]).length > 0) return 'blocksAccess';
+  if (validateAccess(layout, [...others, candidate]).length > 0) return 'blocksAccess';
   return null;
 }
 
@@ -130,7 +131,7 @@ export function retargetEmployees(state: GameState, config: BalanceConfig): Game
 }
 
 function isFreeStandingSpot(state: GameState, cell: GridPoint): boolean {
-  if (cellKindAt(OFFICE_LAYOUT, cell) !== 'floor') return false;
+  if (cellKindAt(officeLayoutOf(state), cell) !== 'floor') return false;
   const furniture = Object.values(state.world.furniture);
   const blocked = new Set([
     ...furniture.flatMap(occupiedCells).map(cellKey),

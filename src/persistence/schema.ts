@@ -25,12 +25,16 @@ import { SPEEDS, type GameState } from '../domain/state';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { occupiedCells } from '../world/geometry';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { cellKindAt, type OfficeLayout } from '../world/officeLayout';
+import { cellKindAt, PROLOGUE_LAYOUT, type OfficeLayout } from '../world/officeLayout';
 
 // T:SAVE-T02, SAVE-T06 — schemat migawki stanu gry. Każdy system domenowy dodaje tu swój
 // fragment; test typów w schema.test.ts nie przejdzie, jeśli GameState i schemat się rozjadą.
 
+// `layout` — biuro właściwej misji; prolog ma własne, małe biuro.
 export type ValidationContext = { config: BalanceConfig; layout: OfficeLayout };
+
+const layoutFor = (state: GameState, context: ValidationContext) =>
+  state.prologue ? PROLOGUE_LAYOUT : context.layout;
 
 const furnitureId = z.custom<FurnitureId>(
   (value) => typeof value === 'string' && /^furniture-[1-9]\d*$/.test(value),
@@ -338,7 +342,8 @@ function financeIssues(state: GameState): Issue[] {
   return issues;
 }
 
-function furnitureIssues(state: GameState, { layout }: ValidationContext): Issue[] {
+function furnitureIssues(state: GameState, context: ValidationContext): Issue[] {
+  const layout = layoutFor(state, context);
   const issues: Issue[] = [];
   const taken = new Map<string, string>();
   const allocated = state.ids.furniture ?? 0;
@@ -586,7 +591,9 @@ function staffIssues(state: GameState): Issue[] {
 const sequenceNumber = (id: string) => Number(id.split('-')[1]);
 
 // T:SAVE-T06 — spójność rezerwacji i pozycji postaci (MOVE-03, MOVE-04, MOVE-09).
-function movementIssues(state: GameState, { config, layout }: ValidationContext): Issue[] {
+function movementIssues(state: GameState, context: ValidationContext): Issue[] {
+  const { config } = context;
+  const layout = layoutFor(state, context);
   const issues: Issue[] = [];
   const { agents, reservations, step } = state.world.movement;
   const { grid, destinations } = movementEnvFor(state, config, layout);
