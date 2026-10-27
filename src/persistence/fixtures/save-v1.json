@@ -1,0 +1,519 @@
+{
+  "schemaVersion": 1,
+  "gameBuildVersion": "0.0.73",
+  "revision": 42,
+  "savedAt": "2026-10-27T12:00:00.000Z",
+  "state": {
+    "mission": {
+      "status": "active",
+      "day": 2,
+      "phase": "working",
+      "speed": 4,
+      "timeInDayMs": 120000,
+      "report": null,
+      "reputation": 50
+    },
+    "finance": {
+      "openingCash": 15000,
+      "cash": 15300,
+      "ledger": [
+        {
+          "key": "advance:project-1",
+          "day": 1,
+          "kind": "advance",
+          "amount": 2100,
+          "ref": "project-1"
+        },
+        {
+          "key": "wages:day-1:employee-1",
+          "day": 1,
+          "kind": "wages",
+          "amount": -500,
+          "ref": "employee-1"
+        },
+        {
+          "key": "wages:day-1:employee-2",
+          "day": 1,
+          "kind": "wages",
+          "amount": -300,
+          "ref": "employee-2"
+        },
+        {
+          "key": "upkeep:day-1",
+          "day": 1,
+          "kind": "upkeep",
+          "amount": -1000,
+          "ref": null
+        }
+      ],
+      "wagesDueToday": {
+        "employee-1": 500,
+        "employee-2": 300
+      },
+      "rescueDeadlineDay": null
+    },
+    "contracts": {
+      "offers": [
+        {
+          "id": "offer-2",
+          "templateId": "zgodnie-z-zalacznikiem",
+          "name": "Zgodnie z załącznikiem",
+          "description": "Projekt opisano szczegółowo w załączniku do wiadomości. Załącznika nie ma. Klient pyta, czy możemy już podać termin realizacji.",
+          "scopes": {
+            "frontend": 150,
+            "backend": 150,
+            "devops": 50
+          },
+          "designImportance": 1,
+          "designScope": 50,
+          "deadlineDays": 5,
+          "reward": 9000,
+          "advance": 1800,
+          "latePenaltyPerDay": 200
+        },
+        {
+          "id": "offer-3",
+          "templateId": "mala-stronka",
+          "name": "Tylko mała stronka",
+          "description": "Pięć zakładek, formularz i galeria. Do tego sklep, system rezerwacji i panel dla franczyzobiorców. Klient nadal mówi o tym „wizytówka”.",
+          "scopes": {
+            "frontend": 350,
+            "backend": 250,
+            "devops": 50
+          },
+          "designImportance": 2,
+          "designScope": 150,
+          "deadlineDays": 8,
+          "reward": 18000,
+          "advance": 5400,
+          "latePenaltyPerDay": 450
+        },
+        {
+          "id": "offer-4",
+          "templateId": "piksel-w-lewo",
+          "name": "Piksel w lewo",
+          "description": "Odświeżenie strony dla klienta z wyczuciem estetyki. Wie dokładnie, czego chce, ale potrafi to opisać dopiero po zobaczeniu czegoś innego. Obecnie poszukuje koloru „bardziej wow, tylko spokojniejszego”.",
+          "scopes": {
+            "frontend": 200
+          },
+          "designImportance": 5,
+          "designScope": 450,
+          "deadlineDays": 7,
+          "reward": 14000,
+          "advance": 7000,
+          "latePenaltyPerDay": 250
+        }
+      ],
+      "projects": {
+        "project-1": {
+          "templateId": "test-offer",
+          "name": "Projekt testowy",
+          "description": "Stałe warunki do testów silnika.",
+          "scopes": {
+            "frontend": 60,
+            "backend": 40
+          },
+          "designImportance": 1,
+          "designScope": 20,
+          "deadlineDays": 3,
+          "reward": 7000,
+          "advance": 2100,
+          "latePenaltyPerDay": 700,
+          "id": "project-1",
+          "acceptedOnDay": 1,
+          "deadlineDay": 4,
+          "status": "active",
+          "progress": {
+            "frontend": 60000000,
+            "backend": 40000000
+          },
+          "fragments": [
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "backend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": true,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "backend",
+              "hasBug": true,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "backend",
+              "hasBug": true,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "backend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            }
+          ],
+          "fragmentRisk": {
+            "backend": 0,
+            "frontend": 0
+          },
+          "designProgress": 0,
+          "delivery": null
+        }
+      },
+      "deliveredCount": 0
+    },
+    "staff": {
+      "employees": {
+        "employee-1": {
+          "id": "employee-1",
+          "personId": "bartek-responsywny",
+          "name": "Bartek Responsywny",
+          "specialization": "frontend",
+          "seniority": "mid",
+          "dailyWage": 500,
+          "hiredOnDay": 1,
+          "deskId": "furniture-1",
+          "projectId": "project-1",
+          "energy": 100000,
+          "satisfaction": 4200000,
+          "badConditionsMs": 0,
+          "lowSatisfactionMs": 0
+        },
+        "employee-2": {
+          "id": "employee-2",
+          "personId": "maja-selectowska",
+          "name": "Maja Selectowska",
+          "specialization": "backend",
+          "seniority": "junior",
+          "dailyWage": 300,
+          "hiredOnDay": 1,
+          "deskId": "furniture-2",
+          "projectId": "project-1",
+          "energy": 100000,
+          "satisfaction": 4200000,
+          "badConditionsMs": 0,
+          "lowSatisfactionMs": 0
+        }
+      },
+      "candidates": [
+        {
+          "id": "candidate-1",
+          "personId": "kuba-flexowski",
+          "name": "Kuba Flexowski",
+          "specialization": "frontend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-22",
+          "personId": "igor-komponentowski",
+          "name": "Igor Komponentowski",
+          "specialization": "frontend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-3",
+          "personId": "marek-srednik",
+          "name": "Marek Średnik",
+          "specialization": "frontend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-23",
+          "personId": "oskar-nullowy",
+          "name": "Oskar Nullowy",
+          "specialization": "backend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-5",
+          "personId": "kinga-kolejkowska",
+          "name": "Kinga Kolejkowska",
+          "specialization": "backend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-6",
+          "personId": "grazyna-transakcyjna",
+          "name": "Grażyna Transakcyjna",
+          "specialization": "backend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-7",
+          "personId": "wiktoria-emulatorska",
+          "name": "Wiktoria Emulatorska",
+          "specialization": "mobile",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-8",
+          "personId": "michal-buildowski",
+          "name": "Michał Buildowski",
+          "specialization": "mobile",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-9",
+          "personId": "robert-synchroniczny",
+          "name": "Robert Synchroniczny",
+          "specialization": "mobile",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-10",
+          "personId": "hania-restartowska",
+          "name": "Hania Restartowska",
+          "specialization": "devops",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-11",
+          "personId": "paulina-klastrowa",
+          "name": "Paulina Klastrowa",
+          "specialization": "devops",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-12",
+          "personId": "renata-monitorska",
+          "name": "Renata Monitorska",
+          "specialization": "devops",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-13",
+          "personId": "mateusz-zgloszeniowski",
+          "name": "Mateusz Zgłoszeniowski",
+          "specialization": "qa",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-14",
+          "personId": "ania-krokowska",
+          "name": "Ania Krokowska",
+          "specialization": "qa",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-15",
+          "personId": "beata-testowa",
+          "name": "Beata Testowa",
+          "specialization": "qa",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-16",
+          "personId": "antek-fontowski",
+          "name": "Antek Fontowski",
+          "specialization": "designer",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-17",
+          "personId": "sebastian-warstwowy",
+          "name": "Sebastian Warstwowy",
+          "specialization": "designer",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-18",
+          "personId": "jerzy-makietowski",
+          "name": "Jerzy Makietowski",
+          "specialization": "designer",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-19",
+          "personId": "karolina-arkuszowa",
+          "name": "Karolina Arkuszowa",
+          "specialization": "pm",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-20",
+          "personId": "rafal-kamieniowski",
+          "name": "Rafał Kamieniowski",
+          "specialization": "pm",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-21",
+          "personId": "teresa-retrospektywna",
+          "name": "Teresa Retrospektywna",
+          "specialization": "pm",
+          "seniority": "senior",
+          "dailyWage": 800
+        }
+      ],
+      "departures": []
+    },
+    "world": {
+      "furniture": {
+        "furniture-1": {
+          "type": "desk",
+          "origin": {
+            "x": 2,
+            "y": 2
+          },
+          "rotation": 0,
+          "id": "furniture-1"
+        },
+        "furniture-2": {
+          "type": "desk",
+          "origin": {
+            "x": 6,
+            "y": 2
+          },
+          "rotation": 0,
+          "id": "furniture-2"
+        },
+        "furniture-3": {
+          "type": "sofa",
+          "origin": {
+            "x": 13,
+            "y": 9
+          },
+          "rotation": 0,
+          "id": "furniture-3"
+        },
+        "furniture-4": {
+          "type": "coffeeMachine",
+          "origin": {
+            "x": 17,
+            "y": 8
+          },
+          "rotation": 0,
+          "id": "furniture-4"
+        }
+      },
+      "movement": {
+        "step": 7200,
+        "agents": [
+          {
+            "id": "employee-1",
+            "cell": {
+              "x": 3,
+              "y": 4
+            },
+            "move": null,
+            "tasks": [
+              {
+                "kind": "goTo",
+                "cell": {
+                  "x": 3,
+                  "y": 4
+                }
+              }
+            ],
+            "reservedDestination": null,
+            "queuedSince": null,
+            "usedSteps": 0,
+            "path": [],
+            "status": "arrived",
+            "waitedSteps": 0,
+            "yieldingTo": null,
+            "yieldHeldSteps": 0
+          },
+          {
+            "id": "employee-2",
+            "cell": {
+              "x": 7,
+              "y": 4
+            },
+            "move": null,
+            "tasks": [
+              {
+                "kind": "goTo",
+                "cell": {
+                  "x": 7,
+                  "y": 4
+                }
+              }
+            ],
+            "reservedDestination": null,
+            "queuedSince": null,
+            "usedSteps": 0,
+            "path": [],
+            "status": "arrived",
+            "waitedSteps": 0,
+            "yieldingTo": null,
+            "yieldHeldSteps": 0
+          }
+        ],
+        "reservations": {}
+      }
+    },
+    "events": {
+      "scheduledAtMs": null,
+      "pending": null,
+      "lastSeenDay": {},
+      "meetingUntilMs": null,
+      "coffeeBrokenDay": null
+    },
+    "ids": {
+      "furniture": 4,
+      "candidate": 23,
+      "offer": 4,
+      "project": 1,
+      "employee": 2
+    },
+    "rng": 1532120850
+  }
+}

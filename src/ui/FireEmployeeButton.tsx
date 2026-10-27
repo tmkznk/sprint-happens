@@ -29,7 +29,9 @@ export function FireEmployeeButton({
   const wageDue = useGameSelector((state) => state.finance.wagesDueToday[employeeId] ?? 0);
   const [asking, setAsking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  if (name === undefined) return null;
+  // Prolog: zwalnianie dopiero we właściwej misji.
+  const prologue = useGameSelector((state) => state.prologue !== null);
+  if (name === undefined || prologue) return null;
 
   const fire = () => {
     setAsking(false);

@@ -13,6 +13,7 @@ import type { Furniture, FurnitureId } from './furniture';
 import { allocateId, type IdSequence } from './ids';
 import { STARTING_FURNITURE } from './missionStart';
 import { createMovementState, type MovementState } from './movement';
+import type { PrologueState } from './prologue';
 import { seedRng, type RngState } from './random';
 import type { DeepReadonly } from './readonly';
 
@@ -98,6 +99,8 @@ export type GameState = DeepReadonly<{
     movement: MovementState;
   };
   events: EventsState;
+  // Prolog (samouczek): bieżący krok albo null — właściwa misja.
+  prologue: PrologueState | null;
   ids: IdSequence;
   rng: RngState;
 }>;
@@ -149,6 +152,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       meetingUntilMs: null,
       coffeeBrokenDay: null,
     },
+    prologue: null,
     ids: board.ids,
     rng: board.rng,
   };

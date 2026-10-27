@@ -4,6 +4,7 @@ import { editCommand, editProblem } from '../application/furnitureEdit';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { ROTATIONS, type Rotation } from '../domain/furniture';
 import { FURNITURE_NAMES, money } from './labels';
+import { spotlight, useGuide } from './prologue/hooks';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 // UX-04 (Z): tryb „Urządź” — obrót, zatwierdzenie i anulowanie. Anulowanie przywraca poprzednie
@@ -16,6 +17,7 @@ export function FurnitureEditBar() {
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
   const problem = useGameSelector((state) => (edit ? editProblem(state, config, edit) : null));
+  const placeGuided = useGuide()?.kind === 'placeDesk';
   if (!edit) return null;
 
   const rotate = () => {
@@ -54,7 +56,7 @@ export function FurnitureEditBar() {
         </button>
         <button
           type="button"
-          className="primary-button"
+          className={spotlight('primary-button', placeGuided && problem === null)}
           disabled={problem !== null}
           onClick={confirm}
         >

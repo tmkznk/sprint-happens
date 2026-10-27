@@ -3,6 +3,7 @@ import { DEFAULT_BALANCE } from '../domain/config';
 import { PEOPLE } from '../domain/content/people';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import fixture from './fixtures/save-older-format.json?raw';
+import saveV1 from './fixtures/save-v1.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -17,14 +18,14 @@ const context: ValidationContext = { config: DEFAULT_BALANCE, layout: OFFICE_LAY
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dowolny kształt starszego zapisu
 type Loose = Record<string, any>;
 
-// Do pierwszego wydania nie istnieje prawdziwy starszy format: fixture to zapis w wersji 1
-// sprzed zdarzeń (SH-031) i zadowolenia (SH-019), a test udaje bieżący format 2.
-// Migracja testowa 1 → 2:
-// dodaje stan zdarzeń, historię odejść, zadowolenie i postacie z listy (imiona dawniej losowane).
-// Celowo modyfikuje wejście — sprawdzamy,
+// Mechanizm migracji: fixture to zapis deweloperski w wersji 1 sprzed zdarzeń (SH-031)
+// i zadowolenia (SH-019), a test udaje format 2. Migracja testowa 1 → 2:
+// dodaje stan zdarzeń, historię odejść, zadowolenie, postacie z listy (imiona dawniej losowane)
+// i pusty stan prologu. Celowo modyfikuje wejście — sprawdzamy,
 // że dostaje kopię, a nie oryginał.
 const toV2: Migration = (input) => {
   const state = input as Loose;
+  state.prologue = null;
   state.events = {
     scheduledAtMs: null,
     pending: null,
@@ -104,6 +105,15 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
       ok: false,
       error: { code: 'newerVersion' },
     });
+  });
+
+  it('zapis wersji 1 (przed prologiem) wczytuje się jako właściwa misja', () => {
+    const result = parseSnapshot(saveV1, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+    expect(result.migratedFrom).toBe(1);
+    expect(result.envelope.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(result.envelope.state.prologue).toBeNull();
+    expect(Object.keys(result.envelope.state.staff.employees)).toHaveLength(2);
   });
 
   it('łańcuch migracji obejmuje każdą wersję od 1 do bieżącej', () => {

@@ -1,6 +1,11 @@
 import { ArrowUpRight, Briefcase, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { CONTRACT_TEMPLATES } from '../../domain/content/contracts';
+import {
+  PROLOGUE_CLIENT,
+  PROLOGUE_FIRST_CONTRACT,
+  PROLOGUE_SECOND_CONTRACT,
+} from '../../domain/content/prologue';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import {
   TECH_SPECIALIZATIONS,
@@ -20,7 +25,11 @@ import { useNavigation } from '../navigation';
 import { ModalLayer } from '../ModalLayer';
 import { designPercent, pmBonusPermille, progressPercent } from '../../simulation/work';
 import { money, SCOPE_LABELS } from '../labels';
+import { LOCKS } from '../prologue/copy';
+import { spotlight, useGuide } from '../prologue/hooks';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
+
+const PROLOGUE_TEMPLATES = new Set([PROLOGUE_FIRST_CONTRACT.id, PROLOGUE_SECOND_CONTRACT.id]);
 
 type ProjectsTab = 'active' | 'offers' | 'archive';
 
@@ -37,6 +46,10 @@ export function ProjectsView() {
   const [message, setMessage] = useState<string | null>(null);
   const [reportFor, setReportFor] = useState<ProjectId | null>(null);
   const reportProject = reportFor ? projects[reportFor] : undefined;
+  // Prolog: podświetlenie zakładki, w której czeka czynność.
+  const guide = useGuide();
+  const guideTab: ProjectsTab | null =
+    guide?.kind === 'acceptOffer' ? 'offers' : guide?.kind === 'deliver' ? 'active' : null;
 
   const tabs: { id: ProjectsTab; label: string; count: number }[] = [
     { id: 'active', label: 'W toku', count: active.length },
@@ -53,6 +66,7 @@ export function ProjectsView() {
             type="button"
             role="tab"
             aria-selected={tab === item.id}
+            className={spotlight(undefined, guideTab === item.id && tab !== item.id)}
             onClick={() => setTab(item.id)}
           >
             {item.label} <span className="count">{item.count}</span>
@@ -94,6 +108,8 @@ function Offers({
 }) {
   const day = useGameSelector((state) => state.mission.day);
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const prologue = useGameSelector((state) => state.prologue !== null);
+  const acceptGuided = useGuide()?.kind === 'acceptOffer';
   const dispatch = useDispatch();
   const accept = (offer: Offer) => {
     const result = dispatch({ type: 'AcceptOffer', offerId: offer.id });
@@ -108,7 +124,7 @@ function Offers({
       <EmptyState
         icon={<Briefcase size={40} />}
         title="Tablica jest pusta"
-        text="Nowe oferty pojawią się następnego dnia."
+        text={prologue ? LOCKS.rest : 'Nowe oferty pojawią się następnego dnia.'}
       />
     );
   }
@@ -122,6 +138,9 @@ function Offers({
         </span>
       </div>
       <h3>{offer.name}</h3>
+      {PROLOGUE_TEMPLATES.has(offer.templateId) && (
+        <p className="card-client">Klient: {PROLOGUE_CLIENT}</p>
+      )}
       <p className="card-description">{offer.description}</p>
       <ScopeChips terms={offer} />
       <div className="offer-numbers">
@@ -143,7 +162,7 @@ function Offers({
       </p>
       <button
         type="button"
-        className="primary-button full"
+        className={spotlight('primary-button full', acceptGuided)}
         disabled={!isWorking}
         onClick={() => accept(offer)}
       >
@@ -361,6 +380,8 @@ function DeliveryFooter({
   const config = useBalanceConfig();
   const preview = paymentPreview(project, day);
   const ready = isReadyForDelivery(project);
+  const guide = useGuide();
+  const deliverGuided = guide?.kind === 'deliver' && guide.projectId === project.id;
   const openBugs = detectedBugCount(project, config);
 
   const deliver = () => {
@@ -394,7 +415,7 @@ function DeliveryFooter({
         </span>
         <button
           type="button"
-          className="primary-button"
+          className={spotlight('primary-button', deliverGuided)}
           disabled={!ready || !canDeliverNow}
           onClick={() => setConfirming(true)}
         >

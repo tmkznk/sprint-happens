@@ -18,6 +18,7 @@ import {
   type ProjectId,
 } from '../domain/contracts';
 import { OPERATION_KINDS } from '../domain/finance';
+import { PROLOGUE_STEPS } from '../domain/prologue';
 import { FURNITURE_TYPES, ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { SPEEDS, type GameState } from '../domain/state';
@@ -252,6 +253,9 @@ const eventsSchema = z.strictObject({
   coffeeBrokenDay: z.int().min(1).nullable(),
 });
 
+// Prolog (samouczek): bieżący krok; null — właściwa misja.
+const prologueSchema = z.strictObject({ step: z.enum(PROLOGUE_STEPS) }).nullable();
+
 export const gameStateShape = z.strictObject({
   mission: missionSchema,
   finance: financeSchema,
@@ -259,6 +263,7 @@ export const gameStateShape = z.strictObject({
   staff: staffSchema,
   world: worldSchema,
   events: eventsSchema,
+  prologue: prologueSchema,
   ids: idsSchema,
   // TIME-T04: stan generatora losowego jest zapisywany, aby wczytanie nie przelosowało wyników.
   rng: z.uint32(),
@@ -554,7 +559,8 @@ function staffIssues(state: GameState): Issue[] {
   }
   candidates.forEach((candidate, index) => checkPerson(['staff', 'candidates', index], candidate));
   // EMP-03: po jednym kandydacie na parę; puste miejsce tylko przy wyczerpanej puli postaci.
-  for (const specialization of SPECIALIZATIONS) {
+  // Prolog ma własny, stały rynek (jeden kandydat).
+  for (const specialization of state.prologue ? [] : SPECIALIZATIONS) {
     for (const seniority of SENIORITIES) {
       const slot = `${specialization}/${seniority}`;
       const count = candidates.filter(

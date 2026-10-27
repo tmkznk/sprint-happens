@@ -2,6 +2,7 @@ import { ModalLayer } from './ModalLayer';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
 import { NewGameButton } from './NewGameButton';
+import { spotlight, useGuide } from './prologue/hooks';
 
 // TIME-03, TIME-08 (Z): raport po rozliczeniu i przejście do następnego dnia.
 // FIN-05 (Z): ujemne saldo uruchamia ostrzeżenie z terminem odzyskania płynności; brak poprawy
@@ -12,6 +13,7 @@ export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
   const dispatch = useDispatch();
   const delivered = useGameSelector((state) => state.contracts.deliveredCount);
   const reputation = useGameSelector((state) => state.mission.reputation);
+  const nextDay = useGuide()?.kind === 'nextDay';
 
   if (!report) return null;
   const bankrupt = status === 'bankrupt';
@@ -78,7 +80,11 @@ export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
             </>
           )}
           {status === 'active' && (
-            <button type="button" onClick={() => dispatch({ type: 'StartNextDay' })}>
+            <button
+              type="button"
+              className={spotlight(undefined, nextDay)}
+              onClick={() => dispatch({ type: 'StartNextDay' })}
+            >
               Następny dzień
             </button>
           )}

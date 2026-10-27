@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import type { ProjectId } from '../domain/contracts';
 import type { EmployeeId } from '../domain/employees';
+import { spotlight, useGuide } from './prologue/hooks';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 // EMP-05, EMP-07 (Z): przydział zmienia wyłącznie gracz; oddane projekty nie są dostępne.
@@ -23,6 +24,8 @@ export function ProjectSelect({
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
+  const guide = useGuide();
+  const guided = guide?.kind === 'assign' && guide.employeeIds.includes(employeeId);
   const active = activeKey
     ? activeKey.split('\n').map((line) => {
         const [id = '', name = ''] = line.split('\t');
@@ -33,6 +36,7 @@ export function ProjectSelect({
   return (
     <>
       <select
+        className={spotlight(undefined, guided)}
         aria-label="Projekt"
         value={projectId ?? ''}
         disabled={!isWorking}

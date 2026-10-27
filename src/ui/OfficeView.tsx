@@ -6,9 +6,14 @@ import { useFurnitureEdit } from '../application/furnitureEditHooks';
 import { useSelection } from '../application/selectionHooks';
 import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
+import { isLockedInPrologue } from '../simulation/prologue';
 import { DayCard } from './DayCard';
 import { useNavigation } from './navigation';
 import { OfficeSceneBubble } from './OfficeSceneBubble';
+import { STAGE_TITLES } from './prologue/copy';
+import { prologueNews } from './prologue/guide';
+import { spotlight, useGuide } from './prologue/hooks';
+import { PrologueCard } from './prologue/PrologueViews';
 import { SelectionPanel } from './SelectionPanel';
 import { StaffAlerts } from './StaffAlerts';
 import { UpdateBanner } from './UpdateBanner';
@@ -16,6 +21,7 @@ import { UpdateBanner } from './UpdateBanner';
 // Nagłówek biura zależny od sytuacji firmy (SH-033, wzór SH2).
 function headline(state: GameState): string {
   if (state.mission.phase !== 'working') return 'Koniec dnia. Czas na rozliczenie';
+  if (state.prologue) return STAGE_TITLES[state.prologue.step];
   const hasTeam = Object.keys(state.staff.employees).length > 0;
   const hasProjects = Object.keys(state.contracts.projects).length > 0;
   if (!hasTeam && !hasProjects) return 'Tu zaczyna się wielki kod';
@@ -33,6 +39,8 @@ function officeNews(state: GameState): string {
       ? `${quit.name} odchodzi z firmy. Biurko zwolnione.`
       : `${quit.name} nie pracuje już w firmie.`;
   }
+  const prologue = prologueNews(state);
+  if (prologue) return prologue;
   const delivered = Object.values(state.contracts.projects)
     .filter((p) => p.delivery?.day === today)
     .at(-1);
@@ -58,11 +66,14 @@ export function OfficeView({
   const title = useGameSelector(headline);
   const news = useGameSelector(officeNews);
   const day = useGameSelector((state) => state.mission.day);
+  const prologue = useGameSelector((state) => state.prologue !== null);
 
   return (
     <main className="office-main">
       <div className="office-heading">
-        <p className="kicker">Dzień {day} / Twój software house</p>
+        <p className="kicker">
+          Dzień {day} / {prologue ? 'Prolog · JanuszSoft' : 'Twój software house'}
+        </p>
         <h1>
           {title}
           <span className="dot">.</span>
@@ -80,7 +91,7 @@ export function OfficeView({
           <div ref={sceneRef} className="scene" />
         </div>
         <OfficeSceneBubble />
-        <IntroCard />
+        {prologue ? <PrologueCard /> : <IntroCard />}
         <SelectionPanel />
       </section>
       <DayCard />
@@ -99,12 +110,17 @@ function PauseChip() {
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const editing = useFurnitureEdit() !== null;
   const dispatch = useDispatch();
-  if (!isWorking || editing) return null;
+  const resume = useGuide()?.kind === 'resume';
+  // Prolog: zegar rusza dopiero, gdy Janusz ma przydział.
+  const locked = useGameSelector((state) =>
+    isLockedInPrologue(state, { type: 'SetSpeed', speed: 1 }),
+  );
+  if (!isWorking || editing || locked) return null;
   const paused = speed === 0;
   return (
     <button
       type="button"
-      className="pause-chip"
+      className={spotlight('pause-chip', resume)}
       onClick={() => dispatch({ type: 'SetSpeed', speed: paused ? 1 : 0 })}
     >
       {paused ? <Play size={14} /> : <Pause size={14} />}

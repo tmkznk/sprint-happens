@@ -1,6 +1,7 @@
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { clockLabel } from './clock';
+import { spotlight, useGuide } from './prologue/hooks';
 import { SpeedControls } from './SpeedControls';
 
 // SH-033 (wzór SH2): numer dnia, godzina, postęp dnia i tempo (TIME-02); po pracy — rozliczenie
@@ -14,6 +15,7 @@ export function DayCard() {
   );
   const phase = useGameSelector((state) => state.mission.phase);
   const dispatch = useDispatch();
+  const settle = useGuide()?.kind === 'settle';
 
   return (
     <section className="day-card" aria-label="Dzień pracy">
@@ -37,7 +39,7 @@ export function DayCard() {
           <span>Koniec dnia pracy. Przejrzyj wyniki i oddaj gotowe projekty.</span>
           <button
             type="button"
-            className="primary-button"
+            className={spotlight('primary-button', settle)}
             onClick={() => dispatch({ type: 'SettleDay' })}
           >
             Rozlicz dzień

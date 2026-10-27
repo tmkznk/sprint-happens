@@ -78,6 +78,8 @@ export type RejectionCode =
   | 'deskTaken'
   // OFF-07: edycja mebli wymaga pauzy.
   | 'notPaused'
+  // Prolog: funkcja odblokowuje się na późniejszym etapie (albo po ukończeniu prologu).
+  | 'prologueLocked'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

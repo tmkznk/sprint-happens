@@ -13,9 +13,11 @@ import { DayReportDialog } from './DayReportDialog';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
 import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
-import { NavigationContext, type Navigation, type Tab } from './navigation';
+import { NavigationContext, type MissionKind, type Navigation, type Tab } from './navigation';
 import { OfficeView } from './OfficeView';
 import { PlanAside } from './PlanAside';
+import { tabLock } from './prologue/guide';
+import { PrologueFinale } from './prologue/PrologueViews';
 import { Sheet } from './Sheet';
 import { TopBar } from './TopBar';
 import { FinanceView } from './views/FinanceView';
@@ -28,14 +30,25 @@ import { TeamView } from './views/TeamView';
 // Scena testowa okluzji dla SH-002: ?scene=occlusion
 const occlusionTest = new URLSearchParams(window.location.search).get('scene') === 'occlusion';
 
-const SHEETS: Record<Exclude<Tab, 'office'>, { title: string; view: () => ReactNode }> = {
+type SheetProps = { onNewGame(kind: MissionKind): void };
+
+const SHEETS: Record<
+  Exclude<Tab, 'office'>,
+  { title: string; view: (props: SheetProps) => ReactNode }
+> = {
   projects: { title: 'Projekty i zlecenia', view: () => <ProjectsView /> },
   team: { title: 'Twój zespół', view: () => <TeamView /> },
   recruit: { title: 'Rekrutacja', view: () => <RecruitmentView /> },
   furnish: { title: 'Urządź biuro', view: () => <FurnishView /> },
   finance: { title: 'Finanse firmy', view: () => <FinanceView /> },
-  goals: { title: 'Cel misji', view: () => <GoalsView /> },
+  goals: {
+    title: 'Cel misji',
+    view: ({ onNewGame }) => <GoalsView onSkipPrologue={() => onNewGame('mission')} />,
+  },
 };
+
+// Komunikat blokady prologu znika sam po kilku sekundach.
+const NOTICE_MS = 4000;
 
 // Aktywna gra. Pętla, scena Phaser i autozapis żyją tyle, co komponent — nowa misja montuje
 // go od nowa, więc po restarcie nie zostaje poprzednia pętla ani handlery (T:VIEW-05).
@@ -47,13 +60,25 @@ export function App({
 }: {
   engine: Engine;
   saveManager: SaveManager;
-  onNewGame(): void;
+  onNewGame(kind?: MissionKind): void;
 }) {
   const [selection] = useState(createSelectionStore);
   const [edit] = useState(createFurnitureEditStore);
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const [tab, setTab] = useState<Tab>('office');
-  const navigation = useMemo<Navigation>(() => ({ tab, open: setTab }), [tab]);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Zablokowana w prologu zakładka nie otwiera się — gracz widzi warunek dostępu.
+  const navigation = useMemo<Navigation>(
+    () => ({
+      tab,
+      open(next) {
+        const lock = tabLock(engine.getState(), next);
+        setNotice(lock);
+        if (!lock) setTab(next);
+      },
+    }),
+    [tab, engine],
+  );
   const sceneRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   // Na telefonie panel zarządzania jest pełnoekranowy i zasłania biuro.
@@ -88,6 +113,12 @@ export function App({
     else game.loop.wake();
   }, [sceneCovered]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const sheet = tab === 'office' ? null : SHEETS[tab];
 
   return (
@@ -102,12 +133,18 @@ export function App({
               {wide && <PlanAside />}
               {sheet && (
                 <Sheet title={sheet.title} onClose={() => setTab('office')}>
-                  {sheet.view()}
+                  {sheet.view({ onNewGame })}
                 </Sheet>
               )}
+              {notice && (
+                <p className="lock-notice" role="status" onClick={() => setNotice(null)}>
+                  {notice}
+                </p>
+              )}
             </div>
-            <DayReportDialog onNewGame={onNewGame} />
+            <DayReportDialog onNewGame={() => onNewGame()} />
             <EventDialog />
+            <PrologueFinale onFinish={() => onNewGame('mission')} />
           </NavigationContext>
         </FurnitureEditContext>
       </SelectionContext>

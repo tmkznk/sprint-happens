@@ -3,16 +3,19 @@ import type { GameState } from '../domain/state';
 import { gameStateSchema, type ValidationContext } from './schema';
 
 // T:SAVE-T05, SAVE-T06 — wersja formatu zapisu. Zmiana kształtu stanu wymaga podniesienia
-// wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039). Do pierwszego
-// wydania format pozostaje w wersji 1 (zapisy deweloperskie mogą przestać się wczytywać).
-export const SCHEMA_VERSION = 1;
+// wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039).
+// Wersja 2: stan prologu (`prologue`).
+export const SCHEMA_VERSION = 2;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
 export type Migration = (state: unknown) => unknown;
 
-// Klucz — wersja źródłowa. Pusty do pierwszego wydania.
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+// Klucz — wersja źródłowa.
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // 1 → 2: zapisy sprzed prologu to właściwa misja.
+  1: (input) => ({ ...(input as Record<string, unknown>), prologue: null }),
+};
 
 export type FormatOptions = { version: number; migrations: Readonly<Record<number, Migration>> };
 

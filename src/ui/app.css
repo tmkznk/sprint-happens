@@ -527,6 +527,189 @@ h4 {
   font-size: var(--fs-small);
 }
 
+/* Prolog (samouczek): komunikat etapu w formie karty powitalnej — dłuższy tekst przewija się
+   w obrębie karty, aby nie zasłonić całego biura. */
+.prologue-card {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+
+.prologue-card h2 {
+  padding-right: 22px;
+}
+
+.prologue-card p {
+  margin-bottom: 6px;
+}
+
+.prologue-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+}
+
+.prologue-task {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 8px 0 10px;
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+
+.prologue-card .prologue-task {
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+
+.prologue-task svg {
+  flex: none;
+  color: #9a6a12;
+  transform: translateY(2px);
+}
+
+.prologue-step h2 {
+  margin: 4px 0 6px;
+  font-size: var(--fs-strong);
+}
+
+.prologue-step p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+
+.prologue-goals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+}
+
+.prologue-goals li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+}
+
+.prologue-goals li.current {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.prologue-goals li.done {
+  color: var(--text);
+}
+
+.prologue-goal-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  font-size: var(--fs-label);
+  font-weight: 700;
+}
+
+.prologue-goals li.current .prologue-goal-mark {
+  border-color: var(--yellow);
+  background: var(--yellow-soft);
+}
+
+.prologue-goals li.done .prologue-goal-mark {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--paper);
+}
+
+.prologue-finale .prologue-goals {
+  margin: 12px 0 4px;
+}
+
+.card-client {
+  margin: 0 0 4px;
+  color: var(--green);
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+
+.shop-list li .lock-text {
+  font-style: italic;
+}
+
+/* Prolog: „Cel misji” z bieżącym zadaniem samouczka jest dostępny także na telefonie. */
+.main-nav .nav-goals.nav-prologue {
+  display: flex;
+}
+
+/* Zablokowana zakładka: widoczna, ale wyciszona; dotknięcie pokazuje warunek dostępu. */
+.main-nav button.nav-locked {
+  opacity: 0.55;
+}
+
+.lock-notice {
+  position: fixed;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  left: 16px;
+  z-index: 40;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+/* Prolog: element, który gracz ma teraz dotknąć — pierścień i pulsująca poświata. */
+.spotlight {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+  animation: spotlight-pulse 1.6s ease-out infinite;
+}
+
+@keyframes spotlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(239 190 89 / 75%);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(239 190 89 / 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight {
+    animation: none;
+    box-shadow: 0 0 0 4px rgb(239 190 89 / 45%);
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .office-scene {
   position: absolute;
   top: 48px;
@@ -2113,4 +2296,15 @@ progress::-moz-progress-bar {
 
 .movement-demo nav a[aria-current='page'] {
   color: #9a6a12;
+}
+
+/* Prolog na desktopie: komunikat blokady nad biurem, poza dolną krawędzią nawigacji. */
+@media (min-width: 900px) {
+  .lock-notice {
+    right: auto;
+    bottom: 24px;
+    left: 50%;
+    max-width: 440px;
+    transform: translateX(-50%);
+  }
 }

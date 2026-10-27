@@ -5,7 +5,10 @@ import { POINT_SCALE } from '../domain/contracts';
 import type { FurnitureId } from '../domain/furniture';
 import { createAgent } from '../domain/movement';
 import { createInitialState, type GameState } from '../domain/state';
+import type { EmployeeId } from '../domain/employees';
 import { createEngine } from '../simulation/engine';
+import { createPrologueState } from '../simulation/prologue';
+import { createPlayer } from '../test/player';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import type { ValidationContext } from './schema';
@@ -580,5 +583,70 @@ describe('roślina w zapisie', () => {
     ).toEqual({ ok: true });
     const state = engine.getState();
     expect(roundTrip(state)).toEqual(state);
+  });
+});
+
+describe('prolog w zapisie', () => {
+  it('stan każdego kroku prologu przetrwa zapis', () => {
+    const player = createPlayer(DEFAULT_BALANCE, 5, createPrologueState(DEFAULT_BALANCE, 5));
+    const seen = new Set<string>();
+    const check = () => {
+      const state = player.state();
+      const step = state.prologue?.step ?? 'brak';
+      if (seen.has(step)) return;
+      seen.add(step);
+      expect(roundTrip(state)).toEqual(state);
+    };
+    check();
+    const first = player.acceptStarter();
+    check();
+    const owner = Object.values(player.state().staff.employees)[0]?.id as EmployeeId;
+    player.assign(owner, first);
+    check();
+    player.runUntil((s) => s.contracts.projects[first]?.progress.frontend === 60 * POINT_SCALE);
+    if (player.state().mission.phase === 'workEnded') {
+      player.must({ type: 'SettleDay' });
+      check();
+      player.must({ type: 'StartNextDay' });
+    }
+    player.must({ type: 'DeliverProject', projectId: first });
+    check();
+    player.must({ type: 'SetSpeed', speed: 0 });
+    player.buyDesk();
+    check();
+    player.hire('backend', 'mid');
+    check();
+    expect([...seen]).toEqual([
+      'acceptFirst',
+      'assignOwner',
+      'deliverFirst',
+      'buyDesk',
+      'hireHelper',
+      'acceptSecond',
+    ]);
+  });
+
+  it('nieznany krok prologu jest odrzucany', () => {
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: { ...createPrologueState(DEFAULT_BALANCE, 5), prologue: { step: 'tutorial' } },
+    });
+    expect(parseSnapshot(json, context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidState' },
+    });
+  });
+
+  it('właściwa misja nadal wymaga pełnego rynku kandydatów', () => {
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: { ...createPrologueState(DEFAULT_BALANCE, 5), prologue: null },
+    });
+    expect(parseSnapshot(json, context)).toMatchObject({
+      ok: false,
+      error: { code: 'invalidState' },
+    });
   });
 });

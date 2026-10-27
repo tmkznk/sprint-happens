@@ -5,6 +5,8 @@ import { useClearSelection } from '../../application/selectionHooks';
 import { FURNITURE_CATALOG, type FurnitureType } from '../../domain/furniture';
 import { FURNITURE_NAMES, money } from '../labels';
 import { useNavigation } from '../navigation';
+import { LOCKS } from '../prologue/copy';
+import { spotlight, useGuide } from '../prologue/hooks';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
 const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine', 'plant'];
@@ -38,6 +40,10 @@ export function FurnishView() {
   const clearSelection = useClearSelection();
   const dispatch = useDispatch();
   const { open } = useNavigation();
+  // Prolog: ze sklepu tylko stanowisko pracy; pozostałe zakupy wyjaśniają blokadę.
+  const prologueStep = useGameSelector((state) => state.prologue?.step ?? null);
+  const deskGuided = useGuide()?.kind === 'buyDesk';
+  const lockText = prologueStep === 'buyDesk' ? LOCKS.shop : LOCKS.rest;
 
   const choose = (furnitureType: FurnitureType) => {
     if (speed !== 0) dispatch({ type: 'SetSpeed', speed: 0 });
@@ -56,6 +62,7 @@ export function FurnishView() {
       <ul className="shop-list">
         {TYPES.map((type) => {
           const Icon = ICONS[type];
+          const locked = prologueStep !== null && type !== 'desk';
           return (
             <li key={type}>
               <span className="candidate-name">
@@ -65,10 +72,11 @@ export function FurnishView() {
               <span>
                 {money.format(config.furniture.prices[type])} zł · {places(type)}
               </span>
+              {locked && <span className="lock-text">{lockText}</span>}
               <button
                 type="button"
-                className="primary-button"
-                disabled={!isWorking}
+                className={spotlight('primary-button', deskGuided && type === 'desk')}
+                disabled={!isWorking || locked}
                 onClick={() => choose(type)}
               >
                 Wybierz

@@ -1,7 +1,12 @@
 import { MissionGoals } from '../MissionGoals';
+import { usePrologueStep } from '../prologue/hooks';
+import { PrologueGoalsView } from '../prologue/PrologueViews';
 
 // Zakładka „Cel misji” (MIS-03): wszystkie trzy progi naraz, sprawdzane po rozliczeniu dnia.
-export function GoalsView() {
+// W prologu — bieżący krok samouczka i jego cele.
+export function GoalsView({ onSkipPrologue }: { onSkipPrologue(): void }) {
+  const prologue = usePrologueStep() !== null;
+  if (prologue) return <PrologueGoalsView onSkip={onSkipPrologue} />;
   return (
     <>
       <p className="hint">

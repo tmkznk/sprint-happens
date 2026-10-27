@@ -20,6 +20,7 @@ export const REJECTION_MESSAGES: Record<RejectionCode, string> = {
   notADesk: 'To nie jest stanowisko pracy.',
   deskTaken: 'To biurko jest już przypisane innej osobie.',
   notPaused: 'Edycja biura wymaga pauzy.',
+  prologueLocked: 'Dostępne na dalszym etapie prologu.',
   invalidRotation: 'Nieprawidłowy obrót.',
   outOfFloor: 'Mebel musi stać w całości na podłodze pokoju.',
   collision: 'Mebel koliduje z innym wyposażeniem.',

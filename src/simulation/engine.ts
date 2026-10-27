@@ -8,6 +8,7 @@ import {
   type HandlerOutcome,
 } from './commands';
 import { PHASES_BY_CATEGORY } from './commands/phases';
+import { advancePrologue, isLockedInPrologue } from './prologue';
 import { advanceStep } from './step';
 import { assertValidStepMs } from './time';
 
@@ -52,7 +53,12 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
     if (!allowedPhases.includes(state.mission.phase)) {
       return { ok: false, rejection: { code: 'phaseNotAllowed' } };
     }
-    return handler.execute(state, command, config);
+    // Prolog udostępnia polecenia stopniowo; bramkę egzekwuje silnik, nie tylko interfejs.
+    if (isLockedInPrologue(state, command)) {
+      return { ok: false, rejection: { code: 'prologueLocked' } };
+    }
+    const outcome = handler.execute(state, command, config);
+    return outcome.ok ? { ok: true, state: advancePrologue(outcome.state, config) } : outcome;
   }
 
   return {
@@ -67,7 +73,7 @@ export function createEngine({ config, initialState }: EngineOptions): Engine {
       return { ok: true };
     },
     step() {
-      commit(advanceStep(state, config));
+      commit(advancePrologue(advanceStep(state, config), config));
     },
     subscribe(listener) {
       listeners.add(listener);

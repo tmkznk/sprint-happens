@@ -7,6 +7,9 @@ export type Tab = 'office' | 'projects' | 'team' | 'recruit' | 'furnish' | 'fina
 
 export type Navigation = { tab: Tab; open(tab: Tab): void };
 
+// Nowa gra: właściwa misja albo prolog (samouczek).
+export type MissionKind = 'mission' | 'prologue';
+
 export const NavigationContext = createContext<Navigation | null>(null);
 
 export function useNavigation(): Navigation {

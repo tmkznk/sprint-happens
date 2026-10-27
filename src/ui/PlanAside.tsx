@@ -3,11 +3,14 @@ import { useGameSelector } from '../application/engineHooks';
 import { progressPercent } from '../simulation/work';
 import { TECH_SPECIALIZATIONS } from '../domain/contracts';
 import { MissionGoals } from './MissionGoals';
+import { usePrologueStep } from './prologue/hooks';
+import { PrologueGoals } from './prologue/PrologueViews';
 import { useNavigation } from './navigation';
 
 // Desktop (SH-033, wzór SH2): „Plan na dzisiaj” — cele misji, projekty w toku, rekrutacja.
 export function PlanAside() {
   const { open } = useNavigation();
+  const prologue = usePrologueStep() !== null;
   // Klucz z widocznych wartości — mapa projektów zmienia się w każdym kroku (T:VIEW-02).
   const activeKey = useGameSelector((state) =>
     Object.values(state.contracts.projects)
@@ -40,7 +43,7 @@ export function PlanAside() {
         </h2>
         <p>Dowieź projekty. Zbuduj reputację. Nie zbankrutuj po drodze.</p>
       </div>
-      <MissionGoals />
+      {prologue ? <PrologueGoals /> : <MissionGoals />}
       <section className="plan-section">
         <header>
           <h3>W toku</h3>

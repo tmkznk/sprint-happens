@@ -12,6 +12,7 @@ import { money } from '../labels';
 import { ProjectSelect } from '../ProjectSelect';
 import { useNavigation } from '../navigation';
 import { peopleCount } from '../plural';
+import { spotlight, useGuide } from '../prologue/hooks';
 
 // Zakładka „Zespół” (SH-033, wzór SH2): lista ludzi z kosztami, energią, zadowoleniem
 // i statusem pracy (EMP-07); szczegóły i decyzje (projekt, biurko, zwolnienie) — w biurze.
@@ -20,6 +21,7 @@ export function TeamView() {
   const employees = useGameSelector((state) => state.staff.employees);
   const list = Object.values(employees).sort((a, b) => compareIds(a.id, b.id));
   const wages = list.reduce((sum, e) => sum + e.dailyWage, 0);
+  const hireGuided = useGuide()?.kind === 'hire';
 
   return (
     <>
@@ -27,7 +29,11 @@ export function TeamView() {
         <span>
           {peopleCount(list.length)} · {money.format(wages)} zł / dzień
         </span>
-        <button type="button" className="primary-button" onClick={() => open('recruit')}>
+        <button
+          type="button"
+          className={spotlight('primary-button', hireGuided)}
+          onClick={() => open('recruit')}
+        >
           <UserPlus size={18} /> Rekrutuj
         </button>
       </div>

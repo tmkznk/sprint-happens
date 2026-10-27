@@ -1,4 +1,5 @@
 import type { Seniority, Specialization } from '../employees';
+import { PROLOGUE_OWNER } from './prologue';
 
 // Stała lista postaci rynku pracy — treść gry, wyłącznie kosmetyczna (imię, opis, awatar).
 // Po trzy osoby na każdą parę specjalizacja × seniority; rynek pokazuje naraz jedną z każdej
@@ -538,7 +539,8 @@ export const PEOPLE: readonly Person[] = [
   },
 ];
 
-const BY_ID = new Map(PEOPLE.map((person) => [person.id, person]));
+// Właściciel z prologu jest postacią gry, ale nie kandydatem rynku pracy.
+const BY_ID = new Map([...PEOPLE, PROLOGUE_OWNER].map((person) => [person.id, person]));
 
 export function personById(id: PersonId): Person | undefined {
   return BY_ID.get(id);

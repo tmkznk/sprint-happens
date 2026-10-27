@@ -7,6 +7,7 @@ import {
   type Specialization,
 } from '../../domain/employees';
 import { personById } from '../../domain/content/people';
+import { PROLOGUE_HELPER_BIO, PROLOGUE_HELPER_ID } from '../../domain/content/prologue';
 import { isInDebt } from '../../simulation/finance';
 import { freeDeskCount } from '../../simulation/staff';
 import { Avatar } from '../Avatar';
@@ -16,6 +17,8 @@ import {
   SPECIALIZATION_LABELS,
   SPECIALIZATION_SHORT_LABELS,
 } from '../labels';
+import { LOCKS, RECRUIT_STORY } from '../prologue/copy';
+import { spotlight, useGuide } from '../prologue/hooks';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
 // EMP-03, EMP-04, FIN-03 (Z): wybór konkretnej osoby po zapoznaniu się z seniority i pensją;
@@ -26,6 +29,9 @@ export function RecruitmentView() {
   const freeDesks = useGameSelector(freeDeskCount);
   const inDebt = useGameSelector(isInDebt);
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  // Prolog: jeden kandydat, opis fabularny etapu i bez filtrów.
+  const prologue = useGameSelector((state) => state.prologue !== null);
+  const hireGuided = useGuide()?.kind === 'hire';
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
   const [filter, setFilter] = useState<Specialization | 'all'>('all');
@@ -65,21 +71,24 @@ export function RecruitmentView() {
           {message}
         </p>
       )}
-      <div className="filter-pills" role="group" aria-label="Filtruj według stanowiska">
-        <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
-          Wszyscy
-        </button>
-        {SPECIALIZATIONS.map((specialization) => (
-          <button
-            key={specialization}
-            type="button"
-            aria-pressed={filter === specialization}
-            onClick={() => setFilter(specialization)}
-          >
-            {SPECIALIZATION_SHORT_LABELS[specialization]}
+      {prologue && <p className="hint">{hireGuided ? RECRUIT_STORY : LOCKS.rest}</p>}
+      {!prologue && (
+        <div className="filter-pills" role="group" aria-label="Filtruj według stanowiska">
+          <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+            Wszyscy
           </button>
-        ))}
-      </div>
+          {SPECIALIZATIONS.map((specialization) => (
+            <button
+              key={specialization}
+              type="button"
+              aria-pressed={filter === specialization}
+              onClick={() => setFilter(specialization)}
+            >
+              {SPECIALIZATION_SHORT_LABELS[specialization]}
+            </button>
+          ))}
+        </div>
+      )}
       <ul className="candidate-list">
         {visible.map((candidate) => (
           <li key={candidate.id}>
@@ -94,14 +103,18 @@ export function RecruitmentView() {
             </div>
             <button
               type="button"
-              className="primary-button"
+              className={spotlight('primary-button', hireGuided)}
               disabled={blockedReason !== null}
               onClick={() => hire(candidate)}
               aria-label={`Zatrudnij: ${candidate.name}, ${SENIORITY_LABELS[candidate.seniority]}`}
             >
               Zatrudnij
             </button>
-            <p className="bio">{personById(candidate.personId)?.bio}</p>
+            <p className="bio">
+              {prologue && candidate.personId === PROLOGUE_HELPER_ID
+                ? PROLOGUE_HELPER_BIO
+                : personById(candidate.personId)?.bio}
+            </p>
           </li>
         ))}
       </ul>

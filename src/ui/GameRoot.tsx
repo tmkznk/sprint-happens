@@ -17,9 +17,11 @@ import { createInitialState, type GameState } from '../domain/state';
 import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persistence/saveStore';
 import type { ValidationContext } from '../persistence/schema';
 import { createEngine, type Engine } from '../simulation/engine';
+import { createPrologueState } from '../simulation/prologue';
 import { pwa } from '../pwa/register';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import { App } from './App';
+import type { MissionKind } from './navigation';
 import { ConfirmDialog } from './ConfirmDialog';
 
 const CONTEXT: ValidationContext = { config: DEFAULT_BALANCE, layout: OFFICE_LAYOUT };
@@ -61,6 +63,14 @@ function pageTabs(): PageTabs {
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
+}
+
+// Pierwsze uruchomienie zaczyna się od prologu (samouczka); właściwa misja — po nim albo
+// na wyraźny wybór gracza.
+function newState(kind: MissionKind): GameState {
+  return kind === 'prologue'
+    ? createPrologueState(DEFAULT_BALANCE, randomSeed())
+    : createInitialState(DEFAULT_BALANCE, randomSeed());
 }
 
 function createSession(
@@ -111,7 +121,7 @@ export function GameRoot() {
       );
       return;
     }
-    const session = createSession(store, createInitialState(DEFAULT_BALANCE, randomSeed()), {
+    const session = createSession(store, newState('prologue'), {
       revision: null,
       state: null,
     });
@@ -122,13 +132,13 @@ export function GameRoot() {
   // SAVE-04: nowa misja zastępuje zapis — wywoływana dopiero po potwierdzeniu gracza.
   // `keepPrevious` — bieżący zapis jest uszkodzony: nie przesuwamy go nad poprawną kopię (SH-039).
   const startNewMission = useCallback(
-    async (keepPrevious = false) => {
+    async (keepPrevious = false, kind: MissionKind = 'mission') => {
       // Niedostępna pamięć: gra startuje, a błąd zapisu pokaże wskaźnik zapisu (SAVE-T03).
       const current = await store.read().then(
         (saves) => saves.current,
         () => null,
       );
-      const session = createSession(store, createInitialState(DEFAULT_BALANCE, randomSeed()), {
+      const session = createSession(store, newState(kind), {
         revision: revisionOf(current),
         state: null,
         keepPrevious,
@@ -232,7 +242,7 @@ export function GameRoot() {
           key={view.session.id}
           engine={view.session.engine}
           saveManager={view.session.manager}
-          onNewGame={() => void startNewMission()}
+          onNewGame={(kind) => void startNewMission(false, kind)}
         />
       );
   }

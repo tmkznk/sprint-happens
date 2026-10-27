@@ -3,6 +3,8 @@ import { useState, type ReactNode } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit } from '../application/furnitureEditHooks';
 import { SPEEDS, type Speed } from '../domain/state';
+import { LOCKS } from './prologue/copy';
+import { spotlight, useGuide } from './prologue/hooks';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 const LABELS: Record<Speed, ReactNode> = {
@@ -21,10 +23,12 @@ export function SpeedControls() {
   const editing = useFurnitureEdit() !== null;
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
+  const resume = useGuide()?.kind === 'resume';
 
   function select(next: Speed) {
     const result = dispatch({ type: 'SetSpeed', speed: next });
-    setMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
+    const code = result.ok ? null : result.rejection.code;
+    setMessage(code === 'prologueLocked' ? LOCKS.speed : code ? REJECTION_MESSAGES[code] : null);
   }
 
   return (
@@ -33,6 +37,7 @@ export function SpeedControls() {
         <button
           key={value}
           type="button"
+          className={spotlight(undefined, resume && value === 1)}
           aria-pressed={speed === value}
           disabled={!isWorking || editing}
           aria-label={NAMES[value]}
