@@ -321,6 +321,31 @@ h4 {
   font-size: var(--fs-small);
 }
 
+.about p {
+  margin: 0 0 6px;
+}
+
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modal-actions.about-actions {
+  justify-content: space-between;
+}
+
+.about-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green);
+  font-weight: 650;
+}
+
 .save-indicator {
   color: var(--muted);
   font-size: var(--fs-label);

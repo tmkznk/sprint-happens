@@ -1,4 +1,3 @@
-import { Coffee } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
@@ -16,6 +15,7 @@ import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import { AGENT_STATUS_LABELS, FURNITURE_NAMES, money } from './labels';
 import { ProjectSelect } from './ProjectSelect';
+import { SupportCoffee } from './SupportCoffee';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
 // UX-01 (Z): dotknięcie pracownika lub mebla otwiera dolny panel szczegółów.
@@ -302,27 +302,5 @@ function EmployeeAlerts({ employeeId }: { employeeId: EmployeeId }) {
       )}
       {blocked && <p className="negative">{AGENT_STATUS_LABELS[movement]}</p>}
     </div>
-  );
-}
-
-const SUPPORT_URL = 'https://buycoffee.to/tmkznk';
-
-// Wsparcie autora przy ekspresie do kawy (link zewnętrzny, nowa karta, bez dostępu do gry).
-function SupportCoffee() {
-  return (
-    <aside className="support-card">
-      <p className="support-title">Podoba ci się gra?</p>
-      <p>Ten ekspres działa na wirtualnej kawie. Autor — na prawdziwej.</p>
-      <a
-        className="primary-button support-button"
-        href={SUPPORT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Postaw mi kawę (otwiera się w nowej karcie)"
-      >
-        <Coffee size={16} aria-hidden="true" />
-        Postaw mi kawę
-      </a>
-    </aside>
   );
 }

@@ -2,6 +2,7 @@ import { Settings, Star, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
+import { AboutButton } from './AboutButton';
 import { money } from './labels';
 import type { MissionKind } from './navigation';
 import { NewGameButton } from './NewGameButton';
@@ -10,7 +11,7 @@ import { OfflineBadge } from './OfflineBadge';
 import { SaveIndicator } from './SaveIndicator';
 
 // SH-033 (wzór SH2): logo, budżet i reputacja (REP-01) zawsze widoczne; ustawienia z nową grą,
-// stanem zapisu, gotowością offline i instalacją aplikacji (PWA-01).
+// stanem zapisu, gotowością offline, instalacją aplikacji (PWA-01) i informacją o autorze.
 export function TopBar({
   manager,
   onNewGame,
@@ -86,6 +87,7 @@ export function TopBar({
                   onNewGame('prologue');
                 }}
               />
+              <AboutButton />
             </div>
           )}
         </div>
