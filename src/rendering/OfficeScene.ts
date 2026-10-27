@@ -27,6 +27,7 @@ import {
   placeCharacterSprite,
   type CharacterSprite,
 } from './characterSprites';
+import { ROOM_TEXTURES, roomSprite, roomTextureKey, type RoomSpriteMeta } from './roomSprites';
 import { bakePieces, type BakedPiece } from './bake';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
@@ -79,6 +80,7 @@ export type OfficeSceneOptions = {
 };
 
 const FLOOR_DEPTH = -1000;
+const ROOM_FRONT_DEPTH = 1_000_000;
 
 // Pre-renderowane meble (src/assets/furniture/<typ>-<obrót>.png) — adresy z paczki Vite.
 const FURNITURE_TEXTURES = Object.entries(
@@ -120,18 +122,21 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const [key, url] of FURNITURE_TEXTURES) this.load.image(key, url);
+    for (const [key, url] of [...FURNITURE_TEXTURES, ...ROOM_TEXTURES]) this.load.image(key, url);
   }
 
   create(): void {
     // Gra ma pixelArt (filtr najbliższego sąsiada); pre-render 3D skalujemy płynnie.
-    for (const [key] of FURNITURE_TEXTURES) {
+    for (const [key] of [...FURNITURE_TEXTURES, ...ROOM_TEXTURES]) {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
-    // Podłoga i ściany się nie zmieniają — rysowane raz do tekstury, nie w każdej klatce.
-    // Układ biura jest stały w czasie sesji (prolog i misja to osobne sesje).
+    // Podłoga i ściany się nie zmieniają — wyrenderowane pomieszczenie albo bryły rysowane raz
+    // do tekstury, nie w każdej klatce. Układ biura jest stały w czasie sesji (prolog i misja
+    // to osobne sesje).
     const layout = officeLayoutOf(this.engine.getState());
-    bakePieces(this, 'office-static', [floorPiece(layout), ...wallPieces(layout)]);
+    const room = roomSprite(layout);
+    if (room) this.addRoomImages(room.id, room.meta);
+    else bakePieces(this, 'office-static', [floorPiece(layout), ...wallPieces(layout)]);
     this.syncFurniture();
     const unsubscribeEngine = this.engine.subscribe(() => this.syncFurniture());
     const unsubscribeSelection = this.selection.subscribe(() => this.syncFurniture());
@@ -140,7 +145,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.options.occlusionTest) this.createTestActor();
 
     const detachCamera = attachOfficeCamera(this, {
-      bounds: officeBounds(layout),
+      bounds: room ? roomBounds(room.meta) : officeBounds(layout),
       onTap: (world) => this.select(world),
     });
 
@@ -313,6 +318,21 @@ export class OfficeScene extends Phaser.Scene {
     this.furnitureGraphics.push(...ghost, markers);
   }
 
+  // Wyrenderowane pomieszczenie: tył pod całą sceną, niskie ściany przednie nad nią (postacie
+  // i meble stoją zawsze za nimi).
+  private addRoomImages(id: string, meta: RoomSpriteMeta): void {
+    for (const [layer, depth] of [
+      ['back', FLOOR_DEPTH],
+      ['front', ROOM_FRONT_DEPTH],
+    ] as const) {
+      this.add
+        .image(0, 0, roomTextureKey(id, layer))
+        .setOrigin(meta.anchorX / meta.width, meta.anchorY / meta.height)
+        .setScale(1 / meta.scale)
+        .setDepth(depth);
+    }
+  }
+
   // Kotwica obrazka = narożnik (0,0) footprintu; obrazek ma podwójną rozdzielczość. Biurko ma
   // osobny obrazek krzesła z głębokością siedziska — siedząca postać trafia między krzesło a blat.
   private addFurnitureImages(furniture: Furniture): Phaser.GameObjects.Image[] {
@@ -421,6 +441,16 @@ function wallPieces(layout: OfficeLayout): BakedPiece[] {
     }
   }
   return pieces;
+}
+
+// Granice wyrenderowanego pomieszczenia na ekranie świata (punkt (0,0) siatki to kotwica).
+function roomBounds(meta: RoomSpriteMeta): Bounds {
+  return {
+    left: -meta.anchorX / meta.scale,
+    right: (meta.width - meta.anchorX) / meta.scale,
+    top: -meta.anchorY / meta.scale,
+    bottom: (meta.height - meta.anchorY) / meta.scale,
+  };
 }
 
 // Granice biura na ekranie świata, łącznie z wysokością tylnych ścian.

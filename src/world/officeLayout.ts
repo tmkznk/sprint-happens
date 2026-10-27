@@ -51,11 +51,10 @@ export const OFFICE_LAYOUT: OfficeLayout = {
 export const PROLOGUE_LAYOUT: OfficeLayout = {
   size: { width: 8, height: 7 },
   rooms: [{ id: 'main', bounds: { x: 1, y: 1, width: 6, height: 5 } }],
-  doors: [{ position: { x: 3, y: 6 }, isEntrance: true }],
-  windows: [
-    { x: 2, y: 0 },
-    { x: 0, y: 3 },
-  ],
+  // Wejście w wysokiej lewej ścianie (drzwi z paczki widoczne w całości).
+  doors: [{ position: { x: 0, y: 4 }, isEntrance: true }],
+  // Bez okien — na ścianach dekoracje (obrazy, kratka; rendering).
+  windows: [],
   // Jedyne wolne miejsce na drugie stanowisko: pod prawą ścianą, przodem do pokoju.
   placementStart: { origin: { x: 5, y: 3 }, rotation: 90 },
 };
