@@ -527,6 +527,226 @@
         };
       };
 
+      // Pomieszczenie (podłoga, ściany, drzwi, dekoracje) w siatce gry: X = x pola, Z = y pola,
+      // wysokości w metrach. Ten sam kadr dla warstw: `back` — wszystko oprócz ścian przednich,
+      // `front` — tylko niskie ściany od strony kamery (w grze nad postaciami).
+      // spec: { scale, metersPerTile, layer, floor, walls[], doors[], decor[] }
+      window.renderRoom = async (spec) => {
+        const S = spec.scale ?? 2;
+        const k = 32 * S * Math.SQRT2;
+        const M = spec.metersPerTile;
+        const T = (m) => m / M;
+        const scene = new THREE.Scene();
+        const meshMat = (color) =>
+          new THREE.MeshStandardMaterial({
+            color,
+            roughness: 0.85,
+            metalness: 0,
+            flatShading: true,
+          });
+        const slab = (x0, z0, x1, z1, y0, y1, color, front = false) => {
+          const m = new THREE.Mesh(
+            new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0),
+            meshMat(color),
+          );
+          m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+          m.castShadow = true;
+          // Niskie ściany przednie bez cieni na wierzchu — czysty kolor ściany.
+          m.receiveShadow = !front;
+          m.userData.front = front;
+          scene.add(m);
+        };
+        const place = async (name, { x, z, y = 0, rotY = 0, scale = 1 }) => {
+          const node = await loadModel(name);
+          if (Array.isArray(scale)) node.scale.set(...scale);
+          else node.scale.setScalar(scale);
+          const zup = new THREE.Group();
+          zup.rotation.x = -Math.PI / 2;
+          zup.add(node);
+          const holder = new THREE.Group();
+          holder.scale.setScalar(1 / M);
+          holder.add(zup);
+          const placed = new THREE.Group();
+          placed.position.set(x, T(y), z);
+          placed.rotation.y = THREE.MathUtils.degToRad(rotY);
+          placed.add(holder);
+          scene.add(placed);
+        };
+
+        // Podłoga: płytki dokładnie na polach pokoju (fuga na granicach pól, jak siatka gry);
+        // między ścianą a pierwszym rzędem płytek — pas podłogi bez fug (połowa pola ściany).
+        const f = spec.floor;
+        const gap = 0.025;
+        for (let z = f.tiles.z0; z < f.tiles.z1; z += 1) {
+          for (let x = f.tiles.x0; x < f.tiles.x1; x += 1) {
+            const color = f.colors[(x + z) % 2];
+            slab(x + gap / 2, z + gap / 2, x + 1 - gap / 2, z + 1 - gap / 2, -0.06, 0, color);
+          }
+        }
+        const { x0, z0, x1, z1 } = f.tiles;
+        for (const [a0, b0, a1, b1] of [
+          [f.x0, f.z0, f.x1, z0],
+          [f.x0, z1, f.x1, f.z1],
+          [f.x0, z0, x0, z1],
+          [x1, z0, f.x1, z1],
+        ]) {
+          if (a1 - a0 > 1e-6 && b1 - b0 > 1e-6) slab(a0, b0, a1, b1, -0.06, 0, f.border);
+        }
+        slab(f.x0, f.z0, f.x1, f.z1, -0.08, -0.05, f.grout);
+
+        // Ściany: tafla na linii środka pola ściany, z otworami; nad otworem nadproże.
+        const t = spec.wallThickness / 2;
+        for (const w of spec.walls) {
+          const h = T(w.height);
+          const box = (a, b, y0, y1, color, grow = 0) =>
+            w.axis === 'x'
+              ? slab(a, w.at - t - grow, b, w.at + t + grow, y0, y1, color, w.front)
+              : slab(w.at - t - grow, a, w.at + t + grow, b, y0, y1, color, w.front);
+          let from = w.from;
+          const parts = [];
+          for (const [a, b] of [...(w.openings ?? [])].sort((p, q) => p[0] - q[0])) {
+            parts.push([from, a]);
+            box(a, b, T(w.lintel ?? 2.1), h, w.color);
+            from = b;
+          }
+          parts.push([from, w.to]);
+          for (const [a, b] of parts) {
+            if (b - a < 1e-6) continue;
+            box(a, b, 0, h, w.color);
+            if (w.skirting) box(a, b, 0, T(0.08), w.skirting, T(0.015));
+            if (w.cap) box(a, b, h, h + 0.012, w.cap);
+          }
+        }
+        // Za drzwiami (po zewnętrznej stronie ściany, niewidocznej dla kamery) zaślepka otworu —
+        // światło nie wpada przez okienko drzwi plamą na podłogę; przez szybę widać jasny korytarz.
+        for (const d of spec.doors ?? []) {
+          const half = T(0.55);
+          const y1 = T(2.1);
+          if (d.axis === 'x')
+            slab(d.center - half, d.at - t, d.center + half, d.at - 0.06, 0, y1, 0xe8e4da);
+          else slab(d.at - t, d.center - half, d.at - 0.06, d.center + half, 0, y1, 0xe8e4da);
+        }
+        // Drzwi z paczki w oryginalnym rozmiarze, wyśrodkowane na polu drzwi (płaszczyzna ściany).
+        for (const d of spec.doors ?? []) {
+          const rot = d.axis === 'x' ? 0 : 90;
+          const along = (m) =>
+            d.axis === 'x' ? { x: d.center + T(m), z: d.at } : { x: d.at, z: d.center - T(m) };
+          await place('Door_Frame', { ...along(-0.5), rotY: rot });
+          await place(d.leaf, { ...along(-0.505), rotY: rot });
+          if (d.handle) {
+            const p = along(0.38);
+            await place(d.handle, {
+              x: p.x + (d.axis === 'z' ? T(0.06) : 0),
+              z: p.z + (d.axis === 'x' ? T(0.06) : 0),
+              y: 1.0,
+              rotY: rot,
+            });
+          }
+        }
+        for (const item of spec.decor ?? []) await place(item.name, item);
+
+        // Światło jak przy meblach (ten sam kierunek słońca → spójne cienie).
+        const cx = (f.x0 + f.x1) / 2,
+          cz = (f.z0 + f.z1) / 2;
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b0a0, 1.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+        sun.position.set(cx - 3, 7, cz + 1.5);
+        sun.target.position.set(cx, 0, cz);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(4096, 4096);
+        const spread = Math.max(f.x1 - f.x0, f.z1 - f.z0) + 4;
+        Object.assign(sun.shadow.camera, {
+          left: -spread,
+          right: spread,
+          top: spread,
+          bottom: -spread,
+          near: 0.1,
+          far: 60,
+        });
+        sun.shadow.radius = 3;
+        sun.shadow.bias = -0.0004;
+        scene.add(sun, sun.target);
+
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
+        const el = THREE.MathUtils.degToRad(30);
+        const dir = new THREE.Vector3(
+          Math.cos(el) / Math.SQRT2,
+          Math.sin(el),
+          Math.cos(el) / Math.SQRT2,
+        );
+        camera.position.copy(dir.clone().multiplyScalar(80));
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        scene.updateMatrixWorld(true);
+        const view = camera.matrixWorldInverse;
+        let minU = Infinity,
+          maxU = -Infinity,
+          minV = Infinity,
+          maxV = -Infinity;
+        scene.traverse((o) => {
+          if (!o.isMesh) return;
+          const pos = o.geometry.attributes.position;
+          const v = new THREE.Vector3();
+          for (let i = 0; i < pos.count; i++) {
+            const q = v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(view);
+            minU = Math.min(minU, q.x);
+            maxU = Math.max(maxU, q.x);
+            minV = Math.min(minV, q.y);
+            maxV = Math.max(maxV, q.y);
+          }
+        });
+        const pad = 4 / k;
+        let left = minU - pad,
+          top = maxV + pad;
+        const width = Math.ceil((maxU + pad - left) * k),
+          height = Math.ceil((top - (minV - pad)) * k);
+        const o = new THREE.Vector3(0, 0, 0).applyMatrix4(view);
+        const ax = (o.x - left) * k,
+          ay = (top - o.y) * k;
+        left -= (Math.ceil(ax) - ax) / k;
+        top += (Math.ceil(ay) - ay) / k;
+        Object.assign(camera, { left, right: left + width / k, top, bottom: top - height / k });
+        camera.updateProjectionMatrix();
+
+        // Warstwa: przednie ściany tylko w `front`, reszta tylko w `back` (cienie liczone ze wszystkiego).
+        if (spec.layer === 'front') {
+          // Reszta sceny tylko zasłania (bufor głębi), nie maluje; materiały modeli są współdzielone
+          // z pamięcią podręczną — zmieniamy kopie.
+          scene.traverse((m) => {
+            if (!m.isMesh || m.userData.front) return;
+            const hide = (material) => Object.assign(material.clone(), { colorWrite: false });
+            m.material = Array.isArray(m.material) ? m.material.map(hide) : hide(m.material);
+          });
+        } else {
+          scene.traverse((m) => {
+            if (m.isMesh && m.userData.front) m.visible = false;
+          });
+        }
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+        });
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.render(scene, camera);
+        const dataURL = renderer.domElement.toDataURL('image/png');
+        renderer.dispose();
+        return {
+          dataURL,
+          width,
+          height,
+          anchorX: Math.round((o.x - left) * k),
+          anchorY: Math.round((top - o.y) * k),
+          scale: S,
+        };
+      };
+
       window.ready = true;
     </script>
   </body>

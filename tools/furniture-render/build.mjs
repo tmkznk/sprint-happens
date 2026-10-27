@@ -1,7 +1,7 @@
 // Pre-render grafik gry z modeli 3D. Użycie (z tego katalogu):
 //   npm install
 //   VNB_PACK="/ścieżka/VNB Low Poly Office Set 2" npm run render [-- cel…]
-// Cele: typy mebli (desk, deskChair, sofa, coffeeMachine, plant) albo `characters`; bez celów —
+// Cele: typy mebli (desk, deskChair, sofa, coffeeMachine, plant), `rooms`, `characters` albo id osoby; bez celów —
 // wszystko. Meble → src/assets/furniture/<typ>-<obrót>.png + src/rendering/furnitureSprites.json;
 // postacie (własne, low poly) → src/assets/characters/<id osoby>.webp
 // + src/rendering/characterSprites.json.
@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { ANIMS, CHARACTER, FACINGS, LOOKS } from './characters.mjs';
 import { FURNITURE } from './furniture.mjs';
+import { ROOMS } from './rooms.mjs';
 import { startServer } from './server.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -56,10 +57,39 @@ try {
   }
   await writeFile(furnitureMetaFile, `${JSON.stringify(sortKeys(furnitureMeta), null, 2)}\n`);
 
-  if (wanted('characters')) {
+  // Pomieszczenia: warstwa tylna (podłoga, ściany, drzwi, dekoracje) i przednia (niskie ściany
+  // od strony kamery) → src/assets/rooms/<id>-<warstwa>.png + src/rendering/roomSprites.json.
+  if (wanted('rooms')) {
+    await mkdir(`${ROOT}src/assets/rooms`, { recursive: true });
+    const roomMeta = {};
+    for (const [id, spec] of Object.entries(ROOMS)) {
+      for (const layer of ['back', 'front']) {
+        const r = await page.evaluate((s) => window.renderRoom(s), {
+          ...spec,
+          layer,
+          scale: FURNITURE_SCALE,
+        });
+        await writeFile(
+          `${ROOT}src/assets/rooms/${id}-${layer}.png`,
+          Buffer.from(r.dataURL.split(',')[1], 'base64'),
+        );
+        const { width, height, anchorX, anchorY, scale } = r;
+        roomMeta[id] = { width, height, anchorX, anchorY, scale };
+        console.log(`${id}-${layer}`, width, height);
+      }
+    }
+    await writeFile(
+      `${ROOT}src/rendering/roomSprites.json`,
+      `${JSON.stringify(roomMeta, null, 2)}\n`,
+    );
+  }
+
+  // Postacie: wszystkie (`characters`) albo wybrane po id osoby.
+  const characterTargets = LOOKS.filter(({ id }) => wanted('characters') || targets.includes(id));
+  if (characterTargets.length > 0) {
     await mkdir(`${ROOT}src/assets/characters`, { recursive: true });
     let frame = null;
-    for (const { id, look } of LOOKS) {
+    for (const { id, look } of characterTargets) {
       const r = await page.evaluate((s) => window.renderCharacterAtlas(s), {
         ...CHARACTER,
         look,

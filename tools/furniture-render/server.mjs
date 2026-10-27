@@ -17,7 +17,9 @@ export function startServer(packDir, port = 4401) {
   const server = createServer(async (req, res) => {
     const url = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     let file;
-    if (url.startsWith('/pack/')) file = join(packDir, normalize(url.slice(6)));
+    // Paczka odwołuje się do „Paintings.png.png” (literówka w pliku MTL).
+    if (url.startsWith('/pack/'))
+      file = join(packDir, normalize(url.slice(6).replace('.png.png', '.png')));
     else if (url.startsWith('/three/'))
       file = join(HERE, 'node_modules/three', normalize(url.slice(7)));
     else file = join(HERE, normalize(url === '/' ? 'render.html' : url.slice(1)));
