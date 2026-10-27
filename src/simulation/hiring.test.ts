@@ -8,7 +8,7 @@ import { testReport, testState } from '../test/engineFixture';
 import { interactionCells } from '../world/geometry';
 import { cellKey } from '../world/movement/grid';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { OFFICE_LAYOUT } from '../world/officeLayout';
+import { cellKindAt, OFFICE_LAYOUT } from '../world/officeLayout';
 import { createEngine } from './engine';
 import { forecastCash, recordOperation } from './finance';
 import { freeDeskCount } from './staff';
@@ -108,12 +108,14 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
     expect(desks).toEqual(['furniture-1', 'furniture-2', null]);
   });
 
-  it('nowa osoba wchodzi drzwiami i idzie do punktu korzystania z własnego biurka', () => {
+  it('nowa osoba pojawia się w biurze tuż za drzwiami i idzie do własnego biurka', () => {
     const engine = engineFor(testState({ speed: 1 }));
     hireFirst(engine);
     const agent = engine.getState().world.movement.agents[0];
     const entrance = OFFICE_LAYOUT.doors.find((d) => d.isEntrance)?.position;
-    expect(agent?.cell).toEqual(entrance);
+    // Pole wewnątrz biura przylegające do drzwi wejściowych (nie sam próg).
+    expect(agent?.cell).toEqual(entrance && { x: entrance.x, y: entrance.y - 1 });
+    expect(cellKindAt(OFFICE_LAYOUT, agent?.cell ?? { x: -1, y: -1 })).toBe('floor');
 
     for (let i = 0; i < 200; i++) engine.step();
 

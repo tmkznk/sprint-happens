@@ -41,10 +41,11 @@ export function tasksForEmployee(
   return standing ? [{ kind: 'goTo', cell: standing }] : [];
 }
 
-// Pole wejścia nowej postaci: drzwi wejściowe, a gdy są zajęte — najbliższe wolne pole.
+// Pole wejścia nowej postaci: najbliższe wolne pole biura za drzwiami wejściowymi — postać nie
+// stoi w progu (pomija drzwi i punkty korzystania z mebli).
 export function spawnCell(state: GameState, config: BalanceConfig): GridPoint | null {
   const entrance = officeLayoutOf(state).doors.find((door) => door.isEntrance)?.position;
-  return entrance ? nearestFreeCell(state, config, entrance, false) : null;
+  return entrance ? nearestFreeCell(state, config, entrance, true) : null;
 }
 
 // BFS po przejezdnych polach; pomija pola zajęte przez postacie, cele innych postaci oraz —
