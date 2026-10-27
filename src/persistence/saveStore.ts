@@ -40,12 +40,30 @@ const PREVIOUS = 'previous';
 
 export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveStore {
   let database: Promise<IDBDatabase> | null = null;
+  let connection: IDBDatabase | null = null;
+
+  // Przeglądarka może zamknąć połączenie sama (np. karta uśpiona w tle na telefonie, czyszczenie
+  // danych witryny). Zamknięte połączenie jest porzucane — następna operacja otworzy nowe.
+  const forget = (db: IDBDatabase) => {
+    if (connection !== db) return;
+    connection = null;
+    database = null;
+  };
 
   function open(): Promise<IDBDatabase> {
     database ??= new Promise<IDBDatabase>((resolve, reject) => {
       const request = factory.open(DB_NAME, 1);
       request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        const db = request.result;
+        connection = db;
+        db.addEventListener('close', () => forget(db));
+        db.addEventListener('versionchange', () => {
+          db.close();
+          forget(db);
+        });
+        resolve(db);
+      };
       request.onerror = () => reject(request.error ?? new Error('Nie można otworzyć IndexedDB'));
     }).catch((error: unknown) => {
       // Nieudane otwarcie nie jest zapamiętywane — kolejna operacja spróbuje ponownie.
@@ -55,36 +73,43 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
     return database;
   }
 
+  // Transakcja na zapamiętanym połączeniu. Połączenie zamykane bez zdarzenia `close` (np. przez
+  // samą stronę albo w trakcie zamykania) rzuca InvalidStateError — wtedy jedna próba na nowym.
+  async function begin(mode: IDBTransactionMode): Promise<IDBTransaction> {
+    const db = await open();
+    try {
+      return db.transaction(STORE_NAME, mode);
+    } catch (error) {
+      if (!isClosedConnection(error)) throw error;
+      forget(db);
+      return (await open()).transaction(STORE_NAME, mode);
+    }
+  }
+
   return {
     async read() {
-      const db = await open();
+      const transaction = await begin('readonly');
       return new Promise<StoredSaves>((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, 'readonly');
         const store = transaction.objectStore(STORE_NAME);
         const current = store.get(CURRENT);
         const previous = store.get(PREVIOUS);
         transaction.oncomplete = () =>
           resolve({ current: asText(current.result), previous: asText(previous.result) });
         transaction.onerror = () => reject(transaction.error ?? new Error('Błąd odczytu zapisu'));
+        transaction.onabort = () =>
+          reject(transaction.error ?? new Error('Przerwany odczyt zapisu'));
       });
     },
 
     async write(json, expectedRevision, options) {
-      let db: IDBDatabase;
+      let transaction: IDBTransaction;
       try {
-        db = await open();
+        transaction = await begin('readwrite');
       } catch (error) {
         return storageError(error);
       }
       return new Promise<WriteResult>((resolve) => {
         let conflict: WriteResult | null = null;
-        let transaction: IDBTransaction;
-        try {
-          transaction = db.transaction(STORE_NAME, 'readwrite');
-        } catch (error) {
-          resolve(storageError(error));
-          return;
-        }
         const store = transaction.objectStore(STORE_NAME);
         const currentRequest = store.get(CURRENT);
         currentRequest.onsuccess = () => {
@@ -107,6 +132,10 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
       });
     },
   };
+}
+
+function isClosedConnection(error: unknown): boolean {
+  return error instanceof Error && error.name === 'InvalidStateError';
 }
 
 // Magazyn w pamięci — testy i wstrzykiwanie błędów zapisu.

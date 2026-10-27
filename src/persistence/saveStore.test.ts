@@ -75,3 +75,40 @@ describe('IndexedDB: nieudane otwarcie (SH-043)', () => {
     expect(await store.read()).toEqual({ current: null, previous: null });
   });
 });
+
+describe('IndexedDB: połączenie zamknięte przez przeglądarkę', () => {
+  // Przeglądarka zamyka połączenie np. przy usypianiu karty w tle — wtedy transakcja rzuca
+  // „The database connection is closing”. Zapamiętane połączenie nie może zablokować zapisów.
+  function trackingFactory() {
+    const real = new IDBFactory();
+    const connections: IDBDatabase[] = [];
+    const factory = {
+      open(name: string, version?: number) {
+        const request = real.open(name, version);
+        request.addEventListener('success', () => connections.push(request.result));
+        return request;
+      },
+    } as unknown as IDBFactory;
+    return { factory, connections };
+  }
+
+  it('zapis po zamknięciu połączenia otwiera nowe i się udaje', async () => {
+    const { factory, connections } = trackingFactory();
+    const store = createIndexedDbSaveStore(factory);
+    await store.write(save(1), null);
+    connections[0]?.close();
+
+    expect(await store.write(save(2), 1)).toEqual({ ok: true });
+    expect(await store.read()).toEqual({ current: save(2), previous: save(1) });
+    expect(connections).toHaveLength(2);
+  });
+
+  it('odczyt po zamknięciu połączenia otwiera nowe', async () => {
+    const { factory, connections } = trackingFactory();
+    const store = createIndexedDbSaveStore(factory);
+    await store.write(save(1), null);
+    connections[0]?.close();
+
+    expect(await store.read()).toEqual({ current: save(1), previous: null });
+  });
+});
