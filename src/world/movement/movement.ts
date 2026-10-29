@@ -59,6 +59,35 @@ export function finishUse(state: ReadonlyMovementState, id: string): MovementSta
   };
 }
 
+// Przekierowuje postać na nowe zadania (np. wyjście z biura o 17:00): przerywa pracę, kolejkę
+// i korzystanie z miejsca, zwalnia rezerwacje miejsc. Trwające przejście pola jest dokańczane
+// (T:MOVE-09), więc `cell` i `move` zostają bez zmian.
+export function redirectAgent(
+  state: ReadonlyMovementState,
+  id: string,
+  tasks: Task[],
+): MovementState {
+  const released = removeAgentReservations(state, id, false);
+  return {
+    ...released,
+    agents: released.agents.map((a) =>
+      a.id === id
+        ? {
+            ...a,
+            tasks: tasks.map((t) => ({ ...t })) as Task[],
+            reservedDestination: null,
+            queuedSince: null,
+            usedSteps: 0,
+            path: [],
+            yieldingTo: null,
+            yieldHeldSteps: 0,
+            status: 'idle',
+          }
+        : a,
+    ),
+  };
+}
+
 function removeAgentReservations(
   state: ReadonlyMovementState,
   id: string,

@@ -5,6 +5,7 @@ import {
   createMovementState,
   DEFAULT_MOVEMENT_CONFIG,
   occupiedCellKeys,
+  redirectAgent,
   stepMovement,
   type MovementEnv,
   type MovementState,
@@ -205,5 +206,62 @@ describe('stepMovement', () => {
     for (let i = 0; i < 100; i++) state = stepMovement(state, corridorEnv);
 
     expect(state.agents.find((a) => a.id === 'A')?.status).toBe('arrived');
+  });
+});
+
+describe('redirectAgent', () => {
+  const base = () => {
+    const agent = {
+      ...createAgent('A', { x: 1, y: 1 }, [{ kind: 'use', destinationIds: ['sofa'], steps: 50 }]),
+      status: 'using' as const,
+      reservedDestination: 'sofa',
+      usedSteps: 7,
+      queuedSince: 3,
+      yieldingTo: 'B',
+      yieldHeldSteps: 2,
+    };
+    return {
+      ...createMovementState([agent, createAgent('B', { x: 2, y: 2 })]),
+      reservations: { sofa: 'A', other: 'B' },
+    };
+  };
+
+  it('redirectAgent zwalnia rezerwację kanapy i ustawia nowy cel', () => {
+    const goal = { kind: 'goTo', cell: { x: 4, y: 4 } } as const;
+    const next = redirectAgent(base(), 'A', [goal]);
+    const a = next.agents.find((x) => x.id === 'A');
+
+    expect(next.reservations).toEqual({ other: 'B' });
+    expect(a?.tasks).toEqual([goal]);
+    expect(a?.status).toBe('idle');
+    expect(a?.reservedDestination).toBeNull();
+    expect(a?.queuedSince).toBeNull();
+    expect(a?.usedSteps).toBe(0);
+    expect(a?.path).toEqual([]);
+    expect(a?.yieldingTo).toBeNull();
+    expect(a?.yieldHeldSteps).toBe(0);
+  });
+
+  it('redirectAgent nie przerywa trwającego przejścia pola', () => {
+    const state = base();
+    const moving = state.agents.map((x) =>
+      x.id === 'A' ? { ...x, move: { to: { x: 2, y: 1 }, elapsed: 3 } } : x,
+    );
+    const next = redirectAgent({ ...state, agents: moving }, 'A', [
+      { kind: 'goTo', cell: { x: 4, y: 4 } },
+    ]);
+    const a = next.agents.find((x) => x.id === 'A');
+
+    expect(a?.move).toEqual({ to: { x: 2, y: 1 }, elapsed: 3 });
+    expect(a?.cell).toEqual({ x: 1, y: 1 });
+  });
+
+  it('nieznane id — stan bez zmian (kopia)', () => {
+    const state = base();
+    const next = redirectAgent(state, 'nope', [{ kind: 'goTo', cell: { x: 4, y: 4 } }]);
+
+    expect(next).toEqual(state);
+    expect(next).not.toBe(state);
+    expect(next.agents[0]).not.toBe(state.agents[0]);
   });
 });
