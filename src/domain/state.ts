@@ -96,6 +96,8 @@ export type GameState = DeepReadonly<{
     candidates: Candidate[];
     // EMP-08, NEED-05: historia odejść (do komunikatów w interfejsie).
     departures: Departure[];
+    // TIME-04: kolejka do wejścia rano (faza `arriving`) — w kolejności ID; poza nią pusta.
+    entryQueue: EmployeeId[];
   };
   world: {
     furniture: Record<FurnitureId, Furniture>;
@@ -148,7 +150,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       rescueDeadlineDay: null,
     },
     contracts: { offers: board.offers, projects: {}, deliveredCount: 0 },
-    staff: { employees: {}, candidates: market.candidates, departures: [] },
+    staff: { employees: {}, candidates: market.candidates, departures: [], entryQueue: [] },
     world: { furniture, movement: createMovementState([]) },
     events: {
       scheduledAtMs: null,

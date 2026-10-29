@@ -21,7 +21,7 @@ type Loose = Record<string, any>;
 // Mechanizm migracji: fixture to zapis deweloperski w wersji 1 sprzed zdarzeń (SH-031)
 // i zadowolenia (SH-019), a test udaje format 2. Migracja testowa 1 → 2:
 // dodaje stan zdarzeń, historię odejść, zadowolenie, postacie z listy (imiona dawniej losowane)
-// i pusty stan prologu oraz licznik przejścia (bieżący kształt stanu). Celowo modyfikuje wejście — sprawdzamy,
+// i pusty stan prologu oraz licznik przejścia i kolejkę do wejścia (bieżący kształt stanu). Celowo modyfikuje wejście — sprawdzamy,
 // że dostaje kopię, a nie oryginał.
 const toV2: Migration = (input) => {
   const state = input as Loose;
@@ -35,6 +35,7 @@ const toV2: Migration = (input) => {
     coffeeBrokenDay: null,
   };
   state.staff.departures = [];
+  state.staff.entryQueue = [];
   for (const employee of Object.values(state.staff.employees) as Loose[]) {
     employee.satisfaction = 70 * 60_000;
     employee.badConditionsMs = 0;

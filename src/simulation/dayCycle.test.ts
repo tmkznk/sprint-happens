@@ -32,11 +32,26 @@ describe('cykl dnia (TIME-08)', () => {
     });
 
     expect(engine.dispatch({ type: 'StartNextDay' })).toEqual({ ok: true });
+    // TIME-04: nowy dzień zaczyna się przyjściem do biura o 9:00, na pauzie.
+    expect(engine.getState().mission).toEqual({
+      status: 'active',
+      day: 2,
+      phase: 'arriving',
+      speed: 0,
+      timeInDayMs: 0,
+      transitSteps: 0,
+      report: null,
+      reputation: 50,
+    });
+
+    // Bez pracowników przyjście kończy się od razu — dzień pracy od 9:00, tempo bez zmian.
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    runUntilPhase(engine, 'working');
     expect(engine.getState().mission).toEqual({
       status: 'active',
       day: 2,
       phase: 'working',
-      speed: 0,
+      speed: 1,
       timeInDayMs: 0,
       transitSteps: 0,
       report: null,

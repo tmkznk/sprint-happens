@@ -23,7 +23,8 @@ export type Player = {
   buyDesk(): void;
   // Kroki do spełnienia warunku (zdarzenia rozstrzyga pierwszą odpowiedzią); false — limit.
   runUntil(done: (state: GameState) => boolean, maxSteps?: number): boolean;
-  // Do końca dnia pracy, rozliczenie i (jeśli misja trwa) następny dzień.
+  // Do końca dnia pracy, rozliczenie i (jeśli misja trwa) następny dzień — po przyjściu
+  // wszystkich, na pauzie o 9:00 (jak zaraz po „Następny dzień” przed fazą przyjścia).
   finishDay(): void;
   // Jedna deterministyczna akcja gracza albo krok symulacji (do odtwarzania — SH-043):
   // decyzja → wznowienie → krok → rozliczenie → następny dzień. false — misja zakończona.
@@ -61,8 +62,9 @@ export function createPlayer(
       if (done(state())) return true;
       resolvePending();
       const { mission } = state();
-      // Kroki biegną w dzień pracy i w przejściach (wyjście z biura po 17:00).
-      const running = mission.phase === 'working' || mission.phase === 'leaving';
+      // Kroki biegną w dzień pracy i w przejściach (przyjście przed 9:00, wyjście po 17:00).
+      const running =
+        mission.phase === 'arriving' || mission.phase === 'working' || mission.phase === 'leaving';
       if (mission.status !== 'active' || !running) return done(state());
       if (mission.speed === 0) must({ type: 'SetSpeed', speed: 4 });
       engine.step();
@@ -125,7 +127,10 @@ export function createPlayer(
       runUntil((s) => s.mission.phase === 'workEnded' || s.mission.status !== 'active');
       if (state().mission.status !== 'active') return;
       if (state().mission.phase === 'workEnded') must({ type: 'SettleDay' });
-      if (state().mission.status === 'active') must({ type: 'StartNextDay' });
+      if (state().mission.status !== 'active') return;
+      must({ type: 'StartNextDay' });
+      runUntil((s) => s.mission.phase === 'working');
+      if (state().mission.speed !== 0) must({ type: 'SetSpeed', speed: 0 });
     },
   };
 }

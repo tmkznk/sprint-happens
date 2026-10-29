@@ -150,6 +150,7 @@ const staffSchema = z.strictObject({
       reason: z.enum(['fired', 'quit']),
     }),
   ),
+  entryQueue: z.array(employeeId),
 });
 
 const missionSchema = z.strictObject({
@@ -531,6 +532,29 @@ function staffIssues(state: GameState): Issue[] {
         const otherPm = pms.get(employee.projectId);
         if (otherPm) issues.push({ path, message: `Drugi PM w projekcie (jest ${otherPm})` });
         pms.set(employee.projectId, employee.id);
+      }
+    }
+  }
+  // TIME-04: kolejka do wejścia tylko rano; każdy pracownik jest w niej najwyżej raz i nie ma
+  // jednocześnie postaci w biurze. W trakcie przyjścia każdy jest w biurze albo w kolejce.
+  const queued = new Set<string>();
+  state.staff.entryQueue.forEach((id, index) => {
+    const path = ['staff', 'entryQueue', index];
+    if (!(id in employees)) issues.push({ path, message: `Nieznany pracownik w kolejce: ${id}` });
+    if (queued.has(id)) issues.push({ path, message: `Powtórzony pracownik w kolejce: ${id}` });
+    if (agentIds.has(id)) issues.push({ path, message: `Pracownik ${id} w kolejce i w biurze` });
+    queued.add(id);
+  });
+  if (state.mission.phase !== 'arriving' && queued.size > 0) {
+    issues.push({ path: ['staff', 'entryQueue'], message: 'Kolejka do wejścia poza przyjściem' });
+  }
+  if (state.mission.phase === 'arriving') {
+    for (const id of Object.keys(employees)) {
+      if (!agentIds.has(id) && !queued.has(id)) {
+        issues.push({
+          path: ['staff', 'employees', id],
+          message: 'Pracownik ani w biurze, ani w kolejce do wejścia',
+        });
       }
     }
   }

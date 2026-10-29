@@ -2,7 +2,7 @@ import type { BalanceConfig } from '../domain/config';
 import type { GameState } from '../domain/state';
 import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { advanceLeaving, beginLeaving } from './commute';
+import { advanceArriving, advanceLeaving, beginLeaving } from './commute';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
 import { triggerEvent } from './events';
@@ -16,7 +16,9 @@ import { doDesign, doRepairs, doWork, planWork } from './work';
 export function advanceStep(current: GameState, config: BalanceConfig): GameState {
   const { mission } = current;
   if (mission.status !== 'active' || mission.speed === 0) return current;
-  // TIME-08: po 17:00 biegnie już tylko wyjście z biura (zegar dnia stoi).
+  // TIME-04: przed 9:00 biegnie tylko przyjście do biura; TIME-08: po 17:00 — tylko wyjście
+  // (w obu zegar dnia stoi, bez pracy, potrzeb i zdarzeń).
+  if (mission.phase === 'arriving') return advanceArriving(current, config);
   if (mission.phase === 'leaving') return advanceLeaving(current, config);
   if (mission.phase !== 'working') return current;
 

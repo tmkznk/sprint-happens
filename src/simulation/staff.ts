@@ -33,11 +33,12 @@ export function tasksForEmployee(
   employee: Pick<Employee, 'deskId'>,
   from: GridPoint,
   config: BalanceConfig,
+  avoid: readonly GridPoint[] = [],
 ): Task[] {
   const desk = employee.deskId ? state.world.furniture[employee.deskId] : undefined;
   const deskPoint = desk ? interactionCells(desk)[0] : undefined;
   if (deskPoint) return [{ kind: 'goTo', cell: deskPoint }];
-  const standing = nearestFreeCell(state, config, from, true);
+  const standing = nearestFreeCell(state, config, from, true, avoid);
   return standing ? [{ kind: 'goTo', cell: standing }] : [];
 }
 
@@ -48,6 +49,17 @@ export function spawnCell(state: GameState, config: BalanceConfig): GridPoint | 
   return entrance ? nearestFreeCell(state, config, entrance, true) : null;
 }
 
+// Wolne pole do stania najbliżej `from` (bez drzwi i punktów korzystania z mebli) z pominięciem
+// pól `avoid` (np. pola wejścia, przez które wchodzą kolejne osoby — TIME-04).
+export function freeStandingCell(
+  state: GameState,
+  config: BalanceConfig,
+  from: GridPoint,
+  avoid: readonly GridPoint[] = [],
+): GridPoint | null {
+  return nearestFreeCell(state, config, from, true, avoid);
+}
+
 // BFS po przejezdnych polach; pomija pola zajęte przez postacie, cele innych postaci oraz —
 // opcjonalnie — drzwi i punkty korzystania z mebli (miejsca, w których nie wolno stać).
 function nearestFreeCell(
@@ -55,10 +67,11 @@ function nearestFreeCell(
   config: BalanceConfig,
   from: GridPoint,
   avoidUsePoints: boolean,
+  avoid: readonly GridPoint[] = [],
 ): GridPoint | null {
   const { grid, destinations } = movementEnvFor(state, config);
   const { agents } = state.world.movement;
-  const blocked = new Set(agents.flatMap(occupiedCellKeys));
+  const blocked = new Set([...agents.flatMap(occupiedCellKeys), ...avoid.map(cellKey)]);
   for (const agent of agents) {
     for (const task of agent.tasks) if (task.kind === 'goTo') blocked.add(cellKey(task.cell));
   }

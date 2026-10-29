@@ -645,6 +645,109 @@ describe('wyjście z biura w zapisie (TIME-08)', () => {
   });
 });
 
+describe('przyjście do biura w zapisie (TIME-04)', () => {
+  // Trzech pracowników; nowy dzień w trakcie przyjścia: jeden w drodze, reszta w kolejce lub już
+  // w biurze.
+  function arrivingPlayer() {
+    const player = createPlayer();
+    const project = player.acceptStarter();
+    player.assign(player.hire('frontend', 'junior'), project);
+    player.assign(player.hire('backend', 'junior'), project);
+    player.assign(player.hire('frontend', 'mid'), project);
+    if (!player.runUntil((s) => s.mission.phase === 'workEnded')) throw new Error('brak końca');
+    player.must({ type: 'SettleDay' });
+    player.must({ type: 'StartNextDay' });
+    player.must({ type: 'SetSpeed', speed: 1 });
+    return player;
+  }
+
+  it('stan w środku arriving przetrwa zapis; dalsze kroki są identyczne', () => {
+    const player = arrivingPlayer();
+    const halfway = (s: GameState) =>
+      s.world.movement.agents.length >= 1 && s.staff.entryQueue.length >= 1;
+    for (let i = 0; i < 600 && !halfway(player.state()); i++) player.engine.step();
+    const mid = player.state();
+    expect(mid.mission.phase).toBe('arriving');
+    expect(halfway(mid)).toBe(true);
+    expect(roundTrip(mid)).toEqual(mid);
+
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(mid) });
+    for (let i = 0; i < 200; i++) {
+      player.engine.step();
+      restored.step();
+    }
+    expect(restored.getState()).toEqual(player.state());
+  });
+
+  it('entryQueue poza arriving — odrzucony', () => {
+    const player = createPlayer();
+    const id = player.hire('frontend', 'junior');
+    const state = player.state();
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: { ...state, staff: { ...state.staff, entryQueue: [id] } },
+    });
+    expectInvalidState(json, 'Kolejka do wejścia poza przyjściem');
+  });
+
+  it('pracownik w kolejce i z postacią naraz — odrzucony', () => {
+    const player = arrivingPlayer();
+    for (let i = 0; i < 600 && player.state().world.movement.agents.length === 0; i++) {
+      player.engine.step();
+    }
+    const state = player.state();
+    const [inside] = state.world.movement.agents;
+    if (!inside) throw new Error('brak postaci');
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: {
+        ...state,
+        staff: { ...state.staff, entryQueue: [inside.id, ...state.staff.entryQueue] },
+      },
+    });
+    expectInvalidState(json, 'w kolejce i w biurze');
+  });
+
+  it('nieznane ID w kolejce — odrzucony', () => {
+    const state = arrivingPlayer().state();
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: {
+        ...state,
+        staff: { ...state.staff, entryQueue: [...state.staff.entryQueue, 'employee-77'] },
+      },
+    });
+    expectInvalidState(json, 'Nieznany pracownik w kolejce');
+  });
+
+  it('pracownik ani w biurze, ani w kolejce w arriving — odrzucony', () => {
+    const state = arrivingPlayer().state();
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: { ...state, staff: { ...state.staff, entryQueue: state.staff.entryQueue.slice(1) } },
+    });
+    expectInvalidState(json, 'ani w biurze, ani w kolejce');
+  });
+
+  it('powtórzony pracownik w kolejce — odrzucony', () => {
+    const state = arrivingPlayer().state();
+    const [first] = state.staff.entryQueue;
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: {
+        ...state,
+        staff: { ...state.staff, entryQueue: [...state.staff.entryQueue, first] },
+      },
+    });
+    expectInvalidState(json, 'Powtórzony pracownik w kolejce');
+  });
+});
+
 describe('serializeSnapshot', () => {
   it('nie zapisuje stanu z funkcją ani obiektem spoza danych', () => {
     const initial = createInitialState(DEFAULT_BALANCE, 1);
