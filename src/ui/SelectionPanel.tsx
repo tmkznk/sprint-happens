@@ -1,4 +1,5 @@
-import { memo, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
 import { useClearSelection, useSelection } from '../application/selectionHooks';
@@ -15,6 +16,7 @@ import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import { AGENT_STATUS_LABELS, FURNITURE_NAMES, money } from './labels';
 import { ProjectSelect } from './ProjectSelect';
+import { SelectionStrip } from './SelectionStrip';
 import { SupportCoffee } from './SupportCoffee';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
@@ -24,7 +26,9 @@ export function SelectionPanel() {
   const edit = useFurnitureEdit();
   if (edit) return <FurnitureEditBar />;
   if (selection?.kind === 'furniture') return <FurnitureDetails id={selection.id} />;
-  if (selection?.kind === 'employee') return <EmployeeDetails id={selection.id} />;
+  // Klucz po osobie: zmiana zaznaczenia zwija kartę z powrotem do paska.
+  if (selection?.kind === 'employee')
+    return <EmployeeSelection key={selection.id} id={selection.id} />;
   return null;
 }
 
@@ -224,20 +228,39 @@ function takenDesksKey(state: GameState): string {
     .join('|');
 }
 
-// Karta pracownika w biurze — jak w zakładce Zespół (wzór SH2), z decyzjami: projekt, biurko,
-// zwolnienie. Ostrzeżenia o złych warunkach, odejściu i ruchu — pod statusem.
-function EmployeeDetails({ id }: { id: EmployeeId }) {
-  const employee = useGameSelector((state) => state.staff.employees[id]);
-  if (!employee) return null;
-  return <EmployeePanel employee={employee} />;
+// Zaznaczona postać: domyślnie niski pasek (scena zostaje odsłonięta do wskazania celu),
+// „Karta ▸” rozwija pełną kartę, „◂ Pasek” zwija ją z powrotem. Zwolniona lub odchodząca osoba
+// znika z zaznaczenia.
+function EmployeeSelection({ id }: { id: EmployeeId }) {
+  const exists = useGameSelector((state) => state.staff.employees[id] !== undefined);
+  const clear = useClearSelection();
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (!exists) clear();
+  }, [exists, clear]);
+  if (!exists) return null;
+  if (!expanded) return <SelectionStrip id={id} onExpand={() => setExpanded(true)} />;
+  return <EmployeeDetails id={id} onCollapse={() => setExpanded(false)} />;
 }
 
+// Karta pracownika w biurze — jak w zakładce Zespół (wzór SH2), z decyzjami: projekt, biurko,
+// zwolnienie. Ostrzeżenia o złych warunkach, odejściu i ruchu — pod statusem.
+function EmployeeDetails({ id, onCollapse }: { id: EmployeeId; onCollapse(): void }) {
+  const employee = useGameSelector((state) => state.staff.employees[id]);
+  if (!employee) return null;
+  return <EmployeePanel employee={employee} onCollapse={onCollapse} />;
+}
+
+// `onCollapse` tylko zwija kartę (stały setter stanu) — porównanie memo go pomija.
 const EmployeePanel = memo(
-  function EmployeePanel({ employee }: { employee: Employee }) {
+  function EmployeePanel({ employee, onCollapse }: { employee: Employee; onCollapse(): void }) {
     const clear = useClearSelection();
     return (
       <section className="selection-panel employee-panel" aria-label={employee.name}>
         <EmployeeHead employee={employee}>
+          <button type="button" className="panel-collapse" onClick={onCollapse}>
+            <ChevronLeft size={14} aria-hidden="true" /> Pasek
+          </button>
           <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
             ✕
           </button>

@@ -117,6 +117,17 @@ export function App({
     else game.loop.wake();
   }, [sceneCovered]);
 
+  // Esc odznacza (desktop) — jak „✕” na pasku. Otwarta zakładka zarządzania sama obsługuje Esc
+  // (zamknięcie), więc wtedy zaznaczenie zostaje.
+  useEffect(() => {
+    if (tab !== 'office') return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) selection.set(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tab, selection]);
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(null), NOTICE_MS);

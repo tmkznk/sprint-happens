@@ -1870,6 +1870,120 @@ progress::-moz-progress-bar {
   padding: 14px;
 }
 
+/* F:UX-01 — pasek zaznaczonej postaci: nisko na dole sceny, żeby biuro zostało odsłonięte
+   do wskazania celu rozkazu. */
+.selection-strip {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  padding: 8px 6px 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.strip-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.strip-who {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.strip-who h3 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-who p {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-state {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.strip-activity {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-energy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+.strip-energy .bar {
+  flex: 1;
+}
+
+.strip-energy b {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.primary-button.strip-card {
+  flex: none;
+  padding: 0 11px;
+}
+
+.strip-close {
+  flex: none;
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.strip-rejection {
+  margin: 6px 0 0;
+  font-size: var(--fs-small);
+}
+
+.employee-panel .panel-collapse {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-start;
+  min-height: 30px;
+  margin-top: -4px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-label);
+}
+
 .employee-panel .panel-close {
   flex: none;
   min-width: 36px;
@@ -2257,7 +2371,8 @@ progress::-moz-progress-bar {
     font-size: 12px;
   }
 
-  .selection-panel {
+  .selection-panel,
+  .selection-strip {
     right: auto;
     width: min(400px, calc(100% - 24px));
   }

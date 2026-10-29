@@ -88,6 +88,9 @@ const CHEVRON_WIDTH = 16;
 const CHEVRON_HEIGHT = 12;
 // Strzałka nad czubkiem klatki postaci (punkt zaczepienia jest przy stopach).
 const CHEVRON_GAP = 2;
+// Siedząca postać jest niższa niż klatka — strzałka schodzi do głowy (px świata, z oka).
+const SEATED_CHEVRON_DROP = 20;
+const SEATED_POSES: readonly PoseKind[] = ['sitChair', 'typing', 'sitSofa'];
 const MARKER_PULSE_MS = 1400;
 const CHEVRON_LIFT = 6;
 // Strzałka to element interfejsu — zawsze nad biurem, także nad przednimi ścianami.
@@ -239,7 +242,11 @@ export function placeCharacterSprite(
   if (selected) {
     sprite.chevron.setPosition(
       screen.x,
-      screen.y - SHEET.anchorY / SHEET.scale - CHEVRON_GAP - sprite.lift.value,
+      screen.y -
+        SHEET.anchorY / SHEET.scale -
+        CHEVRON_GAP +
+        (SEATED_POSES.includes(pose.kind) ? SEATED_CHEVRON_DROP : 0) -
+        sprite.lift.value,
     );
   }
 }
