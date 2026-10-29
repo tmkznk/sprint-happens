@@ -65,6 +65,7 @@ export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
 // SH-017: logiczna czynność pracownika wynikająca ze stanu silnika.
 export const ACTIVITY_LABELS: Record<Activity, string> = {
   idle: 'Bez zajęcia',
+  away: 'Poza biurem',
   walking: 'W drodze',
   working: 'Pracuje',
   waitingForRest: 'Czeka na wolne miejsce odpoczynku',

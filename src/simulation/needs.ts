@@ -14,6 +14,8 @@ import { isCoffeeBroken } from './events';
 
 export type Activity =
   | 'idle'
+  // TIME-04: poza biurem (czeka przed wejściem albo już wyszedł) — brak agenta ruchu.
+  | 'away'
   | 'walking'
   | 'working'
   // NEED-02: czeka na wolne miejsce odpoczynku — bez regeneracji i bez zużycia energii.
@@ -195,7 +197,7 @@ export function energyFactor(employee: Employee): number {
 
 export function activityOf(state: GameState, employee: Employee, working: boolean): Activity {
   const agent = state.world.movement.agents.find((a) => a.id === employee.id);
-  if (!agent) return 'idle';
+  if (!agent) return 'away';
   if (working) return 'working';
   if (agent.status === 'using') {
     return restKindOf(state, agent.reservedDestination) === 'sofa' ? 'onSofa' : 'onCoffee';

@@ -218,6 +218,17 @@ describe('przerwy (NEED-02, SH-004 A3/A4)', () => {
     expect(employee(blocked, waiting).energy).toBe(E(10));
   });
 
+  it('pracownik bez agenta ruchu jest poza biurem', () => {
+    const { engine, ids } = office([['frontend', 'junior']]);
+    const state = engine.getState();
+    const away = {
+      ...state,
+      world: { ...state.world, movement: { ...state.world.movement, agents: [] } },
+    };
+    const id = ids[0] as EmployeeId;
+    expect(activityOf(away, away.staff.employees[id] as Employee, false)).toBe('away');
+  });
+
   it('przerwana kawa zachowuje odzyskaną energię bez podwajania (OFF-07, SH-004 A3)', () => {
     const { engine, ids } = office([['frontend', 'junior']]);
     const [worker] = ids as [EmployeeId];

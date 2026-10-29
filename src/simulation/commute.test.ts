@@ -10,9 +10,9 @@ import { deepFreeze } from '../test/deepFreeze';
 import { runUntilPhase, testState } from '../test/engineFixture';
 import { createPlayer } from '../test/player';
 import { interactionCells } from '../world/geometry';
-import { sameCell } from '../world/movement/grid';
+import { neighbours, sameCell } from '../world/movement/grid';
 import { destinationId } from '../world/movement/officeEnv';
-import { OFFICE_LAYOUT, PROLOGUE_LAYOUT } from '../world/officeLayout';
+import { cellKindAt, OFFICE_LAYOUT, PROLOGUE_LAYOUT } from '../world/officeLayout';
 import { entryCell, maxTransitSteps } from './commute';
 import { createEngine, type Engine } from './engine';
 import { compareIds } from './staff';
@@ -262,6 +262,17 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
   it('pole wejścia: jedyne pole podłogi przy drzwiach wejściowych', () => {
     expect(entryCell(OFFICE_LAYOUT)).toEqual(MISSION_ENTRY);
     expect(entryCell(PROLOGUE_LAYOUT)).toEqual({ x: 1, y: 4 });
+  });
+
+  it.each([
+    ['OFFICE_LAYOUT', OFFICE_LAYOUT],
+    ['PROLOGUE_LAYOUT', PROLOGUE_LAYOUT],
+  ])('%s: wejście ma dokładnie jedno sąsiednie pole podłogi', (_name, layout) => {
+    const door = layout.doors.find((d) => d.isEntrance)?.position;
+    expect(door).toBeDefined();
+    const floor = neighbours(door as GridPoint).filter((c) => cellKindAt(layout, c) === 'floor');
+    expect(floor).toHaveLength(1);
+    expect(entryCell(layout)).toEqual(floor[0]);
   });
 
   it('StartNextDay zaczyna dzień w arriving z kolejką w kolejności ID', () => {

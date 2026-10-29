@@ -32,14 +32,16 @@ export function guideAction(state: GameState, editing: boolean): GuideAction | n
     state,
     second ? PROLOGUE_SECOND_CONTRACT : PROLOGUE_FIRST_CONTRACT,
   );
+  // Przyjście (TIME-02): oddanie jest zablokowane, więc nawet gotowy projekt czeka na wznowienie.
+  if (phase === 'arriving') return speed === 0 ? { kind: 'resume' } : null;
   const delivering = step === 'deliverFirst' || step === 'deliverSecond';
   if (delivering && project && isReadyForDelivery(project)) {
     return { kind: 'deliver', projectId: project.id };
   }
   if (phase === 'workEnded') return { kind: 'settle' };
-  // Przyjście i wyjście (TIME-02): poza wznowieniem zegara nie ma czynności do wykonania —
+  // Wyjście (TIME-02): poza wznowieniem zegara nie ma czynności do wykonania —
   // pozostałe wymagają dnia pracy.
-  if (phase === 'arriving' || phase === 'leaving') return speed === 0 ? { kind: 'resume' } : null;
+  if (phase === 'leaving') return speed === 0 ? { kind: 'resume' } : null;
 
   // Osoby, które mają pracować przy projekcie bieżącego etapu, a nie są do niego przypisane.
   const crew = [prologueOwner(state), ...(second ? [prologueHelper(state)] : [])];

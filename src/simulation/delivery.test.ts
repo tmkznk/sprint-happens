@@ -92,6 +92,14 @@ describe('warunki oddania (PROJ-06)', () => {
         projectId: P1,
       }),
     ).toEqual({ ok: true });
+    const arrivingState = completed(0, { phase: 'arriving', speed: 0 });
+    const arriving = engineFor(arrivingState);
+    const before = arriving.getState();
+    expect(arriving.dispatch({ type: 'DeliverProject', projectId: P1 })).toEqual({
+      ok: false,
+      rejection: { code: 'phaseNotAllowed' },
+    });
+    expect(arriving.getState()).toBe(before);
     const settled = engineFor(
       completed(0, {
         phase: 'settled',

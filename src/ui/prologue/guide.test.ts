@@ -90,6 +90,20 @@ describe('wskazówki prologu', () => {
       expect(guideAction(inPhase('arriving', 0), false)).toEqual({ kind: 'resume' });
     });
 
+    it('w arriving gotowy projekt nie wskazuje oddania — oddanie jest wtedy zablokowane', () => {
+      const player = prologuePlayer();
+      const project = player.acceptStarter();
+      player.assign(prologueOwner(player.state())?.id as EmployeeId, project);
+      player.runUntil((state) => state.mission.phase === 'workEnded');
+      const base = player.state();
+      const ready = {
+        ...base,
+        mission: { ...base.mission, phase: 'arriving' as const, speed: 0 as const },
+      };
+      expect(guideAction(ready, false)).toEqual({ kind: 'resume' });
+      expect(guideAction({ ...ready, mission: { ...ready.mission, speed: 1 } }, false)).toBeNull();
+    });
+
     it('w leaving w ruchu brak wskazówki', () => {
       expect(guideAction(inPhase('leaving', 1), false)).toBeNull();
     });
