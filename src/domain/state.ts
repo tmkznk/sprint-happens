@@ -75,6 +75,8 @@ export type GameState = DeepReadonly<{
     speed: Speed;
     // Upływ bieżącego dnia w ms czasu gry; rośnie wyłącznie o pełne kroki symulacji.
     timeInDayMs: number;
+    // Kroki symulacji w bieżącej fazie przyjścia lub wyjścia (bezpiecznik); poza nimi 0.
+    transitSteps: number;
     // Raport rozliczenia bieżącego dnia; w stanie, aby przetrwał zapis (SAVE-T04).
     report: DayReport | null;
     // REP-01 (Z): jeden wskaźnik 0–100; nie odblokowuje ofert (CON-04).
@@ -134,6 +136,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       phase: 'working',
       speed: 0,
       timeInDayMs: 0,
+      transitSteps: 0,
       report: null,
       reputation: config.reputation.initial,
     },

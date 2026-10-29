@@ -8,6 +8,7 @@ import { createInitialState, type GameState } from '../domain/state';
 import type { EmployeeId } from '../domain/employees';
 import { createEngine } from '../simulation/engine';
 import { createPrologueState } from '../simulation/prologue';
+import { runUntilPhase } from '../test/engineFixture';
 import { createPlayer } from '../test/player';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
@@ -37,11 +38,11 @@ function statesThroughDay(): GameState[] {
   });
   const states = [engine.getState()];
   engine.dispatch({ type: 'SetSpeed', speed: 2 });
-  for (let i = 0; i < DAY_LENGTH_MS / DEFAULT_BALANCE.simulation.stepMs; i++) engine.step();
+  runUntilPhase(engine, 'workEnded');
   states.push(engine.getState());
-  engine.dispatch({ type: 'SettleDay' });
+  expect(engine.dispatch({ type: 'SettleDay' })).toEqual({ ok: true });
   states.push(engine.getState());
-  engine.dispatch({ type: 'StartNextDay' });
+  expect(engine.dispatch({ type: 'StartNextDay' })).toEqual({ ok: true });
   engine.dispatch({ type: 'SetSpeed', speed: 1 });
   for (let i = 0; i < 1234; i++) engine.step();
   states.push(engine.getState());
@@ -541,6 +542,105 @@ describe('odrzucanie niespójnego ruchu', () => {
         'furniture-9#0': 'employee-1',
       }),
       'nieistniejącego miejsca',
+    );
+  });
+});
+
+describe('wyjście z biura w zapisie (TIME-08)', () => {
+  // Dwóch pracowników przy biurkach; dzień kończy się i wszyscy idą do drzwi.
+  function leavingPlayer() {
+    const player = createPlayer();
+    const project = player.acceptStarter();
+    player.assign(player.hire('frontend', 'junior'), project);
+    player.assign(player.hire('backend', 'junior'), project);
+    if (!player.runUntil((s) => s.mission.phase !== 'working')) throw new Error('brak końca dnia');
+    return player;
+  }
+
+  it('stan w środku leaving przetrwa zapis; dalsze kroki są identyczne', () => {
+    const player = leavingPlayer();
+    for (let i = 0; i < 5; i++) player.engine.step();
+    const mid = player.state();
+    expect(mid.mission).toMatchObject({ phase: 'leaving', transitSteps: 5 });
+    expect(mid.world.movement.agents.length).toBeGreaterThan(0);
+    expect(roundTrip(mid)).toEqual(mid);
+
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(mid) });
+    for (let i = 0; i < 50; i++) {
+      player.engine.step();
+      restored.step();
+    }
+    expect(restored.getState()).toEqual(player.state());
+  });
+
+  it('pracownik, który już wyszedł, nie narusza spójności w leaving', () => {
+    const player = leavingPlayer();
+    const state = player.state();
+    const [gone] = state.world.movement.agents;
+    if (!gone) throw new Error('brak postaci');
+    const partial = {
+      ...state,
+      world: {
+        ...state.world,
+        movement: {
+          ...state.world.movement,
+          agents: state.world.movement.agents.filter((a) => a.id !== gone.id),
+          reservations: Object.fromEntries(
+            Object.entries(state.world.movement.reservations).filter(([, h]) => h !== gone.id),
+          ),
+        },
+      },
+    };
+    expect(roundTrip(partial)).toEqual(partial);
+  });
+
+  it('workEnded z postacią w biurze — odrzucony', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.phase = 'workEnded';
+        s.mission.timeInDayMs = DAY_LENGTH_MS;
+        s.world.movement = {
+          step: 10,
+          agents: [createAgent('employee-1', { x: 5, y: 6 })],
+          reservations: {},
+        };
+      }),
+      'Po pracy biuro jest puste',
+    );
+  });
+
+  it('pracownik bez postaci w working — odrzucony', () => {
+    const player = createPlayer();
+    player.hire('frontend', 'junior');
+    const state = player.state();
+    const json = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      ...meta,
+      state: {
+        ...state,
+        world: { ...state.world, movement: { step: 0, agents: [], reservations: {} } },
+      },
+    });
+    expectInvalidState(json, 'Pracownik bez postaci w biurze');
+  });
+
+  it('licznik przejścia poza przyjściem i wyjściem — odrzucony', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.transitSteps = 3;
+      }),
+      'Licznik przejścia',
+    );
+  });
+
+  it('licznik przejścia od limitu wzwyż — odrzucony', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.phase = 'leaving';
+        s.mission.timeInDayMs = DAY_LENGTH_MS;
+        s.mission.transitSteps = 600;
+      }),
+      'Licznik przejścia',
     );
   });
 });

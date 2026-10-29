@@ -22,6 +22,7 @@ import { PROLOGUE_STEPS } from '../domain/prologue';
 import { FURNITURE_TYPES, ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { SPEEDS, type GameState } from '../domain/state';
+import { maxTransitSteps } from '../simulation/commute';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { occupiedCells } from '../world/geometry';
 import { movementEnvFor } from '../world/movement/officeEnv';
@@ -157,6 +158,7 @@ const missionSchema = z.strictObject({
   phase: z.enum(['arriving', 'working', 'leaving', 'workEnded', 'settled']),
   speed: z.literal(SPEEDS),
   timeInDayMs: z.int().min(0).max(DAY_LENGTH_MS),
+  transitSteps: z.int().min(0),
   report: z
     .strictObject({
       day: z.int().min(1),
@@ -314,6 +316,17 @@ function missionIssues(state: GameState, { config }: ValidationContext): Issue[]
   }
   if (mission.status !== 'active' && mission.speed !== 0) {
     issues.push({ path: ['mission', 'speed'], message: 'Zakończona misja nie może biec' });
+  }
+  // TIME-08: licznik bezpiecznika biegnie tylko w przyjściu i wyjściu, poniżej limitu przejścia.
+  const inTransit = mission.phase === 'arriving' || mission.phase === 'leaving';
+  if (
+    (!inTransit && mission.transitSteps !== 0) ||
+    mission.transitSteps >= maxTransitSteps(config)
+  ) {
+    issues.push({
+      path: ['mission', 'transitSteps'],
+      message: 'Licznik przejścia poza limitem lub fazą',
+    });
   }
   const settled = mission.phase === 'settled';
   if (
@@ -504,8 +517,10 @@ function staffIssues(state: GameState): Issue[] {
       if (other) issues.push({ path, message: `Biurko przypisane także do ${other}` });
       desks.set(employee.deskId, employee.id);
     }
-    if (!agentIds.has(employee.id))
+    // TIME-08: w dzień pracy każdy jest w biurze; w trakcie wyjścia część mogła już wyjść.
+    if (state.mission.phase === 'working' && !agentIds.has(employee.id)) {
       issues.push({ path, message: 'Pracownik bez postaci w biurze' });
+    }
     if (employee.projectId !== null) {
       const project = state.contracts.projects[employee.projectId];
       if (project?.status !== 'active') {
@@ -518,6 +533,15 @@ function staffIssues(state: GameState): Issue[] {
         pms.set(employee.projectId, employee.id);
       }
     }
+  }
+  // TIME-08: po wyjściu wszystkich (koniec pracy, rozliczenie) biuro jest puste.
+  const { phase } = state.mission;
+  const { reservations } = state.world.movement;
+  if (
+    (phase === 'workEnded' || phase === 'settled') &&
+    (agentIds.size > 0 || Object.keys(reservations).length > 0)
+  ) {
+    issues.push({ path: ['world', 'movement'], message: 'Po pracy biuro jest puste' });
   }
   for (const agentId of agentIds) {
     if (!(agentId in employees)) {

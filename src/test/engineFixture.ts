@@ -1,7 +1,7 @@
 import { DEFAULT_BALANCE, type BalanceConfig } from '../domain/config';
 import type { ContractTerms } from '../domain/contracts';
-import { createInitialState, type DayReport, type GameState } from '../domain/state';
-import { createEngine } from '../simulation/engine';
+import { createInitialState, type DayPhase, type DayReport, type GameState } from '../domain/state';
+import { createEngine, type Engine } from '../simulation/engine';
 import { deepFreeze } from './deepFreeze';
 
 export const TEST_SEED = 12345;
@@ -54,4 +54,19 @@ export function testReport(day: number, cashAfterSettlement: number): DayReport 
     cashAfterSettlement,
     rescueDeadlineDay: null,
   };
+}
+
+// Kroki symulacji do osiągnięcia fazy dnia (np. `workEnded` po wyjściu wszystkich z biura).
+// Tempa nie zmienia — stan na pauzie nie ruszy i po limicie kończy się błędem.
+export function runUntilPhase(engine: Engine, phase: DayPhase, maxSteps = 20_000): void {
+  for (let i = 0; i < maxSteps; i++) {
+    if (engine.getState().mission.phase === phase) return;
+    engine.step();
+  }
+  const { mission } = engine.getState();
+  if (mission.phase !== phase) {
+    throw new Error(
+      `Brak fazy ${phase} po ${maxSteps} krokach (jest ${mission.phase}, tempo ${mission.speed})`,
+    );
+  }
 }

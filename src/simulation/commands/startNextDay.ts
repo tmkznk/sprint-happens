@@ -1,5 +1,6 @@
 import { fillBoard } from '../../domain/contractBoard';
 import { MAX_ENERGY } from '../../domain/employees';
+import { returnToOffice } from '../commute';
 import { scheduleDay } from '../events';
 import type { CommandHandler, StartNextDayCommand } from './types';
 
@@ -43,6 +44,6 @@ export const startNextDay: CommandHandler<StartNextDayCommand> = {
       },
     };
     // EVT-03: o zdarzeniu dnia (i jego chwili) rozstrzyga się na początku dnia.
-    return { ok: true, state: scheduleDay(next, config) };
+    return { ok: true, state: scheduleDay(returnToOffice(next, config), config) };
   },
 };

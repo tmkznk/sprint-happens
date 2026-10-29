@@ -10,10 +10,11 @@ import {
 } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
-import { testState } from '../test/engineFixture';
+import { runUntilPhase, testState } from '../test/engineFixture';
 import { createEngine } from './engine';
 import { hasBadConditions, isUnhappy, satisfactionRates } from './satisfaction';
 import { advanceStep } from './step';
+import { DAY_LENGTH_MS } from './time';
 import { isAtOwnDesk, pmBonusPermille } from './work';
 
 const CONFIG = { ...DEFAULT_BALANCE, energy: { ...DEFAULT_BALANCE.energy, drainPerSecond: 0 } };
@@ -209,13 +210,11 @@ describe('ostrzeżenie i odejście (NEED-05, EMP-08)', () => {
       let current = patchEmployee(state, deskless, { satisfaction: points(26) });
       let steps = 0;
       while (current.staff.employees[deskless] && steps < 20_000) {
-        current = advanceStep(current, CONFIG);
-        if (current.mission.phase !== 'working') {
-          current = deepFreeze({
-            ...current,
-            mission: { ...current.mission, phase: 'working', speed: 1, timeInDayMs: 0 },
-          });
+        // Dzień bez końca: zegar wraca do 9:00 przed 17:00, więc nikt nie wychodzi z biura.
+        if (current.mission.timeInDayMs + CONFIG.simulation.stepMs >= DAY_LENGTH_MS) {
+          current = deepFreeze({ ...current, mission: { ...current.mission, timeInDayMs: 0 } });
         }
+        current = advanceStep(current, CONFIG);
         steps++;
       }
       return steps;
@@ -260,13 +259,9 @@ describe('zwolnienie (EMP-08, FIN-03)', () => {
     expect(engine.getState()).toBe(before);
 
     engine.dispatch({ type: 'FireEmployee', employeeId: id });
-    engine.dispatch({ type: 'SetSpeed', speed: 0 });
-    for (let i = 0; i < 6001; i++) {
-      if (engine.getState().mission.phase !== 'working') break;
-      engine.dispatch({ type: 'SetSpeed', speed: 4 });
-      engine.step();
-    }
-    engine.dispatch({ type: 'SettleDay' });
+    engine.dispatch({ type: 'SetSpeed', speed: 4 });
+    runUntilPhase(engine, 'workEnded');
+    expect(engine.dispatch({ type: 'SettleDay' })).toEqual({ ok: true });
     expect(engine.getState().finance.ledger.filter((e) => e.ref === id)).toHaveLength(1);
     engine.dispatch({ type: 'StartNextDay' });
     expect(engine.getState().finance.wagesDueToday[id]).toBeUndefined();

@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import type { DayPhase, GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
-import { testEngine } from '../test/engineFixture';
+import { runUntilPhase, testEngine } from '../test/engineFixture';
 import { commandHandlers, type CommandType } from './commands';
 import { PHASES_BY_CATEGORY, type CommandCategory } from './commands/phases';
 import { createEngine } from './engine';
 import { DAY_LENGTH_MS } from './time';
 
+// Dzień pracy i wyjście wszystkich z biura (TIME-08).
 function runToEndOfDay(engine: ReturnType<typeof testEngine>) {
   engine.dispatch({ type: 'SetSpeed', speed: 1 });
-  const steps = DAY_LENGTH_MS / DEFAULT_BALANCE.simulation.stepMs;
-  for (let i = 0; i < steps; i++) engine.step();
+  runUntilPhase(engine, 'workEnded');
 }
 
 describe('cykl dnia (TIME-08)', () => {
@@ -38,6 +38,7 @@ describe('cykl dnia (TIME-08)', () => {
       phase: 'working',
       speed: 0,
       timeInDayMs: 0,
+      transitSteps: 0,
       report: null,
       reputation: 50,
     });

@@ -21,11 +21,12 @@ type Loose = Record<string, any>;
 // Mechanizm migracji: fixture to zapis deweloperski w wersji 1 sprzed zdarzeń (SH-031)
 // i zadowolenia (SH-019), a test udaje format 2. Migracja testowa 1 → 2:
 // dodaje stan zdarzeń, historię odejść, zadowolenie, postacie z listy (imiona dawniej losowane)
-// i pusty stan prologu. Celowo modyfikuje wejście — sprawdzamy,
+// i pusty stan prologu oraz licznik przejścia (bieżący kształt stanu). Celowo modyfikuje wejście — sprawdzamy,
 // że dostaje kopię, a nie oryginał.
 const toV2: Migration = (input) => {
   const state = input as Loose;
   state.prologue = null;
+  state.mission.transitSteps = 0;
   state.events = {
     scheduledAtMs: null,
     pending: null,

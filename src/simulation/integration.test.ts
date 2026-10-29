@@ -77,9 +77,7 @@ describe('od zatrudnienia do oddania (SH-042 kryterium 1)', () => {
         detectedBugCount(p, player.config) === 0
       );
     }, 40_000);
-    if (player.state().mission.phase === 'working') {
-      player.runUntil((s) => s.mission.phase !== 'working');
-    }
+    player.runUntil((s) => s.mission.phase === 'workEnded');
 
     expect(seen).toEqual({ rest: true, detected: true, repair: true, pmAtZero: true });
     const before = player.state();
@@ -109,7 +107,7 @@ describe('granice (SH-042 kryterium 2)', () => {
       player.assign(be, projectId);
       const deadline = project(player.state(), projectId).deadlineDay;
       while (player.state().mission.day < deadline + extraDays) player.finishDay();
-      player.runUntil((s) => s.mission.phase !== 'working');
+      player.runUntil((s) => s.mission.phase === 'workEnded');
       expect(player.state().mission.phase).toBe('workEnded');
       player.must({ type: 'DeliverProject', projectId });
       return project(player.state(), projectId).delivery;
@@ -197,7 +195,7 @@ describe('koniec misji i zdarzenia (SH-042 kryterium 3)', () => {
     // Progi spełnione w trakcie dnia — gra trwa do rozliczenia.
     expect(player.state().finance.cash).toBeGreaterThanOrEqual(17_000);
     expect(player.state().mission.status).toBe('active');
-    player.runUntil((s) => s.mission.phase !== 'working');
+    player.runUntil((s) => s.mission.phase === 'workEnded');
     player.must({ type: 'SettleDay' });
     const settled = player.state();
     const expected = settled.finance.cash >= 17_000 && settled.mission.reputation >= 50;

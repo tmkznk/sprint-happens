@@ -46,7 +46,7 @@ describe('wskazówki prologu', () => {
     player.assign(prologueOwner(player.state())?.id as EmployeeId, null);
     expect(guideAction(player.state(), false)?.kind).toBe('assign');
     player.assign(prologueOwner(player.state())?.id as EmployeeId, project);
-    player.runUntil((state) => state.mission.phase !== 'working');
+    player.runUntil((state) => state.mission.phase === 'workEnded');
     // Oddanie jest możliwe także po końcu pracy, przed rozliczeniem.
     const action = guideAction(player.state(), false);
     if (action?.kind === 'deliver') {

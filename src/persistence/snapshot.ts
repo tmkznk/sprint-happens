@@ -4,8 +4,8 @@ import { gameStateSchema, type ValidationContext } from './schema';
 
 // T:SAVE-T05, SAVE-T06 — wersja formatu zapisu. Zmiana kształtu stanu wymaga podniesienia
 // wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039).
-// Wersja 2: stan prologu (`prologue`).
-export const SCHEMA_VERSION = 2;
+// Wersja 2: stan prologu (`prologue`). Wersja 3: przyjście i wyjście (`mission.transitSteps`).
+export const SCHEMA_VERSION = 3;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
@@ -15,6 +15,20 @@ export type Migration = (state: unknown) => unknown;
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   // 1 → 2: zapisy sprzed prologu to właściwa misja.
   1: (input) => ({ ...(input as Record<string, unknown>), prologue: null }),
+  // 2 → 3: przyjście i wyjście. Zapis po 17:00 (koniec pracy, rozliczenie) miał wszystkich
+  // w biurze — teraz biuro jest wtedy puste.
+  2: (input) => {
+    const state = input as {
+      mission: Record<string, unknown>;
+      world: { movement: Record<string, unknown> };
+    };
+    state.mission.transitSteps = 0;
+    if (state.mission.phase === 'workEnded' || state.mission.phase === 'settled') {
+      state.world.movement.agents = [];
+      state.world.movement.reservations = {};
+    }
+    return state;
+  },
 };
 
 export type FormatOptions = { version: number; migrations: Readonly<Record<number, Migration>> };

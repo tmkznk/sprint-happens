@@ -61,7 +61,9 @@ export function createPlayer(
       if (done(state())) return true;
       resolvePending();
       const { mission } = state();
-      if (mission.status !== 'active' || mission.phase !== 'working') return done(state());
+      // Kroki biegną w dzień pracy i w przejściach (wyjście z biura po 17:00).
+      const running = mission.phase === 'working' || mission.phase === 'leaving';
+      if (mission.status !== 'active' || !running) return done(state());
       if (mission.speed === 0) must({ type: 'SetSpeed', speed: 4 });
       engine.step();
     }
@@ -120,7 +122,7 @@ export function createPlayer(
       return true;
     },
     finishDay() {
-      runUntil((s) => s.mission.phase !== 'working' || s.mission.status !== 'active');
+      runUntil((s) => s.mission.phase === 'workEnded' || s.mission.status !== 'active');
       if (state().mission.status !== 'active') return;
       if (state().mission.phase === 'workEnded') must({ type: 'SettleDay' });
       if (state().mission.status === 'active') must({ type: 'StartNextDay' });

@@ -19,6 +19,7 @@ describe('createInitialState', () => {
       phase: 'working',
       speed: 0,
       timeInDayMs: 0,
+      transitSteps: 0,
       report: null,
       reputation: 50,
     });
@@ -93,6 +94,14 @@ describe('engine.step', () => {
 
     for (let i = 0; i < stepsPerDay - 1; i++) engine.step();
     expect(engine.getState().mission.phase).toBe('working');
+
+    // TIME-08: o 17:00 praca się kończy, zegar staje; puste biuro wychodzi w kolejnym kroku.
+    engine.step();
+    expect(engine.getState().mission).toMatchObject({
+      phase: 'leaving',
+      speed: 1,
+      timeInDayMs: DAY_LENGTH_MS,
+    });
 
     engine.step();
     expect(engine.getState().mission).toMatchObject({

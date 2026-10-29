@@ -24,8 +24,11 @@ describe('createFixedStepDriver', () => {
   ] as const)('przy %s× kończy dzień po %s ms czasu rzeczywistego', (speed, realMs) => {
     const { engine, steps } = runFrames(speed, realMs);
 
+    // Dzień pracy kończy się dokładnie po 6000 krokach; puste biuro wychodzi w kolejnym kroku.
     expect(steps).toBe(6000);
-    expect(engine.getState().mission.phase).toBe('workEnded');
+    expect(engine.getState().mission).toMatchObject({ phase: 'leaving', timeInDayMs: 600_000 });
+    expect(createFixedStepDriver(engine).advance(100)).toBe(1);
+    expect(engine.getState().mission).toMatchObject({ phase: 'workEnded', speed: 0 });
   });
 
   it('wykonuje identyczne kroki niezależnie od tempa — ten sam stan przy tym samym czasie gry', () => {
@@ -64,7 +67,8 @@ describe('createFixedStepDriver', () => {
     const engine = testEngine({ speed: 4, timeInDayMs: 599_900 });
     const driver = createFixedStepDriver(engine);
 
-    expect(driver.advance(250)).toBe(1);
+    // Ostatni krok dnia pracy i krok wyjścia pustego biura; koniec pracy pauzuje w tej klatce.
+    expect(driver.advance(250)).toBe(2);
     expect(engine.getState().mission.phase).toBe('workEnded');
     expect(driver.advance(250)).toBe(0);
   });
