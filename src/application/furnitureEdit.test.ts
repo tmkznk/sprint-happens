@@ -8,7 +8,7 @@ import { editCommand, editProblem, type FurnitureEdit } from './furnitureEdit';
 const buyDesk: FurnitureEdit = {
   mode: 'buy',
   furnitureType: 'desk',
-  origin: { x: 2, y: 7 },
+  origin: { x: 8, y: 7 },
   rotation: 0,
 };
 
@@ -18,7 +18,7 @@ describe('tryb „Urządź” — ocena i polecenie (SH-013, SH-014)', () => {
     expect(editCommand(buyDesk)).toEqual({
       type: 'BuyFurniture',
       furnitureType: 'desk',
-      origin: { x: 2, y: 7 },
+      origin: { x: 8, y: 7 },
       rotation: 0,
     });
   });
@@ -39,7 +39,7 @@ describe('tryb „Urządź” — ocena i polecenie (SH-013, SH-014)', () => {
     const move: FurnitureEdit = {
       mode: 'move',
       furnitureId: 'furniture-2' as FurnitureId,
-      origin: { x: 2, y: 2 },
+      origin: { x: 2, y: 7 },
       rotation: 0,
     };
     expect(editProblem(testState(), DEFAULT_BALANCE, move)).toBe('collision');

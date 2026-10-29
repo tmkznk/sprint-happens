@@ -113,8 +113,8 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
     hireFirst(engine);
     const agent = engine.getState().world.movement.agents[0];
     const entrance = OFFICE_LAYOUT.doors.find((d) => d.isEntrance)?.position;
-    // Pole wewnątrz biura przylegające do drzwi wejściowych (nie sam próg).
-    expect(agent?.cell).toEqual(entrance && { x: entrance.x, y: entrance.y - 1 });
+    // Pole wewnątrz biura przylegające do drzwi wejściowych w lewej ścianie (nie sam próg).
+    expect(agent?.cell).toEqual(entrance && { x: entrance.x + 1, y: entrance.y });
     expect(cellKindAt(OFFICE_LAYOUT, agent?.cell ?? { x: -1, y: -1 })).toBe('floor');
 
     for (let i = 0; i < 200; i++) engine.step();

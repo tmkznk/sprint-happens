@@ -42,11 +42,11 @@ describe('poza postaci (prezentacja)', () => {
   it('idąca postać patrzy w stronę przejścia', () => {
     const state = testState();
     const walking = {
-      ...createAgent('a', { x: 4, y: 4 }),
-      move: { to: { x: 4, y: 5 }, elapsed: 0 },
+      ...createAgent('a', { x: 4, y: 10 }),
+      move: { to: { x: 4, y: 11 }, elapsed: 0 },
     };
     expect(at(state, walking)).toMatchObject({ kind: 'walk', facing: 'py' });
-    const back = { ...walking, move: { to: { x: 3, y: 4 }, elapsed: 0 } };
+    const back = { ...walking, move: { to: { x: 3, y: 10 }, elapsed: 0 } };
     expect(at(state, back)).toMatchObject({ kind: 'walk', facing: 'nx' });
   });
 
@@ -81,12 +81,12 @@ describe('poza postaci (prezentacja)', () => {
     const state = testState();
     const sofa = state.world.furniture[SOFA] as Furniture;
     const left = at(state, {
-      ...createAgent('a', { x: 13, y: 11 }),
+      ...createAgent('a', { x: 8, y: 3 }),
       status: 'using',
       reservedDestination: `${SOFA}#0`,
     });
     const right = at(state, {
-      ...createAgent('b', { x: 15, y: 11 }),
+      ...createAgent('b', { x: 10, y: 3 }),
       status: 'using',
       reservedDestination: `${SOFA}#1`,
     });
@@ -98,11 +98,11 @@ describe('poza postaci (prezentacja)', () => {
   it('przy ekspresie stoi zwrócona do maszyny', () => {
     const state = testState();
     const pose = at(state, {
-      ...createAgent('a', { x: 17, y: 9 }),
+      ...createAgent('a', { x: 12, y: 2 }),
       status: 'using',
       reservedDestination: `${COFFEE}#0`,
     });
-    expect(pose).toMatchObject({ kind: 'coffee', facing: 'ny', position: { x: 17.5, y: 9.5 } });
+    expect(pose).toMatchObject({ kind: 'coffee', facing: 'ny', position: { x: 12.5, y: 2.5 } });
   });
 
   it('obrót siedziska zgadza się z obrotem pól (rotateOffset)', () => {

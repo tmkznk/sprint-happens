@@ -100,7 +100,7 @@ describe('MoveFurniture (OFF-05, OFF-06, OFF-07)', () => {
       engine.dispatch({
         type: 'MoveFurniture',
         furnitureId: DESK_2,
-        origin: { x: 2, y: 7 },
+        origin: { x: 8, y: 7 },
         rotation: 0,
       }),
     ).toEqual({ ok: false, rejection: { code: 'notPaused' } });
@@ -115,12 +115,12 @@ describe('MoveFurniture (OFF-05, OFF-06, OFF-07)', () => {
       engine.dispatch({
         type: 'MoveFurniture',
         furnitureId: DESK_1,
-        origin: { x: 2, y: 7 },
+        origin: { x: 2, y: 11 },
         rotation: 90,
       }),
     ).toEqual({ ok: true });
     const state = engine.getState();
-    expect(state.world.furniture[DESK_1]).toMatchObject({ origin: { x: 2, y: 7 }, rotation: 90 });
+    expect(state.world.furniture[DESK_1]).toMatchObject({ origin: { x: 2, y: 11 }, rotation: 90 });
     expect(state.staff.employees[EMPLOYEE_1]?.deskId).toBe(DESK_1);
     expect(state.finance.cash).toBe(cash);
     expect(goalOf(state, EMPLOYEE_1)).toEqual(deskPoint(state, DESK_1));
@@ -132,7 +132,7 @@ describe('MoveFurniture (OFF-05, OFF-06, OFF-07)', () => {
     engine.dispatch({
       type: 'MoveFurniture',
       furnitureId: DESK_1,
-      origin: { x: 2, y: 7 },
+      origin: { x: 8, y: 7 },
       rotation: 0,
     });
     engine.dispatch({ type: 'SetSpeed', speed: 4 });
@@ -147,9 +147,9 @@ describe('MoveFurniture (OFF-05, OFF-06, OFF-07)', () => {
 
   it.each([
     ['na ścianie', { x: 0, y: 5 }, 'outOfFloor'],
-    ['na kanapie', { x: 13, y: 9 }, 'collision'],
-    ['zastawiające drzwi do małego pokoju', { x: 8, y: 3 }, 'blocksAccess'],
-    ['przez drzwi do drugiego pokoju', { x: 10, y: 6 }, 'outOfFloor'],
+    ['na kanapie', { x: 8, y: 1 }, 'collision'],
+    ['zastawiające drzwi do małego pokoju', { x: 1, y: 3 }, 'blocksAccess'],
+    ['przez drzwi do drugiego pokoju', { x: 9, y: 4 }, 'outOfFloor'],
   ] as const)('odrzuca ustawienie %s bez zmiany stanu', (_, origin, code) => {
     const engine = engineFor();
     const before = engine.getState();
@@ -254,7 +254,7 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
 
   it('roślina zajmuje jedno pole i nie jest celem dla nikogo (MVP: bez wpływu na rozgrywkę)', () => {
     const engine = engineFor();
-    const origin = { x: 6, y: 8 };
+    const origin = { x: 12, y: 12 };
     engine.dispatch({ type: 'BuyFurniture', furnitureType: 'plant', origin, rotation: 0 });
     const state = engine.getState();
     const plant = 'furniture-5' as FurnitureId;
@@ -278,19 +278,19 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
   });
 
   it.each([
-    ['biurko', 'desk', { x: 2, y: 7 }, 0, [{ x: 3, y: 9 }]],
+    ['biurko', 'desk', { x: 8, y: 7 }, 0, [{ x: 9, y: 9 }]],
     [
       'kanapę obróconą o 90°',
       'sofa',
-      { x: 2, y: 7 },
+      { x: 10, y: 7 },
       90,
       [
-        { x: 1, y: 7 },
-        { x: 1, y: 9 },
+        { x: 9, y: 7 },
+        { x: 9, y: 9 },
       ],
     ],
-    ['ekspres obrócony o 180°', 'coffeeMachine', { x: 6, y: 8 }, 180, [{ x: 6, y: 7 }]],
-    ['roślinę (dekoracja bez punktów korzystania)', 'plant', { x: 6, y: 8 }, 0, []],
+    ['ekspres obrócony o 180°', 'coffeeMachine', { x: 12, y: 12 }, 180, [{ x: 12, y: 11 }]],
+    ['roślinę (dekoracja bez punktów korzystania)', 'plant', { x: 12, y: 12 }, 0, []],
   ] as const)(
     'kupuje %s: cena pobrana raz, obrót zmienia punkty korzystania',
     (_, type, origin, rotation, points) => {
@@ -318,8 +318,8 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
   );
 
   it.each([
-    ['na kolizji z biurkiem', { x: 3, y: 2 }, 'collision'],
-    ['zastawiając drzwi do pokoju socjalnego', { x: 8, y: 9 }, 'blocksAccess'],
+    ['na kolizji z biurkiem', { x: 2, y: 8 }, 'collision'],
+    ['zastawiając drzwi do pokoju socjalnego', { x: 9, y: 6 }, 'blocksAccess'],
     ['na ścianie', { x: 0, y: 0 }, 'outOfFloor'],
   ] as const)('odrzuca zakup %s bez pobrania ceny', (_, origin, code) => {
     const engine = engineFor();
@@ -347,7 +347,7 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
       engine.dispatch({
         type: 'BuyFurniture',
         furnitureType: 'desk',
-        origin: { x: 2, y: 7 },
+        origin: { x: 8, y: 7 },
         rotation: 0,
       }),
     ).toEqual({ ok: false, rejection: { code } });
@@ -360,7 +360,7 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
       engine.dispatch({
         type: 'BuyFurniture',
         furnitureType: 'desk',
-        origin: { x: 2, y: 7 },
+        origin: { x: 8, y: 7 },
         rotation: 0,
       }),
     ).toEqual({ ok: false, rejection: { code: 'notPaused' } });
@@ -374,7 +374,7 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
     engine.dispatch({
       type: 'BuyFurniture',
       furnitureType: 'desk',
-      origin: { x: 2, y: 7 },
+      origin: { x: 8, y: 7 },
       rotation: 0,
     });
 

@@ -174,16 +174,16 @@ export const SCENARIOS: readonly Scenario[] = [
   officeScenario(),
 ];
 
-// Roboczy układ biura: trzy osoby przechodzą przez drzwi między dużym a małym pokojem.
+// Układ biura: trzy osoby przechodzą przez drzwi (3,5) między open space a gabinetem.
 function officeScenario(): Scenario {
   const furniture = Object.values(createInitialState(DEFAULT_BALANCE, 1).world.furniture);
   const points: Record<string, Cell> = {
-    A: { x: 9, y: 3 },
-    B: { x: 13, y: 3 },
-    C: { x: 9, y: 4 },
-    a: { x: 15, y: 4 },
-    b: { x: 6, y: 6 },
-    c: { x: 16, y: 2 },
+    A: { x: 5, y: 6 },
+    B: { x: 3, y: 3 },
+    C: { x: 4, y: 6 },
+    a: { x: 1, y: 2 },
+    b: { x: 8, y: 10 },
+    c: { x: 5, y: 1 },
   };
   return build(
     'office',

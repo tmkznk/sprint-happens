@@ -319,7 +319,8 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   // Wyrenderowane pomieszczenie: tył pod całą sceną, niskie ściany przednie nad nią (postacie
-  // i meble stoją zawsze za nimi).
+  // i meble stoją zawsze za nimi). Ściany działowe — kawałek na pole, z głębokością pola jak
+  // tafle ścian rysowanych (postać stoi przed ścianką albo za nią).
   private addRoomImages(id: string, meta: RoomSpriteMeta): void {
     for (const [layer, depth] of [
       ['back', FLOOR_DEPTH],
@@ -330,6 +331,18 @@ export class OfficeScene extends Phaser.Scene {
         .setOrigin(meta.anchorX / meta.width, meta.anchorY / meta.height)
         .setScale(1 / meta.scale)
         .setDepth(depth);
+    }
+    const atlas = this.textures.get(roomTextureKey(id, 'pieces'));
+    for (const piece of meta.pieces ?? []) {
+      const frame = `${piece.x},${piece.y}`;
+      if (!atlas.has(frame)) {
+        atlas.add(frame, 0, piece.frameX, piece.frameY, piece.width, piece.height);
+      }
+      this.add
+        .image(0, 0, atlas.key, frame)
+        .setOrigin(piece.anchorX / piece.width, piece.anchorY / piece.height)
+        .setScale(1 / meta.scale)
+        .setDepth(depthOfFootprint(piece, { width: 1, height: 1 }));
     }
   }
 

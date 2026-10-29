@@ -9,11 +9,12 @@ const layout = OFFICE_LAYOUT;
 const key = (point: GridPoint) => `${point.x},${point.y}`;
 
 describe('OFFICE_LAYOUT', () => {
-  it('ma pokoje o wymiarach ze specyfikacji', () => {
+  // OFF-02: układ i wymiary pokoi to decyzja właściciela (2026-10-29).
+  it('ma pokoje o ustalonych wymiarach (open space, gabinet, pokój relaksu)', () => {
     const sizes = Object.fromEntries(
       layout.rooms.map((room) => [room.id, [room.bounds.width, room.bounds.height]]),
     );
-    expect(sizes).toEqual({ main: [10, 12], small: [6, 6], social: [6, 5] });
+    expect(sizes).toEqual({ main: [13, 8], small: [5, 4], social: [7, 4] });
   });
 
   it('jest otoczone zamkniętą ramą ścian z jednym wejściem', () => {
@@ -38,7 +39,8 @@ describe('OFFICE_LAYOUT', () => {
     }
   });
 
-  it('okna leżą na ścianach', () => {
+  it('nie ma okien; każde zadeklarowane okno musiałoby leżeć na ścianie', () => {
+    expect(layout.windows).toEqual([]);
     for (const window of layout.windows) expect(cellKindAt(layout, window)).toBe('wall');
   });
 });

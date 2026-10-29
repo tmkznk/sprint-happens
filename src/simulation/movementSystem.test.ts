@@ -59,7 +59,7 @@ describe('ruch w silniku (SH-011)', () => {
       }
     });
 
-    expect(agentOf(engine, 'employee-1')).toMatchObject({ cell: { x: 3, y: 4 }, status: 'using' });
+    expect(agentOf(engine, 'employee-1')).toMatchObject({ cell: { x: 3, y: 7 }, status: 'using' });
     const { grid } = movementEnvFor(engine.getState(), DEFAULT_BALANCE);
     for (const [i, cell] of visited.entries()) {
       expect(grid.passable(cell)).toBe(true);
@@ -98,14 +98,14 @@ describe('ruch w silniku (SH-011)', () => {
 
   it('MOVE-06: nowy mebel na trasie unieważnia ją i postać dociera naokoło', () => {
     const engine = engineFor(
-      stateWith([agent('employee-1', { x: 1, y: 6 }, [{ kind: 'goTo', cell: { x: 9, y: 6 } }])]),
+      stateWith([agent('employee-1', { x: 1, y: 11 }, [{ kind: 'goTo', cell: { x: 9, y: 11 } }])]),
     );
     run(engine, 5);
     const midRoute = engine.getState();
     const blocker: Furniture = {
       id: 'furniture-5' as FurnitureId,
       type: 'desk',
-      origin: { x: 5, y: 5 },
+      origin: { x: 5, y: 10 },
       rotation: 90,
     };
     const changed = engineFor(
@@ -122,7 +122,7 @@ describe('ruch w silniku (SH-011)', () => {
 
     expect(agentOf(changed, 'employee-1')).toMatchObject({
       status: 'arrived',
-      cell: { x: 9, y: 6 },
+      cell: { x: 9, y: 11 },
     });
   });
 });
@@ -131,9 +131,10 @@ describe('rezerwacje i ustępowanie w silniku (SH-012)', () => {
   it('trzy osoby w drzwiach biura: nigdy dwie na jednym polu, wszystkie docierają', () => {
     const engine = engineFor(
       stateWith([
-        agent('employee-1', { x: 9, y: 3 }, [{ kind: 'goTo', cell: { x: 15, y: 4 } }]),
-        agent('employee-2', { x: 13, y: 3 }, [{ kind: 'goTo', cell: { x: 6, y: 6 } }]),
-        agent('employee-3', { x: 9, y: 4 }, [{ kind: 'goTo', cell: { x: 16, y: 2 } }]),
+        // Drzwi (3,5) między open space a gabinetem: dwie osoby z dołu, jedna z góry.
+        agent('employee-1', { x: 2, y: 6 }, [{ kind: 'goTo', cell: { x: 1, y: 2 } }]),
+        agent('employee-2', { x: 3, y: 3 }, [{ kind: 'goTo', cell: { x: 8, y: 10 } }]),
+        agent('employee-3', { x: 4, y: 6 }, [{ kind: 'goTo', cell: { x: 5, y: 1 } }]),
       ]),
     );
     run(engine, 300, () => {
@@ -222,8 +223,8 @@ describe('movementEnvFor', () => {
       'furniture-3#1',
       'furniture-4#0',
     ]);
-    expect(env.grid.passable({ x: 3, y: 2 })).toBe(false);
-    expect(env.grid.passable({ x: 3, y: 4 })).toBe(true);
+    expect(env.grid.passable({ x: 2, y: 7 })).toBe(false);
+    expect(env.grid.passable({ x: 3, y: 7 })).toBe(true);
   });
 
   it('nie przelicza mapy, dopóki meble się nie zmienią', () => {

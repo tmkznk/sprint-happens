@@ -1,21 +1,19 @@
 import type { GridPoint } from '../domain/grid';
 
-// Trasa postaci w scenie testowej okluzji (SH-009 → SH-002): za biurkiem, przed nim,
-// wzdłuż ściany i przez drzwi do małego pokoju. To wyłącznie oprawa testowa —
-// nie jest stanem gry ani systemem ruchu (SH-011/SH-012).
+// Trasa postaci w scenie testowej okluzji (SH-009 → SH-002): wzdłuż ścianki działowej, przez
+// przejścia do gabinetu (przed biurko szefa) i do pokoju relaksu, potem przed biurkiem w open
+// space. To wyłącznie oprawa testowa — nie jest stanem gry ani systemem ruchu (SH-011/SH-012).
 export const OCCLUSION_WAYPOINTS: readonly GridPoint[] = [
-  { x: 1, y: 1 },
-  { x: 5, y: 1 },
-  { x: 5, y: 4 },
+  { x: 3, y: 6 },
+  { x: 3, y: 3 },
+  { x: 3, y: 6 },
+  { x: 10, y: 6 },
   { x: 10, y: 4 },
-  { x: 10, y: 3 },
-  { x: 13, y: 3 },
-  { x: 13, y: 5 },
-  { x: 13, y: 3 },
-  { x: 10, y: 3 },
-  { x: 10, y: 4 },
-  { x: 1, y: 4 },
-  { x: 1, y: 1 },
+  { x: 10, y: 6 },
+  { x: 8, y: 6 },
+  { x: 8, y: 9 },
+  { x: 3, y: 9 },
+  { x: 3, y: 6 },
 ];
 
 // Rozwija punkty pośrednie w kolejne pola, krok po jednym polu w 4 kierunkach (MOVE-01).

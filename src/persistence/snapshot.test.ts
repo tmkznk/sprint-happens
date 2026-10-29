@@ -107,7 +107,8 @@ describe('round-trip migawki (SH-037)', () => {
       });
     }
     engine.dispatch({ type: 'SetSpeed', speed: 1 });
-    for (let i = 0; i < 25; i++) engine.step();
+    // Biurko w open space stoi tuż przy wejściu — po 10 krokach część osób jest jeszcze w drodze.
+    for (let i = 0; i < 10; i++) engine.step();
     const mid = engine.getState();
     expect(mid.world.movement.agents.some((a) => a.move !== null)).toBe(true);
     expect(Object.keys(mid.staff.employees)).toHaveLength(3);
@@ -475,7 +476,7 @@ describe('odrzucanie niespójnego ruchu', () => {
   });
 
   it('postać na ścianie lub meblu', () => {
-    expectInvalidState(withAgents([{ ...base, cell: { x: 3, y: 2 } }]), 'na przeszkodzie');
+    expectInvalidState(withAgents([{ ...base, cell: { x: 2, y: 7 } }]), 'na przeszkodzie');
   });
 
   it('przejście dalej niż na sąsiednie pole', () => {
@@ -577,7 +578,7 @@ describe('roślina w zapisie', () => {
       engine.dispatch({
         type: 'BuyFurniture',
         furnitureType: 'plant',
-        origin: { x: 6, y: 8 },
+        origin: { x: 12, y: 12 },
         rotation: 0,
       }),
     ).toEqual({ ok: true });

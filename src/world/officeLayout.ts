@@ -21,30 +21,26 @@ export type OfficeLayout = {
 
 export type CellKind = 'floor' | 'wall' | 'door';
 
-// OFF-01/OFF-02, T:ART-02 (R): gotowe biuro z trzema pokojami. Wymiary pokoi zgodne ze
-// specyfikacją (10×12, 6×6, 6×5); ściany zajmują pola, więc pełna rama wymaga siatki 19×14,
-// a nie roboczych 18×14. Układ do weryfikacji makietą w SH-002.
+// OFF-01, OFF-02 (O → decyzja właściciela 2026-10-29, makieta wariantu A): gotowe biuro z trzema
+// pokojami. Z tyłu, pod wysokimi ścianami, mały gabinet szefa (5×4, jedno biurko) i pokój relaksu
+// (7×4, kanapa i ekspres); z przodu open space (13×8, osiem biurek). Ściany zajmują pola: siatka
+// 15×15, ściany działowe na y = 5 i x = 6. Wejście w wysokiej lewej ścianie, prosto do open space.
 export const OFFICE_LAYOUT: OfficeLayout = {
-  size: { width: 19, height: 14 },
+  size: { width: 15, height: 15 },
   rooms: [
-    { id: 'main', bounds: { x: 1, y: 1, width: 10, height: 12 } },
-    { id: 'small', bounds: { x: 12, y: 1, width: 6, height: 6 } },
-    { id: 'social', bounds: { x: 12, y: 8, width: 6, height: 5 } },
+    { id: 'main', bounds: { x: 1, y: 6, width: 13, height: 8 } },
+    { id: 'small', bounds: { x: 1, y: 1, width: 5, height: 4 } },
+    { id: 'social', bounds: { x: 7, y: 1, width: 7, height: 4 } },
   ],
   // MOVE-05 (Z): wąskie drzwi o szerokości jednego pola.
   doors: [
-    { position: { x: 5, y: 13 }, isEntrance: true },
-    { position: { x: 11, y: 3 }, isEntrance: false },
-    { position: { x: 11, y: 10 }, isEntrance: false },
+    { position: { x: 0, y: 10 }, isEntrance: true },
+    { position: { x: 3, y: 5 }, isEntrance: false },
+    { position: { x: 10, y: 5 }, isEntrance: false },
   ],
-  windows: [
-    { x: 3, y: 0 },
-    { x: 7, y: 0 },
-    { x: 14, y: 0 },
-    { x: 0, y: 4 },
-    { x: 0, y: 9 },
-  ],
-  placementStart: { origin: { x: 4, y: 8 }, rotation: 0 },
+  // Bez okien — na ścianach dekoracje (rendering).
+  windows: [],
+  placementStart: { origin: { x: 8, y: 7 }, rotation: 0 },
 };
 
 // Prolog: małe biuro w jednym pokoju — miejsce tylko na dwa stanowiska, ekspres i roślinę.

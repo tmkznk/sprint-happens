@@ -2,8 +2,9 @@
 
 Pomieszczenie (podłoga, ściany, drzwi, dekoracje ścian) jest renderowane w całości z modeli paczki
 VNB Low Poly Office Set 2 tą samą kamerą co meble i podmienia w grze rysowane bryłami podłogi
-i ściany. Pierwszy przykład: biuro prologu (`rooms.mjs` → `prologue`). Zasady zebrane z uwag
-właściciela przy prologu — stosować przy każdym kolejnym pomieszczeniu (poziomie).
+i ściany. Przykłady: biuro prologu (`rooms.mjs` → `prologue`) i biuro misji z trzema pokojami
+(`office`). Zasady zebrane z uwag właściciela przy prologu i biurze misji — stosować przy każdym
+kolejnym pomieszczeniu (poziomie).
 
 ## Proces
 
@@ -34,9 +35,14 @@ właściciela przy prologu — stosować przy każdym kolejnym pomieszczeniu (po
 - **back** — podłoga, wysokie ściany, drzwi, dekoracje; w grze pod całą sceną.
 - **front** — tylko niskie ściany od strony kamery; w grze nad całą sceną (postacie i meble stoją
   zawsze za nimi). Reszta sceny zapisuje w tej warstwie tylko głębię.
-- To działa, gdy niskie ściany leżą wyłącznie na zewnętrznym obrysie od strony kamery. Ściany
-  działowe wewnątrz biura (wiele pokoi) wymagają osobnych kawałków z własną głębokością — do
-  rozwiązania przy pierwszym takim pomieszczeniu.
+- **pieces** — ściany działowe (`partition: true` w `rooms.mjs`): kawałek na każde pole ściany,
+  przycięty do pola, spakowane w atlas `<id>-pieces.png` (ramki w `roomSprites.json`). W grze każdy
+  kawałek ma głębokość swojego pola, więc postać stoi przed ścianką albo za nią. Kawałki zachodzą na
+  sąsiednie pola o ~4 px — bez tego na granicach pól widać szwy (wygładzony brzeg cięcia). W warstwie
+  `back` ściany działowe tylko rzucają cień na podłogę.
+- Front działa, bo niskie ściany od strony kamery leżą wyłącznie na zewnętrznym obrysie.
+- Makieta: warstwa `all` (cała scena w jednym obrazie) i `props` — meble gry ustawione w scenie,
+  tylko do oceny układu.
 
 ## Ściany
 
@@ -46,8 +52,14 @@ właściciela przy prologu — stosować przy każdym kolejnym pomieszczeniu (po
   co jest w narożnikach pokoi.
 - **Narożniki:** wysokie ściany sięgają do zewnętrznego narożnika; niskie dochodzą do lica
   wysokiej. Bryły się nie przenikają.
-- **Jeden kolor dla wszystkich ścian pomieszczenia** — różnice daje światło; bok wysokiej ściany
-  i przód niskiej to jedna płaszczyzna, muszą mieć ten sam odcień.
+- **Jeden kolor dla wszystkich ścian pokoju** — różnice daje światło; bok wysokiej ściany
+  i przód niskiej to jedna płaszczyzna, muszą mieć ten sam odcień. Biuro z kilkoma pokojami:
+  każdy pokój ma swój kolor (misja: open space zieleń, gabinet bordo, relaks musztarda), wysokie
+  ściany dzielone na odcinki w osi ścianek działowych, a ścianka działowa ma każdą stronę
+  w kolorze swojego pokoju (`sides`).
+- Przejścia między pokojami w niskich ściankach: przerwa szerokości otworu drzwi wejściowych
+  (1,10 m, wyśrodkowana na polu przejścia), bez drzwi, ościeżnicy i nadproża. Ościeżnica z paczki
+  w niskiej ściance (wolnostojąca „brama”) — odrzucona przez właściciela.
 - Bez listew przypodłogowych. Wierzch niskich ścian w kolorze ściany i bez cieni (bez szarych
   krawędzi i ciemnych klinów).
 - Okien w paczce nie ma — nie dorabiamy ich; ściany ozdabiają dekoracje.

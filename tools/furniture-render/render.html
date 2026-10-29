@@ -544,7 +544,7 @@
             metalness: 0,
             flatShading: true,
           });
-        const slab = (x0, z0, x1, z1, y0, y1, color, front = false) => {
+        const slab = (x0, z0, x1, z1, y0, y1, color, front = false, partition = false) => {
           const m = new THREE.Mesh(
             new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0),
             meshMat(color),
@@ -554,6 +554,7 @@
           // Niskie ściany przednie bez cieni na wierzchu — czysty kolor ściany.
           m.receiveShadow = !front;
           m.userData.front = front;
+          m.userData.partition = partition;
           scene.add(m);
         };
         const place = async (name, { x, z, y = 0, rotY = 0, scale = 1 }) => {
@@ -577,20 +578,43 @@
         // między ścianą a pierwszym rzędem płytek — pas podłogi bez fug (połowa pola ściany).
         const f = spec.floor;
         const gap = 0.025;
-        for (let z = f.tiles.z0; z < f.tiles.z1; z += 1) {
-          for (let x = f.tiles.x0; x < f.tiles.x1; x += 1) {
-            const color = f.colors[(x + z) % 2];
-            slab(x + gap / 2, z + gap / 2, x + 1 - gap / 2, z + 1 - gap / 2, -0.06, 0, color);
+        // `tiles` — jeden prostokąt pól z płytkami albo lista (kilka pokoi; pola ścian działowych
+        // i przejść między pokojami mają pas bez fug).
+        const tileRects = [f.tiles].flat();
+        for (const r of tileRects) {
+          for (let z = r.z0; z < r.z1; z += 1) {
+            for (let x = r.x0; x < r.x1; x += 1) {
+              const color = f.colors[(x + z) % 2];
+              slab(x + gap / 2, z + gap / 2, x + 1 - gap / 2, z + 1 - gap / 2, -0.06, 0, color);
+            }
           }
         }
-        const { x0, z0, x1, z1 } = f.tiles;
-        for (const [a0, b0, a1, b1] of [
-          [f.x0, f.z0, f.x1, z0],
-          [f.x0, z1, f.x1, f.z1],
-          [f.x0, z0, x0, z1],
-          [x1, z0, f.x1, z1],
-        ]) {
-          if (a1 - a0 > 1e-6 && b1 - b0 > 1e-6) slab(a0, b0, a1, b1, -0.06, 0, f.border);
+        // Pas: reszta podłogi w połówkach pola, łączona w paski wzdłuż X, a paski o tym samym
+        // zakresie w kolejnych rzędach — w prostokąty (bez szwów na krawędziach podłogi).
+        const tiled = (x, z) =>
+          tileRects.some((r) => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1);
+        let open = new Map(); // "x0,x1" → z początku
+        for (let z = f.z0; z <= f.z1 + 1e-6; z += 0.5) {
+          const row = new Set();
+          if (z < f.z1 - 1e-6) {
+            let start = null;
+            for (let x = f.x0; x <= f.x1 + 1e-6; x += 0.5) {
+              const border = x < f.x1 - 1e-6 && !tiled(x + 0.25, z + 0.25);
+              if (border && start === null) start = x;
+              if (!border && start !== null) {
+                row.add(`${start},${x}`);
+                start = null;
+              }
+            }
+          }
+          for (const [key, zStart] of open) {
+            if (row.has(key)) continue;
+            const [a, b] = key.split(',').map(Number);
+            slab(a, zStart, b, z, -0.06, 0, f.border);
+          }
+          const next = new Map();
+          for (const key of row) next.set(key, open.get(key) ?? z);
+          open = next;
         }
         slab(f.x0, f.z0, f.x1, f.z1, -0.08, -0.05, f.grout);
 
@@ -598,15 +622,26 @@
         const t = spec.wallThickness / 2;
         for (const w of spec.walls) {
           const h = T(w.height);
-          const box = (a, b, y0, y1, color, grow = 0) =>
-            w.axis === 'x'
-              ? slab(a, w.at - t - grow, b, w.at + t + grow, y0, y1, color, w.front)
-              : slab(w.at - t - grow, a, w.at + t + grow, b, y0, y1, color, w.front);
+          // Ściana działowa: `sides` — kolor strony o mniejszej i większej współrzędnej (każda
+          // strona w kolorze swojego pokoju); tafla dzielona wzdłuż na dwie połowy grubości.
+          const box = (a, b, y0, y1, color, grow = 0) => {
+            const halves = w.sides
+              ? [
+                  [-t - grow, 0, w.sides[0]],
+                  [0, t + grow, w.sides[1]],
+                ]
+              : [[-t - grow, t + grow, color]];
+            for (const [p, q, c] of halves) {
+              if (w.axis === 'x') slab(a, w.at + p, b, w.at + q, y0, y1, c, w.front, w.partition);
+              else slab(w.at + p, a, w.at + q, b, y0, y1, c, w.front, w.partition);
+            }
+          };
           let from = w.from;
           const parts = [];
           for (const [a, b] of [...(w.openings ?? [])].sort((p, q) => p[0] - q[0])) {
             parts.push([from, a]);
-            box(a, b, T(w.lintel ?? 2.1), h, w.color);
+            // Nadproże tylko w wysokiej ścianie; niska ściana działowa ma zwykłą przerwę.
+            if (T(w.lintel ?? 2.1) < h) box(a, b, T(w.lintel ?? 2.1), h, w.color);
             from = b;
           }
           parts.push([from, w.to]);
@@ -644,6 +679,31 @@
           }
         }
         for (const item of spec.decor ?? []) await place(item.name, item);
+
+        // Tylko makiety: meble gry w scenie pomieszczenia (te same kompozycje i obroty co sprite'y),
+        // żeby ocenić układ przed podpięciem. Do warstw gry nie trafiają.
+        for (const prop of spec.props ?? []) {
+          const zup = new THREE.Group();
+          zup.rotation.x = -Math.PI / 2;
+          for (const item of prop.items) {
+            const node = item.model ? await loadModel(item.model) : boxes(item.boxes);
+            node.position.set(...item.at);
+            node.rotation.z = THREE.MathUtils.degToRad(item.rotZ ?? 0);
+            if (Array.isArray(item.scale)) node.scale.set(...item.scale);
+            else node.scale.setScalar(item.scale ?? 1);
+            zup.add(node);
+          }
+          const scaled = new THREE.Group();
+          scaled.scale.setScalar(1 / M);
+          scaled.add(zup);
+          const { w, h } = prop.footprint;
+          const turned = prop.rotation === 90 || prop.rotation === 270;
+          const placed = new THREE.Group();
+          placed.rotation.y = THREE.MathUtils.degToRad(-prop.rotation);
+          placed.position.set(prop.x + (turned ? h : w) / 2, 0, prop.y + (turned ? w : h) / 2);
+          placed.add(scaled);
+          scene.add(placed);
+        }
 
         // Światło jak przy meblach (ten sam kierunek słońca → spójne cienie).
         const cx = (f.x0 + f.x1) / 2,
@@ -708,18 +768,45 @@
         Object.assign(camera, { left, right: left + width / k, top, bottom: top - height / k });
         camera.updateProjectionMatrix();
 
-        // Warstwa: przednie ściany tylko w `front`, reszta tylko w `back` (cienie liczone ze wszystkiego).
+        // Warstwy: `back` — wszystko oprócz ścian przednich i działowych (działowe rzucają cień, ale
+        // się nie malują); `front` — tylko niskie ściany od strony kamery; `piece` — ściany działowe
+        // przycięte do jednego pola (`spec.piece` = {x, z}), w grze z własną głębokością; `all` —
+        // makieta, cała scena. Reszta sceny w `front` i `piece` tylko zasłania (bufor głębi).
+        // Materiały modeli są współdzielone z pamięcią podręczną — zmieniamy kopie.
+        const withMaterial = (material, props) =>
+          Array.isArray(material)
+            ? material.map((one) => Object.assign(one.clone(), props))
+            : Object.assign(material.clone(), props);
+        const depthOnly = (m) => {
+          m.material = withMaterial(m.material, { colorWrite: false });
+        };
         if (spec.layer === 'front') {
-          // Reszta sceny tylko zasłania (bufor głębi), nie maluje; materiały modeli są współdzielone
-          // z pamięcią podręczną — zmieniamy kopie.
           scene.traverse((m) => {
-            if (!m.isMesh || m.userData.front) return;
-            const hide = (material) => Object.assign(material.clone(), { colorWrite: false });
-            m.material = Array.isArray(m.material) ? m.material.map(hide) : hide(m.material);
+            if (m.isMesh && !m.userData.front) depthOnly(m);
           });
-        } else {
+        } else if (spec.layer === 'piece') {
+          const { x, z } = spec.piece;
+          // Zakładka ~4 px poza pole: sąsiednie kawałki nachodzą na siebie, więc wygładzony
+          // (półprzezroczysty) brzeg cięcia jest przykryty pełnym kolorem sąsiada — bez szwów.
+          const lap = 4 / k;
+          const planes = [
+            new THREE.Plane(new THREE.Vector3(1, 0, 0), -(x - lap)),
+            new THREE.Plane(new THREE.Vector3(-1, 0, 0), x + 1 + lap),
+            new THREE.Plane(new THREE.Vector3(0, 0, 1), -(z - lap)),
+            new THREE.Plane(new THREE.Vector3(0, 0, -1), z + 1 + lap),
+          ];
           scene.traverse((m) => {
-            if (m.isMesh && m.userData.front) m.visible = false;
+            if (!m.isMesh) return;
+            if (!m.userData.partition) depthOnly(m);
+            else m.material = withMaterial(m.material, { clippingPlanes: planes });
+          });
+        } else if (spec.layer === 'back') {
+          scene.traverse((m) => {
+            if (!m.isMesh) return;
+            if (m.userData.front) m.visible = false;
+            if (m.userData.partition) {
+              m.material = withMaterial(m.material, { colorWrite: false, depthWrite: false });
+            }
           });
         }
 
@@ -730,21 +817,94 @@
         });
         renderer.setPixelRatio(1);
         renderer.setSize(width, height);
+        renderer.localClippingEnabled = true;
         renderer.setClearColor(0x000000, 0);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.render(scene, camera);
+        const anchorX = Math.round((o.x - left) * k);
+        const anchorY = Math.round((top - o.y) * k);
+        if (spec.layer === 'piece') {
+          // Kawałek przycięty do nieprzezroczystych pikseli; kotwica względem wycinka.
+          const flat = document.createElement('canvas');
+          flat.width = width;
+          flat.height = height;
+          const ctx = flat.getContext('2d');
+          ctx.drawImage(renderer.domElement, 0, 0);
+          renderer.dispose();
+          const { data } = ctx.getImageData(0, 0, width, height);
+          let x0 = width,
+            y0 = height,
+            x1 = -1,
+            y1 = -1;
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              if (data[(y * width + x) * 4 + 3] === 0) continue;
+              x0 = Math.min(x0, x);
+              y0 = Math.min(y0, y);
+              x1 = Math.max(x1, x);
+              y1 = Math.max(y1, y);
+            }
+          }
+          if (x1 < 0) return null;
+          const crop = document.createElement('canvas');
+          crop.width = x1 - x0 + 1;
+          crop.height = y1 - y0 + 1;
+          crop.getContext('2d').drawImage(flat, -x0, -y0);
+          return {
+            dataURL: crop.toDataURL('image/png'),
+            width: crop.width,
+            height: crop.height,
+            anchorX: anchorX - x0,
+            anchorY: anchorY - y0,
+            scale: S,
+          };
+        }
         const dataURL = renderer.domElement.toDataURL('image/png');
         renderer.dispose();
-        return {
-          dataURL,
-          width,
-          height,
-          anchorX: Math.round((o.x - left) * k),
-          anchorY: Math.round((top - o.y) * k),
-          scale: S,
-        };
+        return { dataURL, width, height, anchorX, anchorY, scale: S };
+      };
+
+      // Atlas kawałków: półki od najwyższego, wiersze do 2048 px. Zwraca obraz i ramki (x, y)
+      // w kolejności wejścia.
+      window.packAtlas = async (images) => {
+        const PAD = 2;
+        const MAX = 2048;
+        const loaded = await Promise.all(
+          images.map(
+            (url) =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = url;
+              }),
+          ),
+        );
+        const order = loaded.map((_, i) => i).sort((a, b) => loaded[b].height - loaded[a].height);
+        const frames = [];
+        let x = 0,
+          y = 0,
+          row = 0,
+          width = 0;
+        for (const i of order) {
+          const img = loaded[i];
+          if (x > 0 && x + img.width > MAX) {
+            x = 0;
+            y += row + PAD;
+            row = 0;
+          }
+          frames[i] = { x, y };
+          x += img.width + PAD;
+          width = Math.max(width, x);
+          row = Math.max(row, img.height);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = y + row;
+        const ctx = canvas.getContext('2d');
+        loaded.forEach((img, i) => ctx.drawImage(img, frames[i].x, frames[i].y));
+        return { dataURL: canvas.toDataURL('image/png'), frames };
       };
 
       window.ready = true;

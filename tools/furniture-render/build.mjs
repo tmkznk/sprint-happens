@@ -77,6 +77,39 @@ try {
         roomMeta[id] = { width, height, anchorX, anchorY, scale };
         console.log(`${id}-${layer}`, width, height);
       }
+      // Ściany działowe: kawałek na każde pole, przez które przechodzą (w grze każdy z własną
+      // głębokością — postać stoi przed ścianką albo za nią), spakowane w jeden atlas
+      // <id>-pieces.png.
+      const pieces = [];
+      for (const cell of partitionCells(spec)) {
+        const r = await page.evaluate((s) => window.renderRoom(s), {
+          ...spec,
+          layer: 'piece',
+          piece: { x: cell.x, z: cell.y },
+          scale: FURNITURE_SCALE,
+        });
+        if (r) pieces.push({ cell, r });
+      }
+      if (pieces.length > 0) {
+        const atlas = await page.evaluate(
+          (images) => window.packAtlas(images),
+          pieces.map(({ r }) => r.dataURL),
+        );
+        await writeFile(
+          `${ROOT}src/assets/rooms/${id}-pieces.png`,
+          Buffer.from(atlas.dataURL.split(',')[1], 'base64'),
+        );
+        roomMeta[id].pieces = pieces.map(({ cell, r }, i) => ({
+          ...cell,
+          frameX: atlas.frames[i].x,
+          frameY: atlas.frames[i].y,
+          width: r.width,
+          height: r.height,
+          anchorX: r.anchorX,
+          anchorY: r.anchorY,
+        }));
+        console.log(`${id}-pieces`, pieces.length);
+      }
     }
     await writeFile(
       `${ROOT}src/rendering/roomSprites.json`,
@@ -121,6 +154,21 @@ try {
 } finally {
   await browser.close();
   server.close();
+}
+
+// Pola siatki, przez które przechodzą ściany działowe (tafla leży w polu linii `at`). Pola
+// przejść dają puste kawałki — pomijane przy renderze.
+function partitionCells(spec) {
+  const cells = new Map();
+  for (const w of spec.walls) {
+    if (!w.partition) continue;
+    const line = Math.floor(w.at);
+    for (let a = Math.floor(w.from); a < Math.ceil(w.to); a++) {
+      const cell = w.axis === 'x' ? { x: a, y: line } : { x: line, y: a };
+      cells.set(`${cell.x},${cell.y}`, cell);
+    }
+  }
+  return [...cells.values()];
 }
 
 function sortKeys(record) {
