@@ -5,8 +5,10 @@ import type { DayPhase } from '../../domain/state';
 export const PHASES_BY_CATEGORY = {
   // Działania dnia pracy: zatrudnianie, zwalnianie, kontrakty, wyposażenie, przydziały, tempo.
   workDay: ['working'],
-  // Oddanie projektu: także po zakończeniu pracy, przed rozliczeniem (TIME-08, FIN-04).
-  delivery: ['working', 'workEnded'],
+  // Tempo symulacji: także w fazach przyjścia i wyjścia, gdy biegnie ruch postaci.
+  speed: ['arriving', 'working', 'leaving'],
+  // Oddanie projektu: także w trakcie wyjścia i po zakończeniu pracy, przed rozliczeniem (TIME-08, FIN-04).
+  delivery: ['working', 'leaving', 'workEnded'],
   // Dokładnie jedno rozliczenie na dzień, po zakończeniu pracy.
   settlement: ['workEnded'],
   // „Następny dzień” po raporcie z rozliczenia.

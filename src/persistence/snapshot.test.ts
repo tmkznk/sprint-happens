@@ -232,6 +232,54 @@ describe('odrzucanie zapisu', () => {
     );
   });
 
+  it('stan w fazie arriving przechodzi walidację', () => {
+    const state = createInitialState(DEFAULT_BALANCE, 1);
+    const arriving = {
+      ...state,
+      mission: { ...state.mission, phase: 'arriving' as const, speed: 1 as const },
+    };
+    expect(roundTrip(arriving).mission).toMatchObject({
+      phase: 'arriving',
+      timeInDayMs: 0,
+      speed: 1,
+    });
+  });
+
+  it('stan w fazie leaving przechodzi walidację', () => {
+    const state = createInitialState(DEFAULT_BALANCE, 1);
+    const leaving = {
+      ...state,
+      mission: {
+        ...state.mission,
+        phase: 'leaving' as const,
+        timeInDayMs: DAY_LENGTH_MS,
+        speed: 4 as const,
+      },
+    };
+    expect(roundTrip(leaving).mission).toMatchObject({ phase: 'leaving', speed: 4 });
+  });
+
+  it('arriving z timeInDayMs > 0 jest odrzucany', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.phase = 'arriving';
+        s.mission.timeInDayMs = 100;
+      }),
+      'Przyjście',
+    );
+  });
+
+  it('workEnded z tempem > 0 nadal odrzucany', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.phase = 'workEnded';
+        s.mission.timeInDayMs = DAY_LENGTH_MS;
+        s.mission.speed = 1;
+      }),
+      'Po końcu pracy',
+    );
+  });
+
   it('stan generatora losowego poza zakresem uint32', () => {
     expectInvalidState(
       withJsonEdit((s) => {

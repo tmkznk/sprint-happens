@@ -100,6 +100,40 @@ describe('cykl dnia (TIME-08)', () => {
   });
 });
 
+describe('fazy przyjścia i wyjścia (TIME-08)', () => {
+  const arriving = { phase: 'arriving', timeInDayMs: 0, speed: 0 } as const;
+  const leaving = { phase: 'leaving', timeInDayMs: DAY_LENGTH_MS, speed: 0 } as const;
+
+  it.each([
+    ['arriving', arriving],
+    ['leaving', leaving],
+  ] as const)('SetSpeed jest dozwolone w fazie %s', (_, patch) => {
+    const engine = testEngine(patch);
+    expect(engine.dispatch({ type: 'SetSpeed', speed: 2 })).toEqual({ ok: true });
+    expect(engine.getState().mission.speed).toBe(2);
+  });
+
+  it('polecenia dnia pracy są w fazie leaving odrzucane', () => {
+    const engine = testEngine(leaving);
+    const before = engine.getState();
+    const candidate = before.staff.candidates[0];
+    if (!candidate) throw new Error('brak kandydata');
+    expect(engine.dispatch({ type: 'HireCandidate', candidateId: candidate.id })).toEqual({
+      ok: false,
+      rejection: { code: 'phaseNotAllowed' },
+    });
+    expect(engine.getState()).toBe(before);
+  });
+
+  it('SettleDay w fazie leaving jest odrzucane', () => {
+    const engine = testEngine(leaving);
+    expect(engine.dispatch({ type: 'SettleDay' })).toEqual({
+      ok: false,
+      rejection: { code: 'phaseNotAllowed' },
+    });
+  });
+});
+
 describe('polityka faz poleceń (TIME-08)', () => {
   const phasesOf = (category: CommandCategory): readonly DayPhase[] => PHASES_BY_CATEGORY[category];
 
@@ -121,7 +155,7 @@ describe('polityka faz poleceń (TIME-08)', () => {
   // muszą należeć do kategorii dnia pracy (TIME-08).
   it('każde polecenie w rejestrze ma kategorię zgodną z oczekiwaną listą', () => {
     const expected: Record<CommandType, CommandCategory> = {
-      SetSpeed: 'workDay',
+      SetSpeed: 'speed',
       SettleDay: 'settlement',
       StartNextDay: 'nextDay',
       HireCandidate: 'workDay',

@@ -7,6 +7,7 @@ import { deepFreeze } from '../test/deepFreeze';
 import { testState } from '../test/engineFixture';
 import { paymentPreview } from './delivery';
 import { createEngine } from './engine';
+import { DAY_LENGTH_MS } from './time';
 
 const P1 = 'project-1' as ProjectId;
 
@@ -81,6 +82,12 @@ describe('warunki oddania (PROJ-06)', () => {
   it('po zakończeniu pracy przed rozliczeniem — tak; po rozliczeniu — nie', () => {
     expect(
       engineFor(completed(0, { phase: 'workEnded', speed: 0 })).dispatch({
+        type: 'DeliverProject',
+        projectId: P1,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      engineFor(completed(0, { phase: 'leaving', speed: 0, timeInDayMs: DAY_LENGTH_MS })).dispatch({
         type: 'DeliverProject',
         projectId: P1,
       }),

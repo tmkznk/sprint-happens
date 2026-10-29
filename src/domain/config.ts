@@ -9,6 +9,8 @@ export type BalanceConfig = DeepReadonly<{
   simulation: {
     // T:TIME-T01 (R): długość kroku w ms czasu gry; musi dzielić długość dnia.
     stepMs: number;
+    // R: limit czasu (s czasu gry) na dojście postaci do celu w fazach przyjścia i wyjścia.
+    maxTransitSeconds: number;
   };
   // T:MOVE-05, MOVE-09 (R): tempo ruchu i parametry rozwiązywania blokad (SH-003).
   movement: MovementConfig;
@@ -100,6 +102,7 @@ export type BalanceConfig = DeepReadonly<{
 export const DEFAULT_BALANCE: BalanceConfig = {
   simulation: {
     stepMs: 100,
+    maxTransitSeconds: 60,
   },
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {

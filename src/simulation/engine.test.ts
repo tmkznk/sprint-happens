@@ -35,7 +35,10 @@ describe('createInitialState', () => {
 
 describe('createEngine', () => {
   it.each([0, -100, 7, 99.5])('odrzuca krok %s ms, który nie dzieli dnia', (stepMs) => {
-    const config: BalanceConfig = { ...DEFAULT_BALANCE, simulation: { stepMs } };
+    const config: BalanceConfig = {
+      ...DEFAULT_BALANCE,
+      simulation: { ...DEFAULT_BALANCE.simulation, stepMs },
+    };
 
     expect(() => createEngine({ config, initialState: createInitialState(config, 1) })).toThrow();
   });

@@ -154,7 +154,7 @@ const staffSchema = z.strictObject({
 const missionSchema = z.strictObject({
   status: z.enum(['active', 'won', 'bankrupt']),
   day: z.int().min(1),
-  phase: z.enum(['working', 'workEnded', 'settled']),
+  phase: z.enum(['arriving', 'working', 'leaving', 'workEnded', 'settled']),
   speed: z.literal(SPEEDS),
   timeInDayMs: z.int().min(0).max(DAY_LENGTH_MS),
   report: z
@@ -300,7 +300,16 @@ function missionIssues(state: GameState, { config }: ValidationContext): Issue[]
   if (mission.phase === 'working' && dayFinished) {
     issues.push({ path: ['mission', 'phase'], message: 'Dzień pracy po upływie 600 s' });
   }
-  if (mission.phase !== 'working' && (!dayFinished || mission.speed !== 0)) {
+  if (mission.phase === 'arriving' && mission.timeInDayMs !== 0) {
+    issues.push({ path: ['mission', 'phase'], message: 'Przyjście do biura poza początkiem dnia' });
+  }
+  if (mission.phase === 'leaving' && !dayFinished) {
+    issues.push({ path: ['mission', 'phase'], message: 'Wyjście z biura przed końcem dnia pracy' });
+  }
+  if (
+    (mission.phase === 'workEnded' || mission.phase === 'settled') &&
+    (!dayFinished || mission.speed !== 0)
+  ) {
     issues.push({ path: ['mission', 'phase'], message: 'Po końcu pracy symulacja musi stać' });
   }
   if (mission.status !== 'active' && mission.speed !== 0) {

@@ -21,8 +21,10 @@ import type { DeepReadonly } from './readonly';
 export const SPEEDS = [0, 1, 2, 4] as const;
 export type Speed = (typeof SPEEDS)[number];
 
-// TIME-08 (Z): dzień pracy → koniec pracy (przegląd i oddania) → po rozliczeniu (raport).
-export type DayPhase = 'working' | 'workEnded' | 'settled';
+// TIME-08 (Z): przyjście do biura → dzień pracy → wyjście z biura → koniec pracy (przegląd i oddania)
+// → po rozliczeniu (raport). W `arriving` czas dnia stoi na 0, w `leaving` na końcu dnia;
+// w obu fazach biegnie tylko ruch postaci.
+export type DayPhase = 'arriving' | 'working' | 'leaving' | 'workEnded' | 'settled';
 
 // TIME-03 (Z): podsumowanie dnia — przepływy z księgi bieżącego dnia i stan po rozliczeniu.
 // Terminy projektów dojdą wraz z kontraktami (SH-020, SH-026).
