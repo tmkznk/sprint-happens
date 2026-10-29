@@ -8,6 +8,7 @@ import type { GameState } from '../domain/state';
 import type { Engine } from '../simulation/engine';
 import { isLockedInPrologue } from '../simulation/prologue';
 import { DayCard } from './DayCard';
+import { isClockPhase } from './dayPhase';
 import { useNavigation } from './navigation';
 import { OfficeSceneBubble } from './OfficeSceneBubble';
 import { STAGE_TITLES } from './prologue/copy';
@@ -20,7 +21,10 @@ import { UpdateBanner } from './UpdateBanner';
 
 // Nagłówek biura zależny od sytuacji firmy (SH-033, wzór SH2).
 function headline(state: GameState): string {
-  if (state.mission.phase !== 'working') return 'Koniec dnia. Czas na rozliczenie';
+  const { phase } = state.mission;
+  if (phase === 'arriving') return 'Zespół schodzi się do biura';
+  if (phase === 'leaving') return 'Koniec pracy. Zespół wychodzi';
+  if (phase !== 'working') return 'Koniec dnia. Czas na rozliczenie';
   if (state.prologue) return STAGE_TITLES[state.prologue.step];
   const hasTeam = Object.keys(state.staff.employees).length > 0;
   const hasProjects = Object.keys(state.contracts.projects).length > 0;
@@ -104,10 +108,10 @@ export function OfficeView({
   );
 }
 
-// Szybka pauza/wznowienie na karcie biura (TIME-02); poza dniem pracy niedostępna.
+// Szybka pauza/wznowienie na karcie biura (TIME-02); po końcu pracy niedostępna.
 function PauseChip() {
   const speed = useGameSelector((state) => state.mission.speed);
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const isRunning = useGameSelector((state) => isClockPhase(state.mission.phase));
   const editing = useFurnitureEdit() !== null;
   const dispatch = useDispatch();
   const resume = useGuide()?.kind === 'resume';
@@ -115,7 +119,7 @@ function PauseChip() {
   const locked = useGameSelector((state) =>
     isLockedInPrologue(state, { type: 'SetSpeed', speed: 1 }),
   );
-  if (!isWorking || editing || locked) return null;
+  if (!isRunning || editing || locked) return null;
   const paused = speed === 0;
   return (
     <button

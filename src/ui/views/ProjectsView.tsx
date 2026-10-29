@@ -373,7 +373,10 @@ function DeliveryFooter({
   const dispatch = useDispatch();
   const day = useGameSelector((state) => state.mission.day);
   const canDeliverNow = useGameSelector(
-    (state) => state.mission.phase === 'working' || state.mission.phase === 'workEnded',
+    (state) =>
+      state.mission.phase === 'working' ||
+      state.mission.phase === 'leaving' ||
+      state.mission.phase === 'workEnded',
   );
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

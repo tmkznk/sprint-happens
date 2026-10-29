@@ -1,6 +1,7 @@
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { clockLabel } from './clock';
+import { PHASE_LABELS } from './dayPhase';
 import { spotlight, useGuide } from './prologue/hooks';
 import { SpeedControls } from './SpeedControls';
 
@@ -23,7 +24,7 @@ export function DayCard() {
       <div className="day-info">
         <strong>Dzień {day}</strong>
         <span>
-          {clock} · {phase === 'working' ? 'Dzień pracy' : 'Koniec pracy'}
+          {clock} · {PHASE_LABELS[phase]}
         </span>
       </div>
       <div className="day-progress">

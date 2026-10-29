@@ -75,4 +75,37 @@ describe('wskazówki prologu', () => {
     expect(tabLock(buying, 'furnish')).toBeNull();
     expect(tabLock(buying, 'recruit')).toBe(LOCKS.recruit);
   });
+
+  describe('fazy przyjścia i wyjścia', () => {
+    function inPhase(phase: 'arriving' | 'leaving', speed: 0 | 1) {
+      const state = createPrologueState(DEFAULT_BALANCE, SEED);
+      return {
+        ...state,
+        prologue: { step: 'buyDesk' as const },
+        mission: { ...state.mission, phase, speed },
+      };
+    }
+
+    it('w arriving na pauzie wskazówka resume', () => {
+      expect(guideAction(inPhase('arriving', 0), false)).toEqual({ kind: 'resume' });
+    });
+
+    it('w leaving w ruchu brak wskazówki', () => {
+      expect(guideAction(inPhase('leaving', 1), false)).toBeNull();
+    });
+
+    it('w leaving gotowy projekt — deliver', () => {
+      const player = prologuePlayer();
+      const project = player.acceptStarter();
+      player.assign(prologueOwner(player.state())?.id as EmployeeId, project);
+      player.runUntil((state) => state.mission.phase === 'workEnded');
+      const base = player.state();
+      const ready = {
+        ...base,
+        mission: { ...base.mission, phase: 'leaving' as const, speed: 0 as const },
+      };
+      // Oddanie ma pierwszeństwo przed wznowieniem.
+      expect(guideAction(ready, false)).toEqual({ kind: 'deliver', projectId: project });
+    });
+  });
 });

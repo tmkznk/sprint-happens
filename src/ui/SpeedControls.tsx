@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit } from '../application/furnitureEditHooks';
 import { SPEEDS, type Speed } from '../domain/state';
+import { isClockPhase } from './dayPhase';
 import { useNavigation } from './navigation';
 import { LOCKS } from './prologue/copy';
 import { spotlight, useGuide } from './prologue/hooks';
@@ -18,9 +19,9 @@ const NAMES: Record<Speed, string> = { 0: 'Pauza', 1: 'Tempo 1×', 2: 'Tempo 2×
 
 export function SpeedControls() {
   const speed = useGameSelector((state) => state.mission.speed);
-  // TIME-08: poza dniem pracy symulacja stoi — tempo nie jest dostępne.
+  // TIME-02: tempo działa w przyjściu, pracy i wyjściu; TIME-08: po pracy symulacja stoi.
   // OFF-07: w trybie „Urządź” gra pozostaje wstrzymana do zatwierdzenia lub anulowania.
-  const isWorking = useGameSelector((state) => state.mission.phase === 'working');
+  const isRunning = useGameSelector((state) => isClockPhase(state.mission.phase));
   const editing = useFurnitureEdit() !== null;
   const dispatch = useDispatch();
   const [message, setMessage] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export function SpeedControls() {
           type="button"
           className={spotlight(undefined, resume && value === 1)}
           aria-pressed={speed === value}
-          disabled={!isWorking || editing}
+          disabled={!isRunning || editing}
           aria-label={NAMES[value]}
           onClick={() => select(value)}
         >

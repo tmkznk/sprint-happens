@@ -37,6 +37,9 @@ export function guideAction(state: GameState, editing: boolean): GuideAction | n
     return { kind: 'deliver', projectId: project.id };
   }
   if (phase === 'workEnded') return { kind: 'settle' };
+  // Przyjście i wyjście (TIME-02): poza wznowieniem zegara nie ma czynności do wykonania —
+  // pozostałe wymagają dnia pracy.
+  if (phase === 'arriving' || phase === 'leaving') return speed === 0 ? { kind: 'resume' } : null;
 
   // Osoby, które mają pracować przy projekcie bieżącego etapu, a nie są do niego przypisane.
   const crew = [prologueOwner(state), ...(second ? [prologueHelper(state)] : [])];
