@@ -30,5 +30,8 @@ export const ACTOR_HEIGHT = 88;
 export const ACTOR_COLOR = 0xf2c14e;
 export const MARKER_COLOR = 0x55ff99;
 export const SELECTION_COLOR = 0xf2c14e;
+// Znacznik zaznaczonej postaci i potwierdzenie celu rozkazu: musztarda z ciemnozieloną obwódką.
+export const SELECTION_MARKER_COLOR = 0xe0a640;
+export const SELECTION_MARKER_OUTLINE = 0x254d3d;
 export const EDIT_VALID_COLOR = 0x3ddc84;
 export const EDIT_INVALID_COLOR = 0xff3b3b;

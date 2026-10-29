@@ -6,10 +6,12 @@ import {
   type FurnitureEditStore,
 } from '../application/furnitureEdit';
 import type { FrameClock } from '../application/gameLoop';
+import type { OrderFeedbackStore } from '../application/orderFeedback';
 import type { Selection, SelectionStore } from '../application/selection';
 import type { EmployeeId } from '../domain/employees';
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
+import type { OrderTarget } from '../simulation/commands/types';
 import type { Engine } from '../simulation/engine';
 import { interactionCells } from '../world/geometry';
 import {
@@ -52,11 +54,14 @@ import {
   FURNITURE_STYLE,
   MARKER_COLOR,
   SELECTION_COLOR,
+  SELECTION_MARKER_COLOR,
+  SELECTION_MARKER_OUTLINE,
   WALL_COLOR,
   WINDOW_COLOR,
   WINDOW_FRAME_COLOR,
   WINDOW_SHINE_COLOR,
 } from './placeholderStyle';
+import { tapIntent } from './tapIntent';
 import {
   cellAtScreen,
   cellCenter,
@@ -71,6 +76,8 @@ import {
 export type Presentation = {
   selection: SelectionStore;
   edit: FurnitureEditStore;
+  // Wynik ostatniego rozkazu z dotknięcia — pasek postaci pokazuje odmowę.
+  orderFeedback: OrderFeedbackStore;
   frameClock: FrameClock;
 };
 
@@ -81,6 +88,8 @@ export type OfficeSceneOptions = {
 
 const FLOOR_DEPTH = -1000;
 const ROOM_FRONT_DEPTH = 1_000_000;
+// Potwierdzenie celu rozkazu: krótki znacznik, który zanika (jeden naraz).
+const TARGET_MARKER_MS = 600;
 
 // Pre-renderowane meble (src/assets/furniture/<typ>-<obrót>.png) — adresy z paczki Vite.
 const FURNITURE_TEXTURES = Object.entries(
@@ -98,6 +107,9 @@ export class OfficeScene extends Phaser.Scene {
   private readonly engine: Engine;
   private readonly selection: SelectionStore;
   private readonly edit: FurnitureEditStore;
+  private readonly orderFeedback: OrderFeedbackStore;
+  private targetMarker: Phaser.GameObjects.Graphics | null = null;
+  private targetTween: Phaser.Tweens.Tween | null = null;
   private readonly frameClock: FrameClock;
   private renderedEdit: FurnitureEdit | null = null;
   private readonly options: OfficeSceneOptions;
@@ -117,6 +129,7 @@ export class OfficeScene extends Phaser.Scene {
     this.engine = engine;
     this.selection = presentation.selection;
     this.edit = presentation.edit;
+    this.orderFeedback = presentation.orderFeedback;
     this.frameClock = presentation.frameClock;
     this.options = options;
   }
@@ -146,7 +159,7 @@ export class OfficeScene extends Phaser.Scene {
 
     const detachCamera = attachOfficeCamera(this, {
       bounds: room ? roomBounds(room.meta) : officeBounds(layout),
-      onTap: (world) => this.select(world),
+      onTap: (world) => this.tap(world),
     });
 
     // T:VIEW-05 — scena sprząta subskrypcje i listenery przy zamknięciu. Zniszczenie gry
@@ -159,27 +172,22 @@ export class OfficeScene extends Phaser.Scene {
       unsubscribeSelection();
       unsubscribeEdit();
       detachCamera();
+      this.targetTween?.remove();
+      this.targetTween = null;
+      this.targetMarker = null;
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUp);
     this.events.once(Phaser.Scenes.Events.DESTROY, cleanUp);
   }
 
-  // UX-01 (Z): dotknięcie mebla otwiera panel szczegółów; dotknięcie pustego miejsca go zamyka.
-  private select(world: ScreenPoint): void {
+  // UX-01 (Z): dotknięcie postaci lub mebla zaznacza go (panel szczegółów), pustego miejsca —
+  // czyści zaznaczenie; przy zaznaczonej postaci mebel albo pole podłogi to cel rozkazu.
+  // Reguły w `tapIntent`; scena tylko wykonuje zamiar.
+  private tap(world: ScreenPoint): void {
     // UX-04: w trybie „Urządź” dotknięcie przestawia podgląd mebla zamiast wybierać obiekty.
     const edit = this.edit.get();
     if (edit) {
-      const candidate = editCandidate(this.engine.getState(), edit);
-      if (!candidate) return;
-      const size = rotatedSize(FURNITURE_CATALOG[candidate.type].footprint, edit.rotation);
-      const cell = cellAtScreen(world);
-      this.edit.set({
-        ...edit,
-        origin: {
-          x: cell.x - Math.floor((size.width - 1) / 2),
-          y: cell.y - Math.floor((size.height - 1) / 2),
-        },
-      });
+      this.moveEditPreview(edit, world);
       return;
     }
     const state = this.engine.getState();
@@ -191,13 +199,69 @@ export class OfficeScene extends Phaser.Scene {
         depth: pose.depth,
       })),
     );
-    const employee = agentId ? state.staff.employees[agentId as EmployeeId] : undefined;
-    if (employee) {
-      this.selection.set({ kind: 'employee', id: employee.id });
-      return;
+    const intent = tapIntent({
+      state,
+      selection: this.selection.get(),
+      editing: false,
+      agentId,
+      furnitureId: pickFurniture(world, Object.values(state.world.furniture)),
+      cell: cellAtScreen(world),
+    });
+    if (intent.kind === 'select') this.selection.set(intent.selection);
+    if (intent.kind !== 'order') return;
+    // Rozkaz waliduje silnik (T:ARCH-03); wynik — także odmowa — trafia do paska postaci.
+    const { command } = intent;
+    const result = this.engine.dispatch(command);
+    this.orderFeedback.set({ employeeId: command.employeeId, result });
+    if (result.ok) this.flashTarget(command.target);
+  }
+
+  private moveEditPreview(edit: FurnitureEdit, world: ScreenPoint): void {
+    const candidate = editCandidate(this.engine.getState(), edit);
+    if (!candidate) return;
+    const size = rotatedSize(FURNITURE_CATALOG[candidate.type].footprint, edit.rotation);
+    const cell = cellAtScreen(world);
+    this.edit.set({
+      ...edit,
+      origin: {
+        x: cell.x - Math.floor((size.width - 1) / 2),
+        y: cell.y - Math.floor((size.height - 1) / 2),
+      },
+    });
+  }
+
+  // Potwierdzenie dotknięcia celu: romb pola na podłodze albo obrys mebla, zanikający tweenem.
+  // Rysowany raz na rozkaz (nie co klatkę); nowy rozkaz zastępuje poprzedni znacznik.
+  private flashTarget(target: OrderTarget): void {
+    this.targetTween?.remove();
+    const marker = this.targetMarker ?? this.add.graphics();
+    this.targetMarker = marker;
+    marker.clear().setAlpha(1).setVisible(true);
+    if (target.kind === 'cell') {
+      const rect = { ...target.cell, width: 1, height: 1 };
+      const points = toVectors(rectCorners(rect));
+      marker.fillStyle(SELECTION_MARKER_COLOR, 0.7).fillPoints(points, true);
+      marker.lineStyle(2, SELECTION_MARKER_OUTLINE, 1).strokePoints(points, true);
+      marker.setDepth(FLOOR_DEPTH + 2);
+    } else {
+      const furniture = this.engine.getState().world.furniture[target.furnitureId];
+      if (!furniture) return;
+      const rect = furnitureRect(furniture);
+      const points = toVectors(prismSilhouette(rect, FURNITURE_STYLE[furniture.type].height));
+      marker.lineStyle(6, SELECTION_MARKER_OUTLINE, 1).strokePoints(points, true);
+      marker.lineStyle(3, SELECTION_MARKER_COLOR, 1).strokePoints(points, true);
+      marker.setDepth(depthOfFootprint(rect, rect) + 0.002);
     }
-    const id = pickFurniture(world, Object.values(state.world.furniture));
-    this.selection.set(id ? { kind: 'furniture', id } : null);
+    this.targetTween = this.tweens.add({
+      targets: marker,
+      alpha: 0,
+      duration: TARGET_MARKER_MS,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        marker.setVisible(false);
+        this.targetTween = null;
+      },
+    });
   }
 
   override update(_time: number, deltaMs: number): void {

@@ -5,6 +5,8 @@ import { browserEnvironment, startGameLoop, type FrameClock } from '../applicati
 import { attachAutosave, type SaveManager } from '../application/saveManager';
 import { createFurnitureEditStore } from '../application/furnitureEdit';
 import { FurnitureEditContext } from '../application/furnitureEditHooks';
+import { createOrderFeedbackStore } from '../application/orderFeedback';
+import { OrderFeedbackContext } from '../application/orderFeedbackHooks';
 import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
@@ -64,6 +66,7 @@ export function App({
 }) {
   const [selection] = useState(createSelectionStore);
   const [edit] = useState(createFurnitureEditStore);
+  const [orderFeedback] = useState(createOrderFeedbackStore);
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const [tab, setTab] = useState<Tab>('office');
   const [notice, setNotice] = useState<string | null>(null);
@@ -96,14 +99,14 @@ export function App({
 
   useEffect(() => {
     if (!sceneRef.current) return;
-    const presentation = { selection, edit, frameClock };
+    const presentation = { selection, edit, orderFeedback, frameClock };
     const game = createOfficeGame(sceneRef.current, engine, presentation, { occlusionTest });
     gameRef.current = game;
     return () => {
       gameRef.current = null;
       game.destroy(true);
     };
-  }, [engine, selection, edit, frameClock]);
+  }, [engine, selection, edit, orderFeedback, frameClock]);
 
   // Zasłonięta scena nie rysuje klatek (oszczędność baterii); symulacja biegnie dalej we własnej
   // pętli, a po odsłonięciu scena od razu pokazuje bieżący stan.
@@ -126,27 +129,29 @@ export function App({
     <EngineContext value={engine}>
       <SelectionContext value={selection}>
         <FurnitureEditContext value={edit}>
-          <NavigationContext value={navigation}>
-            <div className="shell">
-              <TopBar manager={saveManager} onNewGame={onNewGame} />
-              <MainNav />
-              <OfficeView sceneRef={sceneRef} engine={engine} manager={saveManager} />
-              {wide && <PlanAside />}
-              {sheet && (
-                <Sheet title={sheet.title} onClose={() => setTab('office')}>
-                  {sheet.view({ onNewGame })}
-                </Sheet>
-              )}
-              {notice && (
-                <p className="lock-notice" role="status" onClick={() => setNotice(null)}>
-                  {notice}
-                </p>
-              )}
-            </div>
-            <DayReportDialog onNewGame={() => onNewGame()} />
-            <EventDialog />
-            <PrologueFinale onFinish={() => onNewGame('mission')} />
-          </NavigationContext>
+          <OrderFeedbackContext value={orderFeedback}>
+            <NavigationContext value={navigation}>
+              <div className="shell">
+                <TopBar manager={saveManager} onNewGame={onNewGame} />
+                <MainNav />
+                <OfficeView sceneRef={sceneRef} engine={engine} manager={saveManager} />
+                {wide && <PlanAside />}
+                {sheet && (
+                  <Sheet title={sheet.title} onClose={() => setTab('office')}>
+                    {sheet.view({ onNewGame })}
+                  </Sheet>
+                )}
+                {notice && (
+                  <p className="lock-notice" role="status" onClick={() => setNotice(null)}>
+                    {notice}
+                  </p>
+                )}
+              </div>
+              <DayReportDialog onNewGame={() => onNewGame()} />
+              <EventDialog />
+              <PrologueFinale onFinish={() => onNewGame('mission')} />
+            </NavigationContext>
+          </OrderFeedbackContext>
         </FurnitureEditContext>
       </SelectionContext>
     </EngineContext>
