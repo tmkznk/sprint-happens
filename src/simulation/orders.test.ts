@@ -372,6 +372,28 @@ describe('OrderEmployee — po rozkazie (decyzja 2b, ostatni rozkaz wygrywa)', (
     expect(employee(engine, a).breakHold).toBe(false);
   });
 
+  it('po kawie z rozkazu zmęczona postać idzie na zwykłą przerwę przy progu „tired” (2b)', () => {
+    const { engine: base, a } = office();
+    const { exhausted, tired } = DEFAULT_BALANCE.energy.thresholds;
+    // Po kawie (+coffeeGain) energia nadal poniżej progu „tired”, ale wyraźnie nad wyczerpaniem.
+    const start = tired - DEFAULT_BALANCE.energy.coffeeGain - 2;
+    expect(start).toBeGreaterThan(exhausted);
+    const engine = withEmployee(base, a, { energy: E(start) });
+    order(engine, a, toFurniture(COFFEE));
+
+    let drank = false;
+    runUntil(engine, () => {
+      const agent = agentOf(engine, a);
+      if (agent?.status === 'using' && agent.reservedDestination === 'furniture-4#0') drank = true;
+      return (
+        drank && agent?.status !== 'using' && isOnBreak(engine.getState(), employee(engine, a))
+      );
+    });
+    // Rozpoczęta kawa zakończyła wstrzymanie — przerwa rusza od razu, nie dopiero przy wyczerpaniu.
+    expect(employee(engine, a).breakHold).toBe(false);
+    expect(employee(engine, a).energy).toBeGreaterThan(E(exhausted));
+  });
+
   it('ostatni rozkaz wygrywa: kawa, potem pole w trakcie drogi → stoi na polu', () => {
     const { engine, a } = office();
     order(engine, a, toFurniture(COFFEE));

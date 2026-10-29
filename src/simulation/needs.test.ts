@@ -383,8 +383,8 @@ describe('wstrzymanie przerw i kanapa z rozkazu (decyzje 2b, 3c)', () => {
     // Przy pełnej energii odpoczynek trwa dokładnie minimum (próg wypoczęcia już spełniony).
     expect(steps).toBe(RATES.minOrderedSofaSteps);
     expect(employee(ordered, worker).orderedRest).toBe(false);
-    // Rozkaz ustawił wstrzymanie; koniec kanapy go nie kasuje (decyzja 2b).
-    expect(employee(ordered, worker).breakHold).toBe(true);
+    // Rozpoczęty odpoczynek kończy wstrzymanie z rozkazu (decyzja 2b) — od teraz zwykłe progi.
+    expect(employee(ordered, worker).breakHold).toBe(false);
   });
 
   it('kanapa bez orderedRest kończy się po progu wypoczęcia jak dziś', () => {

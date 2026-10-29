@@ -462,13 +462,20 @@ describe('rozkazy dla postaci w zapisie (decyzje 2b, 3c)', () => {
         },
       },
     });
+    // W drodze na kanapę z rozkazu: wstrzymanie i minimalny czas odpoczynku czekają w zapisie.
+    resting.step();
+    const walking = resting.getState();
+    expect(walking.staff.employees[id]).toMatchObject({ breakHold: true, orderedRest: true });
+    expect(roundTrip(walking)).toEqual(walking);
+
     const using = () =>
       resting.getState().world.movement.agents.find((a) => a.id === id)?.status === 'using';
     for (let i = 0; i < 400 && !using(); i++) resting.step();
     expect(using()).toBe(true);
 
+    // Rozpoczęty odpoczynek kończy wstrzymanie (decyzja 2b); minimalny czas trwa dalej.
     const state = resting.getState();
-    expect(state.staff.employees[id]).toMatchObject({ breakHold: true, orderedRest: true });
+    expect(state.staff.employees[id]).toMatchObject({ breakHold: false, orderedRest: true });
     expect(roundTrip(state)).toEqual(state);
   });
 });

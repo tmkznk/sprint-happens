@@ -56,7 +56,8 @@ export type Employee = {
   lowSatisfactionMs: number;
   // NEED-02, decyzja właściciela 2b: po rozkazie gracza automatyczne przerwy profilaktyczne
   // i obowiązkowe są wstrzymane — automat rusza dopiero przy progu wyczerpania. Kasowane, gdy
-  // taka przerwa ruszy, oraz przy wyjściu z biura (TIME-08).
+  // zacznie się kolejna przerwa (kawa/kanapa z rozkazu albo przerwa przy wyczerpaniu), oraz przy
+  // wyjściu z biura (TIME-08). Rozkazy biurka i pola wstrzymanie zostawiają.
   breakHold: boolean;
   // NEED-02, decyzja właściciela 3c: kanapa z rozkazu trwa co najmniej minimalny czas
   // (`energy.minOrderedSofaSeconds`). Kasowane po zakończeniu tego odpoczynku i przy wyjściu.

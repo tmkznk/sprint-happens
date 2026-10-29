@@ -157,9 +157,12 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
           ? agent.usedSteps >= rates.coffeeSteps
           : minimumMet &&
             (energy >= rested * ENERGY_SCALE || agent.usedSteps >= rates.maxRestSteps);
+      // Decyzja 2b: rozpoczęta przerwa (z rozkazu albo automatyczna) kończy wstrzymanie — od teraz
+      // zwykłe progi. Rozkazy biurka i pola wstrzymanie zostawiają (nie korzystają z miejsca).
       employees[employee.id] = {
         ...employee,
         energy,
+        breakHold: false,
         orderedRest: finished && kind === 'sofa' ? false : employee.orderedRest,
       };
       if (finished) movement = finishUse(movement, agent.id);
@@ -175,7 +178,8 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
     const current = { ...state, world: { ...state.world, movement } };
     const rest = chooseRest(current, employee, config);
     if (!rest) continue;
-    // Decyzja 2b: przerwa przy wyczerpaniu kończy wstrzymanie — od teraz zwykłe progi.
+    // Decyzja 2b: przerwa przy wyczerpaniu kończy wstrzymanie już przy decyzji (w drodze na
+    // przerwę mógłby zostać wydany nowy rozkaz, który ustawi je ponownie).
     if (employee.breakHold) employees[employee.id] = { ...employee, breakHold: false };
     movement = {
       ...movement,
