@@ -1,6 +1,11 @@
 import type { Employee } from '../../domain/employees';
 import { recordOperation } from '../finance';
-import { interruptFurnitureUse, retargetEmployees, salePrice } from '../furniture';
+import {
+  dropFurnitureDestinations,
+  interruptFurnitureUse,
+  retargetEmployees,
+  salePrice,
+} from '../furniture';
 import { reject, type CommandHandler, type SellFurnitureCommand } from './types';
 
 // OFF-06, OFF-07, FIN-06 (Z): sprzedaż zwraca część ceny (dozwolona także przy długu), wyłącznie
@@ -22,7 +27,10 @@ export const sellFurniture: CommandHandler<SellFurnitureCommand> = {
     });
     if (!income.ok) return reject(income.code);
 
-    const interrupted = interruptFurnitureUse(income.state, item.id);
+    const interrupted = dropFurnitureDestinations(
+      interruptFurnitureUse(income.state, item.id),
+      item.id,
+    );
     const furniture = Object.fromEntries(
       Object.entries(interrupted.world.furniture).filter(([id]) => id !== item.id),
     ) as typeof interrupted.world.furniture;

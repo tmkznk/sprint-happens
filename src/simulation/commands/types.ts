@@ -33,6 +33,14 @@ export type AssignProjectCommand = {
 export type DeliverProjectCommand = { type: 'DeliverProject'; projectId: ProjectId };
 export type FireEmployeeCommand = { type: 'FireEmployee'; employeeId: EmployeeId };
 export type ResolveEventCommand = { type: 'ResolveEvent'; optionId: string };
+// Sterowanie postaciami: rozkaz dla pracownika — pole podłogi albo mebel (OFF-04, NEED-02).
+export type OrderTarget =
+  { kind: 'cell'; cell: GridPoint } | { kind: 'furniture'; furnitureId: FurnitureId };
+export type OrderEmployeeCommand = {
+  type: 'OrderEmployee';
+  employeeId: EmployeeId;
+  target: OrderTarget;
+};
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -53,7 +61,8 @@ export type Command =
   | AssignProjectCommand
   | DeliverProjectCommand
   | FireEmployeeCommand
-  | ResolveEventCommand;
+  | ResolveEventCommand
+  | OrderEmployeeCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -76,6 +85,11 @@ export type RejectionCode =
   | 'unknownFurniture'
   | 'notADesk'
   | 'deskTaken'
+  // Rozkaz dla postaci: osoba poza biurem, cel niedostępny, mebel bez akcji, zepsuty ekspres.
+  | 'employeeAway'
+  | 'unreachableTarget'
+  | 'noAction'
+  | 'coffeeBroken'
   // OFF-07: edycja mebli wymaga pauzy.
   | 'notPaused'
   // Prolog: funkcja odblokowuje się na późniejszym etapie (albo po ukończeniu prologu).

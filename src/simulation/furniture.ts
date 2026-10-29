@@ -1,4 +1,5 @@
 import type { BalanceConfig } from '../domain/config';
+import type { Employee, EmployeeId } from '../domain/employees';
 import { ROTATIONS, type Furniture, type FurnitureId, type Rotation } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
@@ -74,11 +75,16 @@ export function furnitureUsers(state: GameState, furnitureId: FurnitureId) {
 
 // OFF-07 (Z): przeniesienie lub sprzedaż przerywa korzystanie z mebla; rezerwacje są zwalniane,
 // a korzystający wracają do kolejki. Odzyskana energia nie jest cofana (energia — SH-017).
+// Przerwany odpoczynek z rozkazu traci minimalny czas kanapy (decyzja 3c).
 export function interruptFurnitureUse(state: GameState, furnitureId: FurnitureId): GameState {
   const prefix = `${furnitureId}#`;
   const { movement } = state.world;
+  const affected = movement.agents
+    .filter((agent) => agent.reservedDestination?.startsWith(prefix))
+    .map((agent) => agent.id);
   return {
     ...state,
+    staff: withoutOrderedRest(state, affected),
     world: {
       ...state.world,
       movement: {
@@ -103,13 +109,63 @@ export function interruptFurnitureUse(state: GameState, furnitureId: FurnitureId
   };
 }
 
+// Sprzedaż mebla: zadania korzystania tracą jego miejsca; zadanie bez żadnego miejsca znika,
+// więc postać (np. wysłana rozkazem do tego mebla) wraca do biurka zamiast czekać bez końca.
+export function dropFurnitureDestinations(state: GameState, furnitureId: FurnitureId): GameState {
+  const prefix = `${furnitureId}#`;
+  const dropped: string[] = [];
+  const agents = state.world.movement.agents.map((agent) => {
+    const [task, ...rest] = agent.tasks;
+    if (task?.kind !== 'use' || !task.destinationIds.some((id) => id.startsWith(prefix))) {
+      return agent;
+    }
+    const destinationIds = task.destinationIds.filter((id) => !id.startsWith(prefix));
+    if (destinationIds.length > 0)
+      return { ...agent, tasks: [{ ...task, destinationIds }, ...rest] };
+    dropped.push(agent.id);
+    return {
+      ...agent,
+      tasks: rest,
+      queuedSince: null,
+      usedSteps: 0,
+      path: [],
+      status: agent.status === 'yielding' ? agent.status : ('idle' as const),
+    };
+  });
+  return {
+    ...state,
+    staff: withoutOrderedRest(state, dropped),
+    world: { ...state.world, movement: { ...state.world.movement, agents } },
+  };
+}
+
+function withoutOrderedRest(state: GameState, ids: readonly string[]): GameState['staff'] {
+  const changed = ids
+    .map((id) => state.staff.employees[id as EmployeeId])
+    .filter((employee): employee is Employee => !!employee && employee.orderedRest);
+  if (changed.length === 0) return state.staff;
+  return {
+    ...state.staff,
+    employees: {
+      ...state.staff.employees,
+      ...Object.fromEntries(changed.map((e) => [e.id, { ...e, orderedRest: false }])),
+    },
+  };
+}
+
 // Po zmianie mebli lub biurek każdy pracownik dostaje aktualny cel: punkt własnego biurka albo
 // — bez biurka — dotychczasowe miejsce, jeśli nadal jest dozwolone (OFF-04, OFF-07).
-export function retargetEmployees(state: GameState, config: BalanceConfig): GameState {
+// `only` zawęża zmianę do jednej osoby (zmiana biurka nie dotyczy pozostałych).
+export function retargetEmployees(
+  state: GameState,
+  config: BalanceConfig,
+  only?: EmployeeId,
+): GameState {
   const agents = state.world.movement.agents.map((agent) => {
     const employee = state.staff.employees[agent.id as keyof typeof state.staff.employees];
     const current = agent.tasks[0];
-    if (!employee || (current && current.kind !== 'goTo')) return agent;
+    if (!employee || (only && employee.id !== only)) return agent;
+    if (current && current.kind !== 'goTo') return agent;
     const desk = employee.deskId ? state.world.furniture[employee.deskId] : undefined;
     const deskPoint = desk ? interactionCells(desk)[0] : undefined;
     if (!deskPoint && current?.kind === 'goTo' && isFreeStandingSpot(state, current.cell)) {
