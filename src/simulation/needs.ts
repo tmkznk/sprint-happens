@@ -33,6 +33,7 @@ export type EnergyRates = {
   coffeeSteps: number;
   sofaGainPerStep: number;
   maxRestSteps: number;
+  minOrderedSofaSteps: number;
 };
 
 export function energyRates(config: BalanceConfig): EnergyRates {
@@ -45,11 +46,12 @@ export function energyRates(config: BalanceConfig): EnergyRates {
     coffeeSteps,
     sofaGainPerStep: Math.round((energy.sofaGainPerSecond * ENERGY_SCALE) / stepsPerSecond),
     maxRestSteps: Math.round(energy.maxRestSeconds * stepsPerSecond),
+    minOrderedSofaSteps: Math.round(energy.minOrderedSofaSeconds * stepsPerSecond),
   };
 }
 
 // Zadanie korzystania z miejsc odpoczynku ma długi limit; koniec przerwy wyznacza ten system.
-const OPEN_ENDED_USE = 1_000_000;
+export const OPEN_ENDED_USE = 1_000_000;
 
 function restDestinations(state: GameState, kind: RestKind): string[] {
   const type: Furniture['type'] = kind === 'coffee' ? 'coffeeMachine' : 'sofa';
@@ -96,6 +98,7 @@ function queueLength(state: GameState, ids: string[]): number {
 }
 
 // SH-004 A4a: dobór przerwy według progów energii. Zwraca miejsca do zadania „use” albo null.
+// Decyzja 2b: przy wstrzymaniu po rozkazie (`breakHold`) tylko przerwa przy wyczerpaniu.
 export function chooseRest(
   state: GameState,
   employee: Employee,
@@ -114,6 +117,7 @@ export function chooseRest(
     if (freeCoffee.length > 0) return coffee;
     return sofa.length + coffee.length > 0 ? [...sofa, ...coffee] : null;
   }
+  if (employee.breakHold) return null;
   if (energy <= thresholds.tired) {
     if (coffee.length > 0 && (freeCoffee.length > 0 || queueLength(state, coffee) < shortQueue)) {
       return coffee;
@@ -146,11 +150,18 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
     if (kind) {
       const gain = kind === 'coffee' ? rates.coffeeGainPerStep : rates.sofaGainPerStep;
       const energy = Math.min(MAX_ENERGY, employee.energy + gain);
-      employees[employee.id] = { ...employee, energy };
+      // Decyzja 3c: kanapa z rozkazu trwa co najmniej minimalny czas, nawet przy pełnej energii.
+      const minimumMet = !employee.orderedRest || agent.usedSteps >= rates.minOrderedSofaSteps;
       const finished =
         kind === 'coffee'
           ? agent.usedSteps >= rates.coffeeSteps
-          : energy >= rested * ENERGY_SCALE || agent.usedSteps >= rates.maxRestSteps;
+          : minimumMet &&
+            (energy >= rested * ENERGY_SCALE || agent.usedSteps >= rates.maxRestSteps);
+      employees[employee.id] = {
+        ...employee,
+        energy,
+        orderedRest: finished && kind === 'sofa' ? false : employee.orderedRest,
+      };
       if (finished) movement = finishUse(movement, agent.id);
       continue;
     }
@@ -164,6 +175,8 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
     const current = { ...state, world: { ...state.world, movement } };
     const rest = chooseRest(current, employee, config);
     if (!rest) continue;
+    // Decyzja 2b: przerwa przy wyczerpaniu kończy wstrzymanie — od teraz zwykłe progi.
+    if (employee.breakHold) employees[employee.id] = { ...employee, breakHold: false };
     movement = {
       ...movement,
       agents: movement.agents.map((a) =>

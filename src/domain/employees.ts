@@ -54,6 +54,13 @@ export type Employee = {
   badConditionsMs: number;
   // NEED-05: nieprzerwany czas poniżej progu ostrzeżenia (ms czasu gry) — do odejścia.
   lowSatisfactionMs: number;
+  // NEED-02, decyzja właściciela 2b: po rozkazie gracza automatyczne przerwy profilaktyczne
+  // i obowiązkowe są wstrzymane — automat rusza dopiero przy progu wyczerpania. Kasowane, gdy
+  // taka przerwa ruszy, oraz przy wyjściu z biura (TIME-08).
+  breakHold: boolean;
+  // NEED-02, decyzja właściciela 3c: kanapa z rozkazu trwa co najmniej minimalny czas
+  // (`energy.minOrderedSofaSeconds`). Kasowane po zakończeniu tego odpoczynku i przy wyjściu.
+  orderedRest: boolean;
 };
 
 export const ENERGY_SCALE = 1000;

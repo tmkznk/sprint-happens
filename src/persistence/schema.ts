@@ -138,6 +138,8 @@ const staffSchema = z.strictObject({
       satisfaction: z.int().min(0).max(MAX_SATISFACTION),
       badConditionsMs: z.int().min(0),
       lowSatisfactionMs: z.int().min(0),
+      breakHold: z.boolean(),
+      orderedRest: z.boolean(),
     }),
   ),
   candidates: z.array(z.strictObject({ id: candidateId, ...person })),

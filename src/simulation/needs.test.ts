@@ -7,7 +7,7 @@ import type { GameState } from '../domain/state';
 import { testReport, testState } from '../test/engineFixture';
 import { interactionCells } from '../world/geometry';
 import { createEngine } from './engine';
-import { activityOf, energyRates, isOnBreak } from './needs';
+import { activityOf, energyRates, isOnBreak, OPEN_ENDED_USE } from './needs';
 import { isAtOwnDesk, isWorking } from './work';
 
 type Engine = ReturnType<typeof createEngine>;
@@ -62,6 +62,63 @@ function withEnergy(engine: Engine, energies: Record<string, number>): Engine {
     if (current) employees[id as EmployeeId] = { ...current, energy };
   }
   return engineFrom({ ...state, staff: { ...state.staff, employees } });
+}
+
+function withEmployee(engine: Engine, id: EmployeeId, patch: Partial<Employee>): Engine {
+  const state = engine.getState();
+  const current = state.staff.employees[id] as Employee;
+  return engineFrom({
+    ...state,
+    staff: {
+      ...state.staff,
+      employees: { ...state.staff.employees, [id]: { ...current, ...patch } },
+    },
+  });
+}
+
+// Wysyła postać na siedzisko kanapy (jak rozkaz z przyszłego polecenia) z podanymi polami.
+function sentToSofa(engine: Engine, id: EmployeeId, patch: Partial<Employee>): Engine {
+  const base = withEmployee(engine, id, patch).getState();
+  return engineFrom({
+    ...base,
+    world: {
+      ...base.world,
+      movement: {
+        ...base.world.movement,
+        agents: base.world.movement.agents.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                tasks: [
+                  { kind: 'use', destinationIds: ['furniture-3#0'], steps: OPEN_ENDED_USE },
+                  ...a.tasks,
+                ],
+                path: [],
+              }
+            : a,
+        ),
+      },
+    },
+  });
+}
+
+// Liczba kroków korzystania z kanapy (`usedSteps` rośnie w każdym z nich, także w kroku, w którym
+// postać wstaje — dlatego +1 do granic kroków ze statusem „using”). Sprawdza, że do kanapy doszła
+// i że po odpoczynku zadanie „use” zniknęło.
+function sofaSteps(engine: Engine, id: EmployeeId): number {
+  let reached = false;
+  let observed = 0;
+  run(engine, 600, () => {
+    const agent = agentOf(engine, id);
+    if (agent?.reservedDestination === 'furniture-3#0') reached = true;
+    if (agent?.status === 'using') {
+      observed++;
+      expect(agent.usedSteps).toBe(observed);
+    }
+  });
+  expect(reached).toBe(true);
+  expect(agentOf(engine, id)?.tasks[0]?.kind).not.toBe('use');
+  return observed + 1;
 }
 
 function run(engine: Engine, steps: number, onStep?: () => void) {
@@ -274,5 +331,71 @@ describe('przerwy (NEED-02, SH-004 A3/A4)', () => {
     run(tired, 600);
 
     expect(agentOf(tired, worker)?.cell).toEqual(desk ? interactionCells(desk)[0] : null);
+  });
+});
+
+describe('wstrzymanie przerw i kanapa z rozkazu (decyzje 2b, 3c)', () => {
+  it('breakHold wstrzymuje przerwę profilaktyczną i obowiązkową', () => {
+    const { engine, ids } = office([['frontend', 'junior']]);
+    const [worker] = ids as [EmployeeId];
+    for (const energy of [E(55), E(30)]) {
+      const held = withEmployee(engine, worker, { energy, breakHold: true });
+
+      run(held, 5);
+
+      expect(agentOf(held, worker)?.tasks[0]?.kind).not.toBe('use');
+      expect(isOnBreak(held.getState(), employee(held, worker))).toBe(false);
+      expect(isWorking(held.getState(), employee(held, worker), DEFAULT_BALANCE)).toBe(true);
+      expect(employee(held, worker).breakHold).toBe(true);
+    }
+  });
+
+  it('breakHold nie wstrzymuje przerwy przy wyczerpaniu i znika, gdy ona rusza', () => {
+    const { engine, ids } = office([['frontend', 'junior']]);
+    const [worker] = ids as [EmployeeId];
+    const held = withEmployee(engine, worker, { energy: E(10), breakHold: true });
+
+    run(held, 1);
+
+    expect(agentOf(held, worker)?.tasks[0]).toMatchObject({
+      kind: 'use',
+      destinationIds: ['furniture-3#0', 'furniture-3#1'],
+    });
+    expect(employee(held, worker).breakHold).toBe(false);
+  });
+
+  it('kanapa z orderedRest trwa co najmniej minOrderedSofaSteps przy pełnej energii, potem orderedRest false', () => {
+    const { engine, ids } = office([['frontend', 'junior']]);
+    const [worker] = ids as [EmployeeId];
+    expect(RATES.minOrderedSofaSteps).toBe(
+      Math.round(
+        (DEFAULT_BALANCE.energy.minOrderedSofaSeconds * 1000) / DEFAULT_BALANCE.simulation.stepMs,
+      ),
+    );
+    const ordered = sentToSofa(engine, worker, {
+      energy: E(100),
+      orderedRest: true,
+      breakHold: true,
+    });
+
+    const steps = sofaSteps(ordered, worker);
+
+    // Przy pełnej energii odpoczynek trwa dokładnie minimum (próg wypoczęcia już spełniony).
+    expect(steps).toBe(RATES.minOrderedSofaSteps);
+    expect(employee(ordered, worker).orderedRest).toBe(false);
+    // Rozkaz ustawił wstrzymanie; koniec kanapy go nie kasuje (decyzja 2b).
+    expect(employee(ordered, worker).breakHold).toBe(true);
+  });
+
+  it('kanapa bez orderedRest kończy się po progu wypoczęcia jak dziś', () => {
+    const { engine, ids } = office([['frontend', 'junior']]);
+    const [worker] = ids as [EmployeeId];
+    const plain = sentToSofa(engine, worker, { energy: E(100) });
+
+    const steps = sofaSteps(plain, worker);
+
+    // Próg wypoczęcia spełniony od razu — wstaje w kroku, w którym usiadła.
+    expect(steps).toBe(1);
+    expect(employee(plain, worker).orderedRest).toBe(false);
   });
 });

@@ -418,6 +418,61 @@ describe('zadowolenie i odejścia w zapisie (SH-019)', () => {
   });
 });
 
+describe('rozkazy dla postaci w zapisie (decyzje 2b, 3c)', () => {
+  it('wstrzymanie przerw i kanapa z rozkazu przetrwają zapis w trakcie odpoczynku', () => {
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 8),
+    });
+    const candidate = engine.getState().staff.candidates[0];
+    if (!candidate) throw new Error('brak kandydata');
+    engine.dispatch({ type: 'HireCandidate', candidateId: candidate.id });
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    for (let i = 0; i < 200; i++) engine.step();
+    const before = engine.getState();
+    const id = 'employee-1' as EmployeeId;
+    const resting = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: {
+        ...before,
+        staff: {
+          ...before.staff,
+          employees: {
+            ...before.staff.employees,
+            [id]: { ...before.staff.employees[id], breakHold: true, orderedRest: true },
+          } as GameState['staff']['employees'],
+        },
+        world: {
+          ...before.world,
+          movement: {
+            ...before.world.movement,
+            agents: before.world.movement.agents.map((a) =>
+              a.id === id
+                ? {
+                    ...a,
+                    tasks: [
+                      { kind: 'use', destinationIds: ['furniture-3#0'], steps: 1_000_000 },
+                      ...a.tasks,
+                    ],
+                    path: [],
+                  }
+                : a,
+            ),
+          },
+        },
+      },
+    });
+    const using = () =>
+      resting.getState().world.movement.agents.find((a) => a.id === id)?.status === 'using';
+    for (let i = 0; i < 400 && !using(); i++) resting.step();
+    expect(using()).toBe(true);
+
+    const state = resting.getState();
+    expect(state.staff.employees[id]).toMatchObject({ breakHold: true, orderedRest: true });
+    expect(roundTrip(state)).toEqual(state);
+  });
+});
+
 describe('zdarzenia w zapisie (SH-031)', () => {
   it('oczekująca decyzja przetrwa zapis; zdarzenie dla nieznanego projektu jest odrzucane', () => {
     const initial = createInitialState(DEFAULT_BALANCE, 8);

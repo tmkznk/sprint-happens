@@ -31,15 +31,23 @@ function entranceOf(state: GameState): GridPoint {
 
 // O 17:00 wszyscy przerywają czynność (praca, kawa, kanapa, kolejka) i idą do drzwi wejściowych;
 // rezerwacje miejsc są zwalniane od razu (MOVE-03). Tempo bez zmian — gracz może przyspieszyć.
+// Wyjście kasuje rozkazy: wstrzymanie przerw (decyzja 2b) i kanapę z rozkazu (3c).
 export function beginLeaving(state: GameState): GameState {
   const door = entranceOf(state);
   let movement = state.world.movement;
   for (const agent of state.world.movement.agents) {
     movement = redirectAgent(movement, agent.id, [{ kind: 'goTo', cell: door }]);
   }
+  const employees = Object.fromEntries(
+    Object.entries(state.staff.employees).map(([id, employee]) => [
+      id,
+      { ...employee, breakHold: false, orderedRest: false },
+    ]),
+  ) as GameState['staff']['employees'];
   return {
     ...state,
     mission: { ...state.mission, phase: 'leaving', transitSteps: 0 },
+    staff: { ...state.staff, employees },
     world: { ...state.world, movement },
   };
 }

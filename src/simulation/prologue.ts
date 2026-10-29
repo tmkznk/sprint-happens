@@ -53,6 +53,8 @@ export function createPrologueState(config: BalanceConfig, seed: number): GameSt
     satisfaction: config.satisfaction.neutral * SATISFACTION_SCALE,
     badConditionsMs: 0,
     lowSatisfactionMs: 0,
+    breakHold: false,
+    orderedRest: false,
   };
 
   const start: GameState = {

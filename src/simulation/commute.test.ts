@@ -160,6 +160,26 @@ describe('wyjście z biura po pracy (TIME-08, SH-004 B4)', () => {
     expect(after.rng).toEqual(atFive.rng);
   });
 
+  it('beginLeaving zeruje breakHold i orderedRest', () => {
+    const state = lastStepOfDay();
+    const employees = Object.fromEntries(
+      Object.entries(state.staff.employees).map(([id, e]) => [
+        id,
+        { ...e, breakHold: true, orderedRest: true },
+      ]),
+    ) as GameState['staff']['employees'];
+    const engine = engineFrom({ ...state, staff: { ...state.staff, employees } });
+
+    engine.step();
+
+    expect(engine.getState().mission.phase).toBe('leaving');
+    const after = Object.values(engine.getState().staff.employees);
+    expect(after).toHaveLength(3);
+    for (const employee of after) {
+      expect(employee).toMatchObject({ breakHold: false, orderedRest: false });
+    }
+  });
+
   it('rezerwacja kanapy zwolniona na początku leaving', () => {
     const state = lastStepOfDay();
     expect(state.world.movement.reservations[SOFA_SEAT]).toBeDefined();

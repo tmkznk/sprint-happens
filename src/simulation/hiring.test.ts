@@ -76,6 +76,8 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
         satisfaction: 70 * 60_000,
         badConditionsMs: 0,
         lowSatisfactionMs: 0,
+        breakHold: false,
+        orderedRest: false,
       },
     ]);
     expect(state.finance.wagesDueToday).toEqual({ 'employee-1': candidate.dailyWage });

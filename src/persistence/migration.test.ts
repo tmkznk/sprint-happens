@@ -43,6 +43,8 @@ const toV2: Migration = (input) => {
     employee.satisfaction = 70 * 60_000;
     employee.badConditionsMs = 0;
     employee.lowSatisfactionMs = 0;
+    employee.breakHold = false;
+    employee.orderedRest = false;
   }
   const used = new Set<string>();
   const people = [
@@ -128,7 +130,8 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
   });
 
   // Zapis wersji 2 budujemy jako surowy obiekt: bieżący stan w JSON bez pól wersji 3
-  // (`mission.transitSteps`, `staff.entryQueue`) i z wersją 2 w kopercie.
+  // (`mission.transitSteps`, `staff.entryQueue`) i 4 (`breakHold`, `orderedRest`) oraz z wersją
+  // 2 w kopercie.
   function v2Text(prepare: (state: Loose) => void): string {
     const player = createPlayer();
     player.hire('frontend', 'junior');
@@ -142,6 +145,10 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
     envelope.schemaVersion = 2;
     delete envelope.state.mission.transitSteps;
     delete envelope.state.staff.entryQueue;
+    for (const employee of Object.values(envelope.state.staff.employees) as Loose[]) {
+      delete employee.breakHold;
+      delete employee.orderedRest;
+    }
     prepare(envelope.state);
     return JSON.stringify(envelope);
   }
@@ -181,5 +188,38 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
     expect(result.envelope.state.mission.transitSteps).toBe(0);
     expect(result.envelope.state.staff.entryQueue).toEqual([]);
     expect((JSON.parse(text) as Loose).state.mission.transitSteps).toBeUndefined();
+  });
+
+  it('zapis wersji 3 dostaje breakHold i orderedRest false', () => {
+    const player = createPlayer();
+    player.hire('frontend', 'junior');
+    const serialized = serializeSnapshot(
+      player.state(),
+      { gameBuildVersion: '0.0.0', revision: 5, savedAt: '2026-10-29T12:00:00.000Z' },
+      context,
+    );
+    if (!serialized.ok) throw new Error(serialized.error.issues.join('\n'));
+    const envelope = JSON.parse(serialized.json) as Loose;
+    envelope.schemaVersion = 3;
+    const employees = Object.values(envelope.state.staff.employees) as Loose[];
+    expect(employees.length).toBeGreaterThan(0);
+    for (const employee of employees) {
+      delete employee.breakHold;
+      delete employee.orderedRest;
+    }
+    const text = JSON.stringify(envelope);
+    const result = parseSnapshot(text, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+
+    expect(result.migratedFrom).toBe(3);
+    expect(result.envelope.schemaVersion).toBe(SCHEMA_VERSION);
+    const migrated = Object.values(result.envelope.state.staff.employees);
+    expect(migrated).toHaveLength(employees.length);
+    for (const employee of migrated) {
+      expect(employee).toMatchObject({ breakHold: false, orderedRest: false });
+    }
+    expect(
+      (Object.values((JSON.parse(text) as Loose).state.staff.employees)[0] as Loose).breakHold,
+    ).toBeUndefined();
   });
 });

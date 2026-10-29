@@ -32,6 +32,8 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       satisfaction: config.satisfaction.neutral * SATISFACTION_SCALE,
       badConditionsMs: 0,
       lowSatisfactionMs: 0,
+      breakHold: false,
+      orderedRest: false,
     };
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi kolejna osoba

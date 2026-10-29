@@ -49,6 +49,8 @@ export type BalanceConfig = DeepReadonly<{
     coffeeSeconds: number;
     sofaGainPerSecond: number;
     maxRestSeconds: number;
+    // Decyzja właściciela 3c (B): minimalny czas odpoczynku na kanapie z rozkazu gracza.
+    minOrderedSofaSeconds: number;
     // Przy zmęczeniu kawa także wtedy, gdy w kolejce do ekspresu czeka najwyżej tyle osób.
     shortQueue: number;
   };
@@ -129,6 +131,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     coffeeSeconds: 20,
     sofaGainPerSecond: 1,
     maxRestSeconds: 90,
+    minOrderedSofaSeconds: 20,
     shortQueue: 1,
   },
   events: {
