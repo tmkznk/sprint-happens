@@ -17,7 +17,9 @@ export function PrologueCard() {
   const selection = useSelection();
   const editing = useFurnitureEdit() !== null;
   const [closed, setClosed] = useState<PrologueStep | null>(null);
-  if (!step || step === 'finished' || selection || editing) return null;
+  // Pasek zaznaczonej postaci jest niski — karta prologu zostaje pod nim (CSS `.scene-bottom`);
+  // chowa się przy szczegółach mebla, pełnej karcie pracownika i edycji.
+  if (!step || step === 'finished' || selection?.kind === 'furniture' || editing) return null;
   const copy = STEP_COPY[step];
   if (!copy.announce || closed === step) return null;
 

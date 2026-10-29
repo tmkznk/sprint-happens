@@ -95,8 +95,11 @@ export function OfficeView({
           <div ref={sceneRef} className="scene" />
         </div>
         <OfficeSceneBubble />
-        {prologue ? <PrologueCard /> : <IntroCard />}
-        <SelectionPanel />
+        {/* Wspólny dół sceny: pasek postaci nad kartą prologu, gdy są oba (UX-01). */}
+        <div className="scene-bottom">
+          <SelectionPanel />
+          {prologue ? <PrologueCard /> : <IntroCard />}
+        </div>
       </section>
       <DayCard />
       <StaffAlerts />

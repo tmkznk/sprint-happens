@@ -14,8 +14,3 @@ export function useOrderFeedback(): OrderFeedback | null {
   const store = useOrderFeedbackStore();
   return useSyncExternalStore(store.subscribe, store.get);
 }
-
-export function useClearOrderFeedback(): () => void {
-  const store = useOrderFeedbackStore();
-  return () => store.clear();
-}

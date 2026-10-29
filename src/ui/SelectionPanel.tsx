@@ -16,7 +16,7 @@ import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
 import { AGENT_STATUS_LABELS, FURNITURE_NAMES, money } from './labels';
 import { ProjectSelect } from './ProjectSelect';
-import { SelectionStrip } from './SelectionStrip';
+import { OrderRejectionLine, SelectionStrip } from './SelectionStrip';
 import { SupportCoffee } from './SupportCoffee';
 import { REJECTION_MESSAGES } from './rejectionMessages';
 
@@ -265,6 +265,7 @@ const EmployeePanel = memo(
             ✕
           </button>
         </EmployeeHead>
+        <OrderRejectionLine id={employee.id} />
         <EmployeeBio employee={employee} />
         <EmployeeNeeds employee={employee} />
         <EmployeeStatus employeeId={employee.id} />

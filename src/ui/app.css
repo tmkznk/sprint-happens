@@ -1870,6 +1870,43 @@ progress::-moz-progress-bar {
   padding: 14px;
 }
 
+/* F:UX-01 — wspólny dół sceny. Zwykle nie wpływa na układ (dzieci pozycjonują się same); gdy
+   jest i pasek postaci, i karta prologu, układa je w kolumnę: pasek nad kartą, karta przewija się,
+   jeśli brak miejsca. Pełna karta pracownika przykrywa prolog, więc wtedy go chowamy. */
+.scene-bottom {
+  display: contents;
+}
+
+.scene-bottom:has(> .selection-strip):has(> .prologue-card) {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100% - 64px);
+  pointer-events: none;
+}
+
+.scene-bottom:has(> .selection-strip) > .prologue-card,
+.scene-bottom:has(> .prologue-card) > .selection-strip {
+  position: relative;
+  inset: auto;
+  width: auto;
+  min-height: 0;
+  pointer-events: auto;
+}
+
+.scene-bottom:has(> .prologue-card) > .selection-strip {
+  flex: none;
+}
+
+.scene-bottom:has(> .employee-panel) > .prologue-card {
+  display: none;
+}
+
 /* F:UX-01 — pasek zaznaczonej postaci: nisko na dole sceny, żeby biuro zostało odsłonięte
    do wskazania celu rozkazu. */
 .selection-strip {
@@ -2375,6 +2412,13 @@ progress::-moz-progress-bar {
   .selection-strip {
     right: auto;
     width: min(400px, calc(100% - 24px));
+  }
+
+  .scene-bottom:has(> .selection-strip):has(> .prologue-card) {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    width: min(405px, calc(100% - 48px));
   }
 
   .selection-panel h2 {

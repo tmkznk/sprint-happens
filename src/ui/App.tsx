@@ -118,11 +118,13 @@ export function App({
   }, [sceneCovered]);
 
   // Esc odznacza (desktop) — jak „✕” na pasku. Otwarta zakładka zarządzania sama obsługuje Esc
-  // (zamknięcie), więc wtedy zaznaczenie zostaje.
+  // (zamknięcie), więc wtedy zaznaczenie zostaje; przy otwartym oknie modalnym też.
   useEffect(() => {
     if (tab !== 'office') return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !event.defaultPrevented) selection.set(null);
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      selection.set(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

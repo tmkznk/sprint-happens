@@ -9,8 +9,12 @@ import { isTesting } from '../simulation/qa';
 import { isWorking } from '../simulation/work';
 import { Avatar } from './Avatar';
 import { ACTIVITY_LABELS } from './labels';
-import { REJECTION_MESSAGES } from './rejectionMessages';
-import { ORDER_REJECTION_MS, roleLabel, visibleRejection } from './selectionStripModel';
+import {
+  ORDER_REJECTION_MS,
+  orderRejectionMessage,
+  roleLabel,
+  visibleRejection,
+} from './selectionStripModel';
 
 // F:UX-01 — pasek zaznaczonej postaci na dole sceny: kto to, co robi, energia; rozkazy wydaje się
 // dotykiem celu na scenie, a pasek pokazuje odmowę. Niski, żeby nie zasłaniał biura.
@@ -32,7 +36,6 @@ export function SelectionStrip({ id, onExpand }: { id: EmployeeId; onExpand(): v
     const working = isWorking(state, current, config) || isTesting(state, current, config);
     return activityOf(state, current, working);
   });
-  const rejection = useOrderRejection(id);
   if (!personId || !specialization || !seniority || !activity) return null;
 
   return (
@@ -60,17 +63,25 @@ export function SelectionStrip({ id, onExpand }: { id: EmployeeId; onExpand(): v
           ✕
         </button>
       </div>
-      {rejection && (
-        <p className="strip-rejection warning" role="status">
-          {REJECTION_MESSAGES[rejection]}
-        </p>
-      )}
+      <OrderRejectionLine id={id} />
     </section>
   );
 }
 
-// Odmowa ostatniego rozkazu tej osoby — tylko z rozkazu wydanego po pokazaniu paska; znika po
-// ORDER_REJECTION_MS albo przy kolejnym rozkazie (nowy `seq`).
+// Odmowa rozkazu z dotknięcia sceny — na pasku i w pełnej karcie pracownika.
+export function OrderRejectionLine({ id }: { id: EmployeeId }) {
+  const rejection = useOrderRejection(id);
+  const phase = useGameSelector((state) => state.mission.phase);
+  if (!rejection) return null;
+  return (
+    <p className="strip-rejection warning" role="status">
+      {orderRejectionMessage(rejection, phase)}
+    </p>
+  );
+}
+
+// Odmowa ostatniego rozkazu tej osoby — tylko z rozkazu wydanego po pokazaniu paska lub karty;
+// znika po ORDER_REJECTION_MS albo przy kolejnym rozkazie (nowy `seq`).
 function useOrderRejection(id: EmployeeId) {
   const feedback = useOrderFeedback();
   const [selectedAtSeq] = useState(() => feedback?.seq ?? 0);
