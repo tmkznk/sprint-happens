@@ -1990,13 +1990,21 @@ progress::-moz-progress-bar {
 }
 
 .strip-close {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
   min-width: 36px;
   min-height: 36px;
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--ink);
-  font-size: 18px;
+}
+
+/* Ikony rozwijania i zamykania tuż obok siebie, pola dotyku się stykają. */
+.strip-close + .strip-close {
+  margin-left: -9px;
 }
 
 .strip-rejection {
@@ -2005,15 +2013,22 @@ progress::-moz-progress-bar {
 }
 
 .employee-panel .panel-close {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
   min-width: 36px;
   min-height: 36px;
   margin: -6px -6px 0 0;
+  padding: 0;
   align-self: flex-start;
   border: none;
   background: transparent;
   color: var(--ink);
-  font-size: 18px;
+}
+
+.employee-panel .panel-close + .panel-close {
+  margin-left: -3px;
 }
 
 .employee-panel .field-row select {

@@ -1,4 +1,4 @@
-import { Maximize2, Zap } from 'lucide-react';
+import { Maximize2, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useBalanceConfig, useGameSelector } from '../application/engineHooks';
 import { useOrderFeedback } from '../application/orderFeedbackHooks';
@@ -66,7 +66,7 @@ export function SelectionStrip({ id, onExpand }: { id: EmployeeId; onExpand(): v
           <Maximize2 size={18} aria-hidden="true" />
         </button>
         <button type="button" className="strip-close" onClick={clear} aria-label="Odznacz">
-          ✕
+          <X size={18} aria-hidden="true" />
         </button>
       </div>
       <OrderRejectionLine id={id} />

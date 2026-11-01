@@ -1,4 +1,4 @@
-import { Minimize2 } from 'lucide-react';
+import { Minimize2, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
@@ -274,7 +274,7 @@ const EmployeePanel = memo(
             <Minimize2 size={18} aria-hidden="true" />
           </button>
           <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </EmployeeHead>
         <OrderRejectionLine id={employee.id} />
