@@ -12,7 +12,7 @@ import {
   sheetOrigin,
   type SheetMeta,
 } from './characterSheets';
-import { SELECTION_MARKER_COLOR, SELECTION_MARKER_OUTLINE } from './placeholderStyle';
+import { SELECTION_MARKER_COLOR } from './placeholderStyle';
 import { CHARACTER_SHADOW_DEPTH, gridToScreen } from './projection';
 
 // Własne postacie low poly pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
@@ -141,7 +141,7 @@ function ensureChevronTexture(scene: Phaser.Scene): void {
   const pad = 2;
   const w = CHEVRON_WIDTH;
   const h = CHEVRON_HEIGHT;
-  // Gruby „V” skierowany w dół, z ciemną obwódką.
+  // Gruby „V” skierowany w dół.
   const points = [
     { x: pad, y: pad },
     { x: pad + w * 0.32, y: pad },
@@ -152,7 +152,6 @@ function ensureChevronTexture(scene: Phaser.Scene): void {
   ].map((point) => new Phaser.Math.Vector2(point.x, point.y));
   const graphics = scene.make.graphics({}, false);
   graphics.fillStyle(SELECTION_MARKER_COLOR, 1).fillPoints(points, true);
-  graphics.lineStyle(2, SELECTION_MARKER_OUTLINE, 1).strokePoints(points, true, true);
   graphics.generateTexture(CHEVRON_TEXTURE, w + pad * 2, h + pad * 2);
   graphics.destroy();
   scene.textures.get(CHEVRON_TEXTURE).setFilter(Phaser.Textures.FilterMode.LINEAR);
@@ -309,11 +308,7 @@ export function placeCharacterSprite(
     sprite.ring.clear();
     if (warning) sprite.ring.fillStyle(0xff3b3b, 0.55).fillEllipse(0, 0, 30, 13);
     if (selected) {
-      sprite.ring
-        .lineStyle(6, SELECTION_MARKER_OUTLINE, 1)
-        .strokeEllipse(0, 0, 36, 17)
-        .lineStyle(3, SELECTION_MARKER_COLOR, 1)
-        .strokeEllipse(0, 0, 36, 17);
+      sprite.ring.lineStyle(3, SELECTION_MARKER_COLOR, 1).strokeEllipse(0, 0, 36, 17);
     }
     if (selected && !wasSelected) startMarkerTweens(sprite);
     if (!selected && wasSelected) stopMarkerTweens(sprite);

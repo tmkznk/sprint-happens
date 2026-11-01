@@ -62,7 +62,6 @@ import {
   MARKER_COLOR,
   SELECTION_COLOR,
   SELECTION_MARKER_COLOR,
-  SELECTION_MARKER_OUTLINE,
   WALL_COLOR,
   WINDOW_COLOR,
   WINDOW_FRAME_COLOR,
@@ -251,14 +250,12 @@ export class OfficeScene extends Phaser.Scene {
       const rect = { ...target.cell, width: 1, height: 1 };
       const points = toVectors(rectCorners(rect));
       marker.fillStyle(SELECTION_MARKER_COLOR, 0.7).fillPoints(points, true);
-      marker.lineStyle(2, SELECTION_MARKER_OUTLINE, 1).strokePoints(points, true);
       marker.setDepth(FLOOR_DEPTH + 2);
     } else {
       const furniture = this.engine.getState().world.furniture[target.furnitureId];
       if (!furniture) return;
       const rect = furnitureRect(furniture);
       const points = toVectors(prismSilhouette(rect, FURNITURE_STYLE[furniture.type].height));
-      marker.lineStyle(6, SELECTION_MARKER_OUTLINE, 1).strokePoints(points, true);
       marker.lineStyle(3, SELECTION_MARKER_COLOR, 1).strokePoints(points, true);
       marker.setDepth(depthOfFootprint(rect, rect) + 0.002);
     }
