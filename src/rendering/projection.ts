@@ -12,6 +12,10 @@ export const ROOM_FRONT_DEPTH = 1_000_000;
 
 // T:ART-04 (R): screenX = (x−y)·32, screenY = (x+y)·16. Współrzędne siatki są ciągłe:
 // pole (x, y) to kwadrat [x, x+1]×[y, y+1]; jego środek to (x+0.5, y+0.5).
+// Podłoga pod całą sceną; cienie postaci leżą tuż nad nią, więc nigdy nie wchodzą na meble.
+export const FLOOR_DEPTH = -1000;
+export const CHARACTER_SHADOW_DEPTH = FLOOR_DEPTH + 0.5;
+
 export function gridToScreen(point: GridPoint): ScreenPoint {
   return {
     x: (point.x - point.y) * (TILE_WIDTH / 2),

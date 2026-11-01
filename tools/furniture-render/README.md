@@ -14,7 +14,7 @@ Output:
 
 - `src/assets/furniture/<type>-<rotation>.png` (2× resolution, anchor = footprint corner) and `src/rendering/furnitureSprites.json`; the desk chair is a separate layer (`deskChair-<rotation>`).
 - `src/assets/rooms/<room id>-back.png` / `-front.png` (target `rooms`, specs in `rooms.mjs`) and `src/rendering/roomSprites.json` — whole rooms (floor, walls, doors, wall decor) rendered on the game grid; rules for new rooms in [ROOMS.md](ROOMS.md).
-- `src/assets/characters/<person id>.webp` — one atlas per person (2× resolution): rows = facing (`px`, `py`, `nx`, `ny`), columns = frames of `idle`, `walk`, `sitChair`, `typing`, `sitSofa`, `coffee` (sipping from a cup); layout in `src/rendering/characterSprites.json`.
+- `src/assets/characters/<person id>.webp` — one atlas per person (2× resolution, no floor shadow: `shadow` renders one shared image, `src/assets/characters/shadow/shadow.webp`): rows = facing (`px`, `py`, `nx`, `ny`), columns = frames of `idle`, `walk`, `sitChair`, `typing`, `sitSofa`, `coffee` (sipping from a cup); layout in `src/rendering/characterSprites.json`.
 - `src/assets/characters/smoke/<person id>.webp` (target `smokers`) — a small extra atlas for people with `cigarettesPerDay` > 0, one facing (`py`), with its own larger frame in `src/rendering/smokingSprites.json`.
 
 The camera matches the game projection (2:1 isometric, 64×32 px tiles); scale 0.75 m per tile. Requires Google Chrome (`CHROME` env var to override the path).

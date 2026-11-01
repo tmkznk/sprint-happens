@@ -17,6 +17,8 @@ import {
   SMOKE_ANIM,
   SMOKE_CHARACTER,
   SMOKE_FACINGS,
+  SHADOW_ANIM,
+  SHADOW_CHARACTER,
 } from './characters.mjs';
 import { FURNITURE } from './furniture.mjs';
 import { ROOMS } from './rooms.mjs';
@@ -171,6 +173,29 @@ try {
       `${OUT}src/rendering/characterSprites.json`,
       `${JSON.stringify(meta, null, 2)}\n`,
     );
+  }
+
+  // Wspólny cień postaci → src/assets/characters/shadow/shadow.webp + src/rendering/characterShadow.json
+  if (wanted('shadow')) {
+    const r = await page.evaluate((s) => window.renderCharacterAtlas(s), {
+      ...SHADOW_CHARACTER,
+      look: LOOKS[0].look,
+      facings: SMOKE_FACINGS,
+      anims: [SHADOW_ANIM],
+      scale: CHARACTER_SCALE,
+      quality: 0.9,
+    });
+    await mkdir(`${OUT}src/assets/characters/shadow`, { recursive: true });
+    await writeFile(
+      `${OUT}src/assets/characters/shadow/shadow.webp`,
+      Buffer.from(r.dataURL.split(',')[1], 'base64'),
+    );
+    const { frameWidth, frameHeight, anchorX, anchorY, scale } = r;
+    await writeFile(
+      `${OUT}src/rendering/characterShadow.json`,
+      `${JSON.stringify({ width: frameWidth, height: frameHeight, anchorX, anchorY, scale }, null, 2)}\n`,
+    );
+    console.log('shadow', r.frameWidth, r.frameHeight, r.anchorX, r.anchorY);
   }
 
   // Palenie: małe atlasy tylko dla palaczy → src/assets/characters/smoke/<id osoby>.webp

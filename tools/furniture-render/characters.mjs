@@ -55,12 +55,18 @@ export const CHARACTER = {
   heightM: 1.72,
   // Ramka klatki w kaflach: szerokość, wysokość, położenie stóp od góry.
   box: { w: 1.5, h: 2.7, up: 2.3 },
-  // Zanikanie cienia w prawo i w dół, w kaflach od stóp: pełny cień wymagałby klatki o ok. 60% większej.
-  shadowFade: { from: 0.3, to: 0.72, downFrom: 0.2, downTo: 0.38 },
 };
 
 // Palenie: osobny mały atlas tylko dla palaczy, jeden kierunek (py). Ramka inna niż w atlasie
-// postaci: wyższa (dym nad głową) i szersza w prawo (cały cień, też wysuniętej ręki).
+// postaci: wyższa (dym nad głową), a węższa w prawo, bo pali się tą ręką z lewej strony.
 export const SMOKE_ANIM = { name: 'smoke', frames: 6, fps: 4 };
 export const SMOKE_FACINGS = FACINGS.filter((facing) => facing.name === 'py');
-export const SMOKE_CHARACTER = { ...CHARACTER, box: { w: 2.15, h: 3.25, up: 2.6, left: 0.75 } };
+export const SMOKE_CHARACTER = { ...CHARACTER, box: { w: 1.06, h: 2.8, up: 2.6, left: 0.75 } };
+
+// Wspólny cień postaci: jeden obrazek pod każdą stojącą postacią, w tym samym świetle co meble.
+export const SHADOW_ANIM = { name: 'idle', frames: 1, fps: 1 };
+export const SHADOW_CHARACTER = {
+  ...CHARACTER,
+  shadowOnly: true,
+  box: { w: 1.6, h: 0.49, up: 0.15, left: 0.25 },
+};

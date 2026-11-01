@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { PEOPLE } from '../domain/content/people';
 import {
+  castsFloorShadow,
+  CHARACTER_SHADOW,
   CHARACTER_SHEET,
   SMOKE_SHEET,
   shownPoseKind,
@@ -9,6 +11,19 @@ import {
 } from './characterSheets';
 
 describe('arkusze postaci', () => {
+  it('cień na podłodze rzuca każda stojąca postać, siedząca nie', () => {
+    for (const kind of ['idle', 'walk', 'coffee', 'smoke'] as const) {
+      expect(castsFloorShadow(kind)).toBe(true);
+    }
+    for (const kind of ['sitChair', 'typing', 'sitSofa'] as const) {
+      expect(castsFloorShadow(kind)).toBe(false);
+    }
+  });
+
+  it('cień ma tę samą skalę co postacie', () => {
+    expect(CHARACTER_SHADOW.scale).toBe(CHARACTER_SHEET.scale);
+  });
+
   it('przed załadowaniem atlasu palenia pokazuje idle, potem smoke', () => {
     expect(shownPoseKind('smoke', false)).toBe('idle');
     expect(shownPoseKind('smoke', true)).toBe('smoke');
@@ -24,8 +39,8 @@ describe('arkusze postaci', () => {
 
   it('atlas palenia ma własną ramkę i kotwicę: stopy w tym samym punkcie klatki', () => {
     expect(SMOKE_SHEET).toMatchObject({
-      frameWidth: 195,
-      frameHeight: 294,
+      frameWidth: 96,
+      frameHeight: 253,
       anchorX: 68,
       anchorY: 235,
       // Sprite ma jedną skalę (1 / scale), więc obie ramki muszą mieć tę samą rozdzielczość.

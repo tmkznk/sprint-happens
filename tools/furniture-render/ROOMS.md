@@ -90,6 +90,8 @@ kolejnym pomieszczeniu (poziomie).
 
 - `outdoor` w `rooms.mjs` (dojście i taras, przykład: `office`) musi odpowiadać `outdoor` w
   `src/world/officeLayout.ts`. Teren leży w warstwie `back`, bez wpływu na światło biura.
+- Postacie nie mają cienia w atlasach: jeden obrazek `character-shadow` leży pod każdą stojącą postacią,
+  tuż nad podłogą, więc nie wchodzi na meble (cel renderu `shadow`).
 - Płyta terenu ma grubość (krawężnik), a budynek stoi na cokole z tej samej płyty (`plinths`), wzdłuż
   niskich ścian. Bez niego bok płyty kończy się w powietrzu i przy ścianie widać przerwę.
 - Obraz rośnie o teren, a widok startowy pokazuje samo pomieszczenie: narzędzie renderuje je też

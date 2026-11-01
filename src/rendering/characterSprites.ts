@@ -2,7 +2,10 @@ import * as Phaser from 'phaser';
 import type { PersonId } from '../domain/content/people';
 import type { AgentStatus } from '../domain/movement';
 import type { AgentPose, Facing, PoseKind } from './agentPose';
+import shadowUrl from '../assets/characters/shadow/shadow.webp?url';
 import {
+  castsFloorShadow,
+  CHARACTER_SHADOW,
   CHARACTER_SHEET as SHEET,
   SMOKE_SHEET,
   shownPoseKind,
@@ -10,7 +13,7 @@ import {
   type SheetMeta,
 } from './characterSheets';
 import { SELECTION_MARKER_COLOR, SELECTION_MARKER_OUTLINE } from './placeholderStyle';
-import { gridToScreen } from './projection';
+import { CHARACTER_SHADOW_DEPTH, gridToScreen } from './projection';
 
 // Własne postacie low poly pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
 // na osobę z listy postaci: wiersz = kierunek, kolumny = klatki kolejnych animacji.
@@ -26,6 +29,22 @@ const SMOKE_ATLAS_URLS = import.meta.glob<string>('../assets/characters/smoke/*.
   query: '?url',
   import: 'default',
 });
+
+const SHADOW_TEXTURE = 'character-shadow';
+
+// Tekstura wspólna dla wszystkich postaci, ładowana raz (1 KB).
+function ensureShadowTexture(scene: Phaser.Scene, onReady: () => void) {
+  if (scene.textures.exists(SHADOW_TEXTURE)) {
+    onReady();
+    return;
+  }
+  scene.load.once(`filecomplete-image-${SHADOW_TEXTURE}`, () => {
+    scene.textures.get(SHADOW_TEXTURE).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    onReady();
+  });
+  scene.load.image(SHADOW_TEXTURE, shadowUrl);
+  if (!scene.load.isLoading()) scene.load.start();
+}
 
 const textureKey = (personId: PersonId) => `character-${personId}`;
 const smokeTextureKey = (personId: PersonId) => `character-smoke-${personId}`;
@@ -141,6 +160,8 @@ function ensureChevronTexture(scene: Phaser.Scene): void {
 
 export type CharacterSprite = {
   body: Phaser.GameObjects.Sprite;
+  shadow: Phaser.GameObjects.Image;
+  shadowReady: boolean;
   ring: Phaser.GameObjects.Graphics;
   chevron: Phaser.GameObjects.Image;
   personId: PersonId;
@@ -160,6 +181,15 @@ export type CharacterSprite = {
 export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): CharacterSprite {
   ensureChevronTexture(scene);
   const ring = scene.add.graphics();
+  const shadow = scene.add
+    .image(0, 0, '__MISSING')
+    .setOrigin(
+      CHARACTER_SHADOW.anchorX / CHARACTER_SHADOW.width,
+      CHARACTER_SHADOW.anchorY / CHARACTER_SHADOW.height,
+    )
+    .setScale(1 / CHARACTER_SHADOW.scale)
+    .setDepth(CHARACTER_SHADOW_DEPTH)
+    .setVisible(false);
   const body = scene.add
     .sprite(0, 0, '__MISSING')
     .setOrigin(SHEET.anchorX / SHEET.frameWidth, SHEET.anchorY / SHEET.frameHeight)
@@ -172,6 +202,8 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
     .setVisible(false);
   const sprite: CharacterSprite = {
     body,
+    shadow,
+    shadowReady: false,
     ring,
     chevron,
     personId,
@@ -184,10 +216,16 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
     destroy() {
       stopMarkerTweens(sprite);
       body.destroy();
+      shadow.destroy();
       ring.destroy();
       chevron.destroy();
     },
   };
+  ensureShadowTexture(scene, () => {
+    if (!shadow.active) return;
+    shadow.setTexture(SHADOW_TEXTURE);
+    sprite.shadowReady = true;
+  });
   ensureCharacterTexture(scene, personId, () => {
     if (!body.active) return;
     body.setTexture(textureKey(personId)).setVisible(true);
@@ -244,6 +282,11 @@ export function placeCharacterSprite(
   const screen = gridToScreen(pose.position);
   sprite.body.setPosition(screen.x, screen.y).setDepth(pose.depth);
   if (pose.alpha !== sprite.body.alpha) sprite.body.setAlpha(pose.alpha);
+  sprite.shadow.setPosition(screen.x, screen.y);
+  if (pose.alpha !== sprite.shadow.alpha) sprite.shadow.setAlpha(pose.alpha);
+  sprite.shadow.setVisible(
+    sprite.ready && sprite.shadowReady && pose.alpha > 0 && castsFloorShadow(pose.kind),
+  );
   if (pose.kind === 'smoke' && sprite.smoke === 'none') requestSmokeTexture(sprite);
   if (sprite.ready) {
     const kind = shownPoseKind(pose.kind, sprite.smoke === 'ready');

@@ -628,55 +628,22 @@
           layout[anim.name] = { start: column, frames: anim.frames };
           column += anim.frames;
         }
-        const smoke = createSmoke(holder);
-        // Cień zanika przed prawą i dolną krawędzią klatki zamiast być ucięty; ta sama odległość od stóp we
-        // wszystkich atlasach, więc nie zmienia się przy przejściu między nimi. Postać rysowana
-        // osobno na wierzch, żeby zanikanie jej nie objęło.
-        const scratch = document.createElement('canvas');
-        scratch.width = frameWidth;
-        scratch.height = frameHeight;
-        const scratchCtx = scratch.getContext('2d');
-        const fade = scratchCtx.createLinearGradient(
-          anchorX + spec.shadowFade.from * k,
-          0,
-          anchorX + spec.shadowFade.to * k,
-          0,
-        );
-        const fadeDown = scratchCtx.createLinearGradient(
-          0,
-          anchorY + spec.shadowFade.downFrom * k,
-          0,
-          anchorY + spec.shadowFade.downTo * k,
-        );
-        for (const gradient of [fade, fadeDown]) {
-          gradient.addColorStop(0, 'rgba(0,0,0,1)');
-          gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        // Sam cień: postać nadal go rzuca, ale nie jest widoczna.
+        if (spec.shadowOnly) {
+          person.root.traverse((node) => {
+            if (!node.material) return;
+            node.material = node.material.clone();
+            node.material.colorWrite = false;
+            node.material.depthWrite = false;
+          });
         }
-        const drawFadedFrame = (x, y, hasShadow) => {
-          renderer.render(scene, camera);
-          if (!hasShadow) {
-            ctx.drawImage(renderer.domElement, x, y);
-            return;
-          }
-          scratchCtx.globalCompositeOperation = 'copy';
-          scratchCtx.drawImage(renderer.domElement, 0, 0);
-          scratchCtx.globalCompositeOperation = 'destination-in';
-          for (const gradient of [fade, fadeDown]) {
-            scratchCtx.fillStyle = gradient;
-            scratchCtx.fillRect(0, 0, frameWidth, frameHeight);
-          }
-          ctx.drawImage(scratch, x, y);
-          const floor = scene.getObjectByName('shadow-floor');
-          floor.visible = false;
-          renderer.render(scene, camera);
-          floor.visible = true;
-          ctx.drawImage(renderer.domElement, x, y);
-        };
+        const smoke = createSmoke(holder);
         spec.facings.forEach((facing, row) => {
           holder.rotation.y = THREE.MathUtils.degToRad(facing.angle);
           for (const anim of spec.anims) {
-            // Siedząca postać nie rzuca cienia na podłogę — cień daje mebel, na którym siedzi.
-            scene.getObjectByName('shadow-floor').visible = !anim.seat;
+            // Cień na podłodze jest osobnym obrazkiem wspólnym dla wszystkich postaci (`shadowOnly`).
+            const hasShadow = Boolean(spec.shadowOnly);
+            scene.getObjectByName('shadow-floor').visible = hasShadow;
             const embers =
               anim.name === 'smoke'
                 ? smoke.sampleEmbers(person, anim.frames, anim.seat ?? 0)
@@ -684,10 +651,11 @@
             for (let i = 0; i < anim.frames; i++) {
               pose(person, anim.name, i / anim.frames, anim.seat ?? 0);
               if (embers) aimCigarette(person);
-              drawFadedFrame(
+              renderer.render(scene, camera);
+              ctx.drawImage(
+                renderer.domElement,
                 (layout[anim.name].start + i) * frameWidth,
                 row * frameHeight,
-                !anim.seat,
               );
               if (embers) {
                 // Dym osobnym przebiegiem, zawsze przed postacią i lekko rozmyty — na małym
@@ -708,7 +676,7 @@
                 ctx.restore();
                 smoke.hide();
                 person.root.visible = true;
-                floor.visible = !anim.seat;
+                floor.visible = hasShadow;
               }
             }
           }

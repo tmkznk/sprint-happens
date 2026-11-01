@@ -76,6 +76,7 @@ import {
   depthOfPoint,
   gridToScreen,
   interpolate,
+  FLOOR_DEPTH,
   ROOM_FRONT_DEPTH,
   type ScreenPoint,
 } from './projection';
@@ -94,7 +95,6 @@ export type OfficeSceneOptions = {
   occlusionTest: boolean;
 };
 
-const FLOOR_DEPTH = -1000;
 // Potwierdzenie celu rozkazu: krótki znacznik, który zanika (jeden naraz).
 const TARGET_MARKER_MS = 600;
 
