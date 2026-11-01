@@ -55,6 +55,8 @@ export const CHARACTER = {
   heightM: 1.72,
   // Ramka klatki w kaflach: szerokość, wysokość, położenie stóp od góry.
   box: { w: 1.5, h: 2.7, up: 2.3 },
+  // Zanikanie cienia w prawo i w dół, w kaflach od stóp: pełny cień wymagałby klatki o ok. 60% większej.
+  shadowFade: { from: 0.3, to: 0.72, downFrom: 0.2, downTo: 0.38 },
 };
 
 // Palenie: osobny mały atlas tylko dla palaczy, jeden kierunek (py). Ramka inna niż w atlasie

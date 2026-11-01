@@ -24,10 +24,12 @@ describe('arkusze postaci', () => {
 
   it('atlas palenia ma własną ramkę i kotwicę: stopy w tym samym punkcie klatki', () => {
     expect(SMOKE_SHEET).toMatchObject({
-      frameWidth: 97,
-      frameHeight: 147,
-      anchorX: 34,
-      anchorY: 118,
+      frameWidth: 195,
+      frameHeight: 294,
+      anchorX: 68,
+      anchorY: 235,
+      // Sprite ma jedną skalę (1 / scale), więc obie ramki muszą mieć tę samą rozdzielczość.
+      scale: CHARACTER_SHEET.scale,
     });
     expect(SMOKE_SHEET.anims.smoke).toEqual({ start: 0, frames: 6, fps: 4 });
     expect(sheetOf('smoke')).toBe(SMOKE_SHEET);

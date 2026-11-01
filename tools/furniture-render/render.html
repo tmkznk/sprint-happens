@@ -629,6 +629,49 @@
           column += anim.frames;
         }
         const smoke = createSmoke(holder);
+        // Cień zanika przed prawą i dolną krawędzią klatki zamiast być ucięty; ta sama odległość od stóp we
+        // wszystkich atlasach, więc nie zmienia się przy przejściu między nimi. Postać rysowana
+        // osobno na wierzch, żeby zanikanie jej nie objęło.
+        const scratch = document.createElement('canvas');
+        scratch.width = frameWidth;
+        scratch.height = frameHeight;
+        const scratchCtx = scratch.getContext('2d');
+        const fade = scratchCtx.createLinearGradient(
+          anchorX + spec.shadowFade.from * k,
+          0,
+          anchorX + spec.shadowFade.to * k,
+          0,
+        );
+        const fadeDown = scratchCtx.createLinearGradient(
+          0,
+          anchorY + spec.shadowFade.downFrom * k,
+          0,
+          anchorY + spec.shadowFade.downTo * k,
+        );
+        for (const gradient of [fade, fadeDown]) {
+          gradient.addColorStop(0, 'rgba(0,0,0,1)');
+          gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        }
+        const drawFadedFrame = (x, y, hasShadow) => {
+          renderer.render(scene, camera);
+          if (!hasShadow) {
+            ctx.drawImage(renderer.domElement, x, y);
+            return;
+          }
+          scratchCtx.globalCompositeOperation = 'copy';
+          scratchCtx.drawImage(renderer.domElement, 0, 0);
+          scratchCtx.globalCompositeOperation = 'destination-in';
+          for (const gradient of [fade, fadeDown]) {
+            scratchCtx.fillStyle = gradient;
+            scratchCtx.fillRect(0, 0, frameWidth, frameHeight);
+          }
+          ctx.drawImage(scratch, x, y);
+          const floor = scene.getObjectByName('shadow-floor');
+          floor.visible = false;
+          renderer.render(scene, camera);
+          floor.visible = true;
+          ctx.drawImage(renderer.domElement, x, y);
+        };
         spec.facings.forEach((facing, row) => {
           holder.rotation.y = THREE.MathUtils.degToRad(facing.angle);
           for (const anim of spec.anims) {
@@ -641,11 +684,10 @@
             for (let i = 0; i < anim.frames; i++) {
               pose(person, anim.name, i / anim.frames, anim.seat ?? 0);
               if (embers) aimCigarette(person);
-              renderer.render(scene, camera);
-              ctx.drawImage(
-                renderer.domElement,
+              drawFadedFrame(
                 (layout[anim.name].start + i) * frameWidth,
                 row * frameHeight,
+                !anim.seat,
               );
               if (embers) {
                 // Dym osobnym przebiegiem, zawsze przed postacią i lekko rozmyty — na małym
@@ -661,7 +703,7 @@
                 ctx.beginPath();
                 ctx.rect(x, y, frameWidth, frameHeight);
                 ctx.clip();
-                ctx.filter = 'blur(0.7px)';
+                ctx.filter = `blur(${0.7 * S}px)`;
                 ctx.drawImage(renderer.domElement, x, y);
                 ctx.restore();
                 smoke.hide();

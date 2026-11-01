@@ -29,7 +29,8 @@ const PACK =
   fileURLToPath(new URL('../../../VNB Low Poly Office Set 2', import.meta.url));
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FURNITURE_SCALE = 2; // 2 px obrazu na 1 px gry
-const CHARACTER_SCALE = 1; // postacie: 1 px obrazu na 1 px gry — płaskie kolory dobrze znoszą skalowanie
+const CHARACTER_SCALE = 2; // postacie w tej samej rozdzielczości co meble (decyzja właściciela)
+const CHARACTER_QUALITY = 0.75; // WebP: wyższa jakość prawie niewidoczna, a pliki o połowę większe
 const targets = process.argv.slice(2);
 const wanted = (name) => targets.length === 0 || targets.includes(name);
 
@@ -149,7 +150,7 @@ try {
         facings: FACINGS,
         anims: ANIMS,
         scale: CHARACTER_SCALE,
-        quality: 0.75,
+        quality: CHARACTER_QUALITY,
       });
       await writeFile(
         `${OUT}src/assets/characters/${id}.webp`,
@@ -188,7 +189,7 @@ try {
         facings: SMOKE_FACINGS,
         anims: [SMOKE_ANIM],
         scale: CHARACTER_SCALE,
-        quality: 0.75,
+        quality: CHARACTER_QUALITY,
       });
       await writeFile(
         `${OUT}src/assets/characters/smoke/${id}.webp`,
