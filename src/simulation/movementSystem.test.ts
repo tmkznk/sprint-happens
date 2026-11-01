@@ -7,7 +7,7 @@ import { createInitialState, type GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
 import { cellKey } from '../world/movement/grid';
 import { occupiedCellKeys, removeAgent } from '../world/movement/movement';
-import { destinationId, movementEnvFor } from '../world/movement/officeEnv';
+import { destinationId, isSmokingSpotId, movementEnvFor } from '../world/movement/officeEnv';
 import { createEngine } from './engine';
 
 const DESK = 'furniture-1' as FurnitureId;
@@ -216,7 +216,7 @@ describe('movementEnvFor', () => {
     const state = createInitialState(DEFAULT_BALANCE, 1);
     const env = movementEnvFor(state, DEFAULT_BALANCE);
 
-    expect(env.destinations.map((d) => d.id)).toEqual([
+    expect(env.destinations.map((d) => d.id).filter((id) => !isSmokingSpotId(id))).toEqual([
       'furniture-1#0',
       'furniture-2#0',
       'furniture-3#0',

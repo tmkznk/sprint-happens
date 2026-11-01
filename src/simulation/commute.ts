@@ -95,10 +95,16 @@ export function entryCell(layout: OfficeLayout): GridPoint {
 // wejściem w stałej kolejności ID (deterministycznie). Zegar dnia stoi na 9:00.
 export function beginArriving(state: GameState): GameState {
   const entryQueue = Object.keys(state.staff.employees).sort(compareIds) as EmployeeId[];
+  const employees = Object.fromEntries(
+    Object.entries(state.staff.employees).map(([id, employee]) => [
+      id,
+      { ...employee, cigarettesHandled: 0 },
+    ]),
+  ) as GameState['staff']['employees'];
   return {
     ...state,
     mission: { ...state.mission, phase: 'arriving', transitSteps: 0 },
-    staff: { ...state.staff, entryQueue },
+    staff: { ...state.staff, employees, entryQueue },
     world: { ...state.world, movement: { ...state.world.movement, agents: [], reservations: {} } },
   };
 }

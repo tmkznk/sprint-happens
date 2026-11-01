@@ -35,7 +35,9 @@ export function gridFromOffice(
     size: layout.size,
     passable: (cell) => {
       const kind = cellKindAt(layout, cell);
-      return (kind === 'floor' || kind === 'door') && !blocked.has(cellKey(cell));
+      return (
+        (kind === 'floor' || kind === 'door' || kind === 'outdoor') && !blocked.has(cellKey(cell))
+      );
     },
   };
 }

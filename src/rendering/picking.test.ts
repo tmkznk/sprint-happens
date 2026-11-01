@@ -81,6 +81,25 @@ describe('pickAgent', () => {
   });
 });
 
+describe('pickAgent a widoczność', () => {
+  const position = { x: 4.5, y: 4.5 };
+  const feet = gridToScreen(position);
+
+  it('nie wybiera postaci niewidocznej za ścianą (alpha 0)', () => {
+    expect(pickAgent(feet, [{ id: 'a', position, depth: 9, alpha: 0 }])).toBeNull();
+  });
+
+  it('wybiera postać częściowo widoczną i przepuszcza dotknięcie do tej za niewidoczną', () => {
+    expect(pickAgent(feet, [{ id: 'a', position, depth: 9, alpha: 0.4 }])).toBe('a');
+    expect(
+      pickAgent(feet, [
+        { id: 'a', position, depth: 9, alpha: 0 },
+        { id: 'b', position, depth: 8, alpha: 1 },
+      ]),
+    ).toBe('b');
+  });
+});
+
 describe('pointInPolygon', () => {
   const square = [
     { x: 0, y: 0 },

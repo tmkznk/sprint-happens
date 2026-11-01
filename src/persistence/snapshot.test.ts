@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- testy celowo psują surowy JSON zapisu */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
+import { personById } from '../domain/content/people';
 import { POINT_SCALE } from '../domain/contracts';
 import type { FurnitureId } from '../domain/furniture';
 import { createAgent } from '../domain/movement';
@@ -11,7 +12,7 @@ import { createPrologueState } from '../simulation/prologue';
 import { runUntilPhase } from '../test/engineFixture';
 import { createPlayer } from '../test/player';
 import { DAY_LENGTH_MS } from '../simulation/time';
-import { OFFICE_LAYOUT } from '../world/officeLayout';
+import { cellKindAt, OFFICE_LAYOUT } from '../world/officeLayout';
 import type { ValidationContext } from './schema';
 import { parseSnapshot, SCHEMA_VERSION, serializeSnapshot, type SnapshotMeta } from './snapshot';
 
@@ -119,6 +120,68 @@ describe('round-trip migawki (SH-037)', () => {
       engine.step();
       restored.step();
     }
+    expect(restored.getState()).toEqual(engine.getState());
+  });
+
+  it('zapis w połowie palenia i za ścianą: round-trip przechodzi, koniec przerwy w tym samym kroku', () => {
+    const start = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: createInitialState(DEFAULT_BALANCE, 5),
+    });
+    const candidate = start
+      .getState()
+      .staff.candidates.find((c) => (personById(c.personId)?.cigarettesPerDay ?? 0) > 0);
+    if (!candidate) throw new Error('brak kandydata-palacza');
+    start.dispatch({ type: 'HireCandidate', candidateId: candidate.id });
+    start.dispatch({ type: 'SetSpeed', speed: 1 });
+    const hired = Object.values(start.getState().staff.employees)[0];
+    if (!hired) throw new Error('brak pracownika');
+    const agentIn = (state: GameState) =>
+      state.world.movement.agents.find((a) => a.id === hired.id);
+    for (let i = 0; i < 400 && agentIn(start.getState())?.status !== 'arrived'; i++) start.step();
+
+    // Południe, a żaden papieros jeszcze nie obsłużony: wyjście od razu.
+    const mid = start.getState();
+    const engine = createEngine({
+      config: DEFAULT_BALANCE,
+      initialState: {
+        ...mid,
+        mission: { ...mid.mission, timeInDayMs: DAY_LENGTH_MS / 2 },
+      },
+    });
+
+    const until = (done: (state: GameState) => boolean) => {
+      for (let i = 0; i < 2000 && !done(engine.getState()); i++) engine.step();
+      expect(done(engine.getState())).toBe(true);
+    };
+    const stepsToEnd = (run: ReturnType<typeof createEngine>) => {
+      let steps = 0;
+      while (agentIn(run.getState())?.tasks[0]?.kind === 'use') {
+        run.step();
+        steps++;
+      }
+      return steps;
+    };
+
+    // Za ścianą, w drodze: pole poza biurem z trwającym przejściem i rezerwacją miejsca.
+    until((state) => {
+      const agent = agentIn(state);
+      return !!agent && cellKindAt(OFFICE_LAYOUT, agent.cell) === 'outdoor' && agent.move !== null;
+    });
+    const outside = engine.getState();
+    expect(agentIn(outside)?.reservedDestination).toMatch(/^terrace#/);
+    expect(roundTrip(outside)).toEqual(outside);
+
+    // W połowie palenia.
+    until((state) => (agentIn(state)?.usedSteps ?? 0) >= 100);
+    const smoking = engine.getState();
+    expect(agentIn(smoking)?.status).toBe('using');
+    expect(roundTrip(smoking)).toEqual(smoking);
+
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(smoking) });
+    const remaining = stepsToEnd(engine);
+    expect(remaining).toBe(100);
+    expect(stepsToEnd(restored)).toBe(remaining);
     expect(restored.getState()).toEqual(engine.getState());
   });
 

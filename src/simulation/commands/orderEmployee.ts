@@ -12,6 +12,7 @@ import { reachableCells } from '../../world/movement/pathfinding';
 import { cellKindAt, officeLayoutOf } from '../../world/officeLayout';
 import { isCoffeeBroken } from '../events';
 import { OPEN_ENDED_USE } from '../needs';
+import { markCigarettesHandled } from '../smoking';
 import { tasksForEmployee } from '../staff';
 import { assignDeskTo } from './assignDesk';
 import {
@@ -103,7 +104,7 @@ function ordered(
         ...state.staff,
         employees: {
           ...state.staff.employees,
-          [employee.id]: { ...current, breakHold: true, orderedRest },
+          [employee.id]: markCigarettesHandled(state, { ...current, breakHold: true, orderedRest }),
         },
       },
       world: {

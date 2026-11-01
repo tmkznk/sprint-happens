@@ -5,8 +5,10 @@ import type { ReadonlyAgent } from '../domain/movement';
 import type { GameState } from '../domain/state';
 import { interactionCells } from '../world/geometry';
 import { finishUse } from '../world/movement/movement';
-import { destinationId } from '../world/movement/officeEnv';
+import { destinationId, isSmokingSpotId, smokingSpotIds } from '../world/movement/officeEnv';
+import { officeLayoutOf } from '../world/officeLayout';
 import { isCoffeeBroken } from './events';
+import { cigaretteDue, markCigarettesHandled } from './smoking';
 
 // NEED-01, NEED-02 (Z), decyzje SH-004 A3/A4 i SH-032 B2: energia, przerwy, kawa i kanapa.
 // System działa w kroku po ruchu i przed pracą (SH-004 B4). Stan logiczny czynności wynika
@@ -22,6 +24,8 @@ export type Activity =
   | 'waitingForRest'
   | 'onCoffee'
   | 'onSofa'
+  // Pali na tarasie (w drodze i przy czekaniu na miejsce: `walking`).
+  | 'onSmoke'
   // NEED-01, NEED-02: energia 0 i brak jakiegokolwiek miejsca odpoczynku.
   | 'exhausted';
 
@@ -34,10 +38,11 @@ export type EnergyRates = {
   sofaGainPerStep: number;
   maxRestSteps: number;
   minOrderedSofaSteps: number;
+  cigaretteSteps: number;
 };
 
 export function energyRates(config: BalanceConfig): EnergyRates {
-  const { energy, simulation } = config;
+  const { energy, simulation, smoking } = config;
   const stepsPerSecond = 1000 / simulation.stepMs;
   const coffeeSteps = Math.round(energy.coffeeSeconds * stepsPerSecond);
   return {
@@ -47,6 +52,7 @@ export function energyRates(config: BalanceConfig): EnergyRates {
     sofaGainPerStep: Math.round((energy.sofaGainPerSecond * ENERGY_SCALE) / stepsPerSecond),
     maxRestSteps: Math.round(energy.maxRestSeconds * stepsPerSecond),
     minOrderedSofaSteps: Math.round(energy.minOrderedSofaSeconds * stepsPerSecond),
+    cigaretteSteps: Math.round(smoking.cigaretteSeconds * stepsPerSecond),
   };
 }
 
@@ -72,6 +78,13 @@ function restKindOf(state: GameState, destination: string | null): RestKind | nu
 function isRestTask(state: GameState, agent: ReadonlyAgent): boolean {
   const task = agent.tasks[0];
   return task?.kind === 'use' && task.destinationIds.some((id) => restKindOf(state, id) !== null);
+}
+
+// Wyjście na papierosa: zadanie „use” na miejsca tarasu. Koniec wyznacza `steps` w systemie ruchu;
+// bez regeneracji, bez wpływu na `breakHold` i `orderedRest`.
+export function isSmokeTask(agent: ReadonlyAgent): boolean {
+  const task = agent.tasks[0];
+  return task?.kind === 'use' && task.destinationIds.some(isSmokingSpotId);
 }
 
 // Wolne miejsce: bez rezerwacji i bez nikogo w kolejce po nie.
@@ -132,7 +145,7 @@ export function chooseRest(
 
 export function isOnBreak(state: GameState, employee: Employee): boolean {
   const agent = state.world.movement.agents.find((a) => a.id === employee.id);
-  return !!agent && isRestTask(state, agent);
+  return !!agent && (isRestTask(state, agent) || isSmokeTask(agent));
 }
 
 export function updateNeeds(state: GameState, config: BalanceConfig): GameState {
@@ -169,7 +182,8 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
       continue;
     }
 
-    // Decyzja o przerwie tylko u osoby, która pracuje przy biurku (energia spada wyłącznie przy pracy).
+    // Decyzja o przerwie lub papierosie tylko u osoby, która doszła do celu i na nim stoi (biurko,
+    // miejsce bez biurka, pole z rozkazu). Kawa, kanapa, droga i kolejka — papieros czeka.
     if (isRestTask(state, agent) || agent.tasks[0]?.kind !== 'goTo' || agent.status !== 'arrived') {
       continue;
     }
@@ -177,7 +191,32 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
     // nie może przyciągnąć na „wolną” kawę dwóch osób naraz).
     const current = { ...state, world: { ...state.world, movement } };
     const rest = chooseRest(current, employee, config);
-    if (!rest) continue;
+    if (!rest) {
+      // Pora liczy się przy wyjściu: rozkaz w drodze lub na tarasie kasuje ten papieros, a kilka
+      // minionych pór to jedno wyjście. Przerwa z powodu energii ma pierwszeństwo.
+      if (!cigaretteDue(current, employee)) continue;
+      employees[employee.id] = markCigarettesHandled(current, employee);
+      movement = {
+        ...movement,
+        agents: movement.agents.map((a) =>
+          a.id === agent.id
+            ? {
+                ...a,
+                tasks: [
+                  {
+                    kind: 'use',
+                    destinationIds: smokingSpotIds(officeLayoutOf(current)),
+                    steps: rates.cigaretteSteps,
+                  },
+                  ...a.tasks,
+                ],
+                path: [],
+              }
+            : a,
+        ),
+      };
+      continue;
+    }
     // Decyzja 2b: przerwa przy wyczerpaniu kończy wstrzymanie już przy decyzji (w drodze na
     // przerwę mógłby zostać wydany nowy rozkaz, który ustawi je ponownie).
     if (employee.breakHold) employees[employee.id] = { ...employee, breakHold: false };
@@ -216,6 +255,7 @@ export function activityOf(state: GameState, employee: Employee, working: boolea
   const agent = state.world.movement.agents.find((a) => a.id === employee.id);
   if (!agent) return 'away';
   if (working) return 'working';
+  if (isSmokeTask(agent)) return agent.status === 'using' ? 'onSmoke' : 'walking';
   if (agent.status === 'using') {
     return restKindOf(state, agent.reservedDestination) === 'sofa' ? 'onSofa' : 'onCoffee';
   }

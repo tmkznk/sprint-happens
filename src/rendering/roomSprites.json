@@ -7,11 +7,17 @@
     "scale": 2
   },
   "office": {
-    "width": 1829,
-    "height": 1169,
-    "anchorX": 915,
+    "width": 2199,
+    "height": 1184,
+    "anchorX": 1285,
     "anchorY": 230,
     "scale": 2,
+    "fit": {
+      "width": 1829,
+      "height": 1169,
+      "anchorX": 915,
+      "anchorY": 230
+    },
     "pieces": [
       {
         "x": 0,

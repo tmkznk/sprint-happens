@@ -33,8 +33,9 @@ kolejnym pomieszczeniu (poziomie).
 ## Warstwy i zasłanianie
 
 - **back** — podłoga, wysokie ściany, drzwi, dekoracje; w grze pod całą sceną.
-- **front** — tylko niskie ściany od strony kamery; w grze nad całą sceną (postacie i meble stoją
-  zawsze za nimi). Reszta sceny zapisuje w tej warstwie tylko głębię.
+- **front** — tylko niskie ściany od strony kamery; w grze nad sceną biura (postacie i meble w środku stoją
+  zawsze za nimi; postacie na terenie na zewnątrz — przed nimi, patrz „Teren na zewnątrz”). Reszta
+  sceny zapisuje w tej warstwie tylko głębię.
 - **pieces** — ściany działowe (`partition: true` w `rooms.mjs`): kawałek na każde pole ściany,
   przycięty do pola, spakowane w atlas `<id>-pieces.png` (ramki w `roomSprites.json`). W grze każdy
   kawałek ma głębokość swojego pola, więc postać stoi przed ścianką albo za nią. Kawałki zachodzą na
@@ -85,6 +86,19 @@ kolejnym pomieszczeniu (poziomie).
 - Pozycję drzwi sprawdzić regułami gry (dostęp do mebli, `validateAccess`) — nie każde pole ściany
   się nadaje.
 
+## Teren na zewnątrz
+
+- `outdoor` w `rooms.mjs` (dojście i taras, przykład: `office`) musi odpowiadać `outdoor` w
+  `src/world/officeLayout.ts`. Teren leży w warstwie `back`, bez wpływu na światło biura.
+- Płyta terenu ma grubość (krawężnik), a budynek stoi na cokole z tej samej płyty (`plinths`), wzdłuż
+  niskich ścian. Bez niego bok płyty kończy się w powietrzu i przy ścianie widać przerwę.
+- Obraz rośnie o teren, a widok startowy pokazuje samo pomieszczenie: narzędzie renderuje je też
+  bez `outdoor` i zapisuje te wymiary jako `fit` w `roomSprites.json` (kamera: `roomFitBounds`).
+- Wysoka ściana leży w warstwie `back`, pod sprite'ami, więc nie zasłania postaci na dojściu za nią:
+  robi to przezroczystość (`outdoorAlpha` w `src/rendering/agentPose.ts`). Przy innym przebiegu
+  ściany trzeba zmienić ten wzór.
+- Postać na terenie ma głębokość powyżej warstwy `front` — stoi przed niskimi ścianami.
+
 ## Pola gry są wolne
 
 - **Na polach pokoju nie stoi nic poza meblami gry** (osobne obrazki, logika w silniku): bez
@@ -105,3 +119,7 @@ kolejnym pomieszczeniu (poziomie).
 - Atlasy z `characters.mjs`: wygląd z listy postaci, koszulka wg stanowiska; wyjątki w
   `SHIRT_OVERRIDES` (Janusz z prologu — ciemnozielona). Pojedynczą postać renderuje
   `npm run render -- <id osoby>`.
+- Atlasy palenia (`smokers`): tylko osoby z `cigarettesPerDay` > 0, jeden kierunek (`py`), własna
+  ramka w `src/rendering/smokingSprites.json` (inna niż w `characterSprites.json`).
+  Narzędzie zapisuje ten plik zwykłym `JSON.stringify` — po renderze przepuścić go przez Prettier
+  (inaczej `format:check` nie przejdzie).

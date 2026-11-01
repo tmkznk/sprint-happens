@@ -8,7 +8,7 @@ import { interactionCells } from '../world/geometry';
 import { cellKey, neighbours } from '../world/movement/grid';
 import { occupiedCellKeys, removeAgent } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { officeLayoutOf } from '../world/officeLayout';
+import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
 
 // OFF-04 (Z): wolne biurko przydziela się automatycznie — pierwsze według ID mebla.
 export function firstFreeDesk(state: GameState): FurnitureId | null {
@@ -69,6 +69,7 @@ function nearestFreeCell(
   avoidUsePoints: boolean,
   avoid: readonly GridPoint[] = [],
 ): GridPoint | null {
+  const layout = officeLayoutOf(state);
   const { grid, destinations } = movementEnvFor(state, config);
   const { agents } = state.world.movement;
   const blocked = new Set([...agents.flatMap(occupiedCellKeys), ...avoid.map(cellKey)]);
@@ -77,14 +78,21 @@ function nearestFreeCell(
   }
   if (avoidUsePoints) {
     for (const destination of destinations) blocked.add(cellKey(destination.cell));
-    for (const door of officeLayoutOf(state).doors) blocked.add(cellKey(door.position));
+    for (const door of layout.doors) blocked.add(cellKey(door.position));
   }
   const seen = new Set([cellKey(from)]);
   const queue: GridPoint[] = [from];
   while (queue.length > 0) {
     const cell = queue.shift();
     if (!cell) break;
-    if (grid.passable(cell) && !blocked.has(cellKey(cell))) return cell;
+    // Zwracane są tylko pola podłogi; dojście i taras są przejezdne, ale nie służą do stania.
+    if (
+      cellKindAt(layout, cell) === 'floor' &&
+      grid.passable(cell) &&
+      !blocked.has(cellKey(cell))
+    ) {
+      return cell;
+    }
     for (const next of neighbours(cell)) {
       if (seen.has(cellKey(next)) || !grid.passable(next)) continue;
       seen.add(cellKey(next));

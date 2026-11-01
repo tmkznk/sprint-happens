@@ -6,6 +6,7 @@ import { PEOPLE } from '../domain/content/people';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import fixture from './fixtures/save-older-format.json?raw';
 import saveV1 from './fixtures/save-v1.json?raw';
+import saveV4 from './fixtures/save-v4.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -45,6 +46,7 @@ const toV2: Migration = (input) => {
     employee.lowSatisfactionMs = 0;
     employee.breakHold = false;
     employee.orderedRest = false;
+    employee.cigarettesHandled = 0;
   }
   const used = new Set<string>();
   const people = [
@@ -221,5 +223,22 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
     expect(
       (Object.values((JSON.parse(text) as Loose).state.staff.employees)[0] as Loose).breakHold,
     ).toBeUndefined();
+  });
+
+  it('migracja v4 → v5 ustawia cigarettesHandled = 0, oryginał nietknięty', () => {
+    const original = saveV4;
+    const before = JSON.parse(saveV4) as Loose;
+    expect(before.schemaVersion).toBe(4);
+    const result = parseSnapshot(saveV4, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+
+    expect(result.migratedFrom).toBe(4);
+    expect(result.envelope.schemaVersion).toBe(SCHEMA_VERSION);
+    const migrated = Object.values(result.envelope.state.staff.employees);
+    expect(migrated.length).toBeGreaterThan(0);
+    for (const employee of migrated) expect(employee.cigarettesHandled).toBe(0);
+    expect(saveV4).toBe(original);
+    const first = Object.values(before.state.staff.employees)[0] as Loose;
+    expect(first.cigarettesHandled).toBeUndefined();
   });
 });

@@ -6,14 +6,16 @@ import type { GameState } from '../domain/state';
 import { isTesting } from '../simulation/qa';
 import { isWorking } from '../simulation/work';
 import { interactionCells } from '../world/geometry';
+import { isSmokingSpotId } from '../world/movement/officeEnv';
+import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
 import { displayPosition } from './agentPosition';
-import { depthOfFootprint, depthOfPoint } from './projection';
+import { depthOfFootprint, depthOfPoint, ROOM_FRONT_DEPTH } from './projection';
 
 // Poza postaci w biurze — wyłącznie prezentacja (T:TIME-T02): co postać robi i gdzie ją narysować.
 // Pozycja logiczna w silniku się nie zmienia; siedząca postać jest tylko rysowana na siedzisku.
 
 export type Facing = 'px' | 'py' | 'nx' | 'ny';
-export type PoseKind = 'idle' | 'walk' | 'sitChair' | 'typing' | 'sitSofa' | 'coffee';
+export type PoseKind = 'idle' | 'walk' | 'sitChair' | 'typing' | 'sitSofa' | 'coffee' | 'smoke';
 
 export type AgentPose = {
   kind: PoseKind;
@@ -21,6 +23,8 @@ export type AgentPose = {
   facing: Facing | null;
   position: GridPoint;
   depth: number;
+  // Widoczność sprite'a: 0 za wysoką ścianą na dojściu, 1 poza nim (`outdoorAlpha`).
+  alpha: number;
 };
 
 // Strona punktów korzystania mebla (przód) dla obrotu: przy 0° to +y siatki (T:ART-03).
@@ -85,12 +89,43 @@ function facingOf(from: GridPoint, to: GridPoint): Facing {
   return dy >= 0 ? 'py' : 'ny';
 }
 
+// Odsłonięcie postaci przy wyjściu zza końca wysokiej ściany x = 0 (ściana leży w warstwie pod
+// sprite'ami, więc nie zasłoni ich sama): liczy się kolumna ekranu y − x względem końca ściany.
+const WALL_END_SCREEN = 15;
+const WALL_END_FADE = 0.5;
+
+export function outdoorAlpha(point: GridPoint): number {
+  if (point.y >= WALL_END_SCREEN || point.x >= 0.5) return 1;
+  const reveal = (point.y - point.x - WALL_END_SCREEN) / WALL_END_FADE;
+  return Math.min(Math.max(reveal, 0), 1);
+}
+
+// Sprite'y i warstwa przednia to jedna kolejka głębokości: kto stoi na zewnątrz, jest przed
+// niskimi ścianami, a nie za nimi.
 export function agentPose(
+  state: GameState,
+  agent: ReadonlyAgent,
+  frameAlpha: number,
+  config: BalanceConfig,
+): AgentPose {
+  const pose = basePose(state, agent, frameAlpha, config);
+  const cell = { x: Math.floor(pose.position.x), y: Math.floor(pose.position.y) };
+  return {
+    ...pose,
+    alpha: outdoorAlpha(pose.position),
+    depth:
+      cellKindAt(officeLayoutOf(state), cell) === 'outdoor'
+        ? ROOM_FRONT_DEPTH + pose.depth
+        : pose.depth,
+  };
+}
+
+function basePose(
   state: GameState,
   agent: ReadonlyAgent,
   alpha: number,
   config: BalanceConfig,
-): AgentPose {
+): Omit<AgentPose, 'alpha'> {
   const position = displayPosition(agent, alpha, config.movement.stepsPerCell);
   if (agent.move) {
     return {
@@ -103,6 +138,9 @@ export function agentPose(
 
   // Kanapa i ekspres: postać korzysta z zarezerwowanego miejsca (`meblel#indeks`).
   if (agent.status === 'using' && agent.reservedDestination) {
+    if (isSmokingSpotId(agent.reservedDestination)) {
+      return { kind: 'smoke', facing: 'py', position, depth: depthOfPoint(position) };
+    }
     const [furnitureId, index] = agent.reservedDestination.split('#');
     const furniture = state.world.furniture[furnitureId as Furniture['id']];
     if (furniture?.type === 'sofa') {

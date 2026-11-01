@@ -99,6 +99,29 @@ export const ROOMS = {
       ],
       ...FLOOR,
     },
+    // Teren na zewnątrz: dojście za wysoką ścianą x = -2…-1, y = 10…14 i taras x = -2…7, y = 15…17,
+    // z popielnicą na polu (7,17). Pasy bez fug domykają teren do lica budynku (pod ścianami i
+    // przed niską ścianą y = 14). Musi odpowiadać `outdoor` w src/world/officeLayout.ts.
+    outdoor: {
+      tiles: [
+        { x0: -2, z0: 10, x1: 0, z1: 15 },
+        { x0: -2, z0: 15, x1: 8, z1: 18 },
+      ],
+      strips: [
+        { x0: 0, z0: 10, x1: 0.5, z1: 14.5 },
+        { x0: 0, z0: 14.5, x1: 8, z1: 15 },
+      ],
+      // Cokół pod niskimi ścianami: budynek stoi na tej samej płycie co taras (bez widocznego końca
+      // krawężnika przy ścianie). Pod grubością ściany, więc widać tylko jego bok.
+      plinths: [
+        { x0: 0, z0: 14.39, x1: 14.61, z1: 14.61 },
+        { x0: 14.39, z0: 0.39, x1: 14.61, z1: 14.61 },
+      ],
+      colors: [0xa4a79e, 0x9b9e95],
+      border: 0x8f9289,
+      grout: 0x6f726a,
+      ashtray: { x: 7.5, z: 17.5 },
+    },
     walls: [
       { axis: 'x', at: 0.5, from: 0.39, to: 6.5, height: TALL, color: BURGUNDY },
       { axis: 'x', at: 0.5, from: 6.5, to: 14.61, height: TALL, color: MUSTARD },

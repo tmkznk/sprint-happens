@@ -54,6 +54,10 @@ export type BalanceConfig = DeepReadonly<{
     // Przy zmęczeniu kawa także wtedy, gdy w kolejce do ekspresu czeka najwyżej tyle osób.
     shortQueue: number;
   };
+  // Palenie (B): czas jednego papierosa na zewnątrz (sekundy czasu gry).
+  smoking: {
+    cigaretteSeconds: number;
+  };
   // NEED-03, NEED-05, decyzja SH-032 B3 (B): zadowolenie i odejścia.
   satisfaction: {
     neutral: number;
@@ -133,6 +137,9 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     maxRestSeconds: 90,
     minOrderedSofaSeconds: 20,
     shortQueue: 1,
+  },
+  smoking: {
+    cigaretteSeconds: 20,
   },
   events: {
     dailyChance: 0.35,

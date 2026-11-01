@@ -52,7 +52,7 @@ export class MovementDemoScene extends Phaser.Scene {
       top: (top?.y ?? 0) - WALL_HEIGHT,
       bottom: bottom?.y ?? 0,
     };
-    const detach = attachOfficeCamera(this, { bounds, onTap: () => undefined });
+    const detach = attachOfficeCamera(this, { bounds, fitBounds: bounds, onTap: () => undefined });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
     this.events.once(Phaser.Scenes.Events.DESTROY, detach);
     this.render(0);

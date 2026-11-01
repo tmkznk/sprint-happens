@@ -155,6 +155,7 @@ function withoutOrderedRest(state: GameState, ids: readonly string[]): GameState
 
 // Po zmianie mebli lub biurek każdy pracownik dostaje aktualny cel: punkt własnego biurka albo
 // — bez biurka — dotychczasowe miejsce, jeśli nadal jest dozwolone (OFF-04, OFF-07).
+// Osoba korzystająca z miejsca (przerwa, papieros) kończy to, a zmienia się cel jej powrotu.
 // `only` zawęża zmianę do jednej osoby (zmiana biurka nie dotyczy pozostałych).
 export function retargetEmployees(
   state: GameState,
@@ -163,9 +164,10 @@ export function retargetEmployees(
 ): GameState {
   const agents = state.world.movement.agents.map((agent) => {
     const employee = state.staff.employees[agent.id as keyof typeof state.staff.employees];
-    const current = agent.tasks[0];
     if (!employee || (only && employee.id !== only)) return agent;
-    if (current && current.kind !== 'goTo') return agent;
+    const [first, ...rest] = agent.tasks;
+    const use = first?.kind === 'use' ? first : null;
+    const current = use ? rest[0] : first;
     const desk = employee.deskId ? state.world.furniture[employee.deskId] : undefined;
     const deskPoint = desk ? interactionCells(desk)[0] : undefined;
     if (!deskPoint && current?.kind === 'goTo' && isFreeStandingSpot(state, current.cell)) {
@@ -181,7 +183,7 @@ export function retargetEmployees(
     ) {
       return agent;
     }
-    return { ...agent, tasks, path: [] };
+    return use ? { ...agent, tasks: [use, ...tasks] } : { ...agent, tasks, path: [] };
   });
   return { ...state, world: { ...state.world, movement: { ...state.world.movement, agents } } };
 }

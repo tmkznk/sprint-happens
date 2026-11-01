@@ -62,6 +62,9 @@ export type Employee = {
   // NEED-02, decyzja właściciela 3c: kanapa z rozkazu trwa co najmniej minimalny czas
   // (`energy.minOrderedSofaSeconds`). Kasowane po zakończeniu tego odpoczynku i przy wyjściu.
   orderedRest: boolean;
+  // Palenie: ile dzisiejszych pór papierosa jest już obsłużonych (harmonogram w `simulation/smoking`).
+  // Zerowane przy przyjściu do biura; zatrudnienie i rozkaz gracza oznaczają minione pory.
+  cigarettesHandled: number;
 };
 
 export const ENERGY_SCALE = 1000;

@@ -15,11 +15,15 @@ export type OfficeLayout = {
   doors: readonly Door[];
   // Okna leżą na polach ścian; obecnie dekoracyjne (OFF-08).
   windows: readonly GridPoint[];
+  // Teren poza ścianami biura (dojście od drzwi wejściowych i taras); leży poza siatką `size`.
+  outdoor: readonly Rect[];
+  // Miejsca do palenia na tarasie (pola `outdoor`).
+  smokingSpots: readonly GridPoint[];
   // Ustawienie, od którego zaczyna się stawianie kupionego mebla (tryb „Urządź”).
   placementStart: { origin: GridPoint; rotation: Rotation };
 };
 
-export type CellKind = 'floor' | 'wall' | 'door';
+export type CellKind = 'floor' | 'wall' | 'door' | 'outdoor';
 
 // OFF-01, OFF-02 (O → decyzja właściciela 2026-10-29, makieta wariantu A): gotowe biuro z trzema
 // pokojami. Z tyłu, pod wysokimi ścianami, mały gabinet szefa (5×4, jedno biurko) i pokój relaksu
@@ -40,6 +44,16 @@ export const OFFICE_LAYOUT: OfficeLayout = {
   ],
   // Bez okien — na ścianach dekoracje (rendering).
   windows: [],
+  // Dojście od drzwi wejściowych (x −2…−1, y 10…14) i taras (x −2…7, y 15…17) leżą poza
+  // siatką biura. Miejsca do palenia: y = 16 (x −1…7) i y = 17 (x −1…6); (7,17) zajmuje popielnica.
+  outdoor: [
+    { x: -2, y: 10, width: 2, height: 5 },
+    { x: -2, y: 15, width: 10, height: 3 },
+  ],
+  smokingSpots: [
+    ...Array.from({ length: 9 }, (_, i) => ({ x: -1 + i, y: 16 })),
+    ...Array.from({ length: 8 }, (_, i) => ({ x: -1 + i, y: 17 })),
+  ],
   placementStart: { origin: { x: 8, y: 7 }, rotation: 0 },
 };
 
@@ -51,6 +65,8 @@ export const PROLOGUE_LAYOUT: OfficeLayout = {
   doors: [{ position: { x: 0, y: 4 }, isEntrance: true }],
   // Bez okien — na ścianach dekoracje (obrazy, kratka; rendering).
   windows: [],
+  outdoor: [],
+  smokingSpots: [],
   // Jedyne wolne miejsce na drugie stanowisko: pod prawą ścianą, przodem do pokoju.
   placementStart: { origin: { x: 5, y: 3 }, rotation: 90 },
 };
@@ -75,6 +91,7 @@ export function roomAt(layout: OfficeLayout, point: GridPoint): Room | undefined
 
 // Ściany nie są wymieniane osobno: każde pole siatki poza pokojami i drzwiami jest ścianą.
 export function cellKindAt(layout: OfficeLayout, point: GridPoint): CellKind | null {
+  if (layout.outdoor.some((rect) => isInside(rect, point))) return 'outdoor';
   if (!isInside({ x: 0, y: 0, ...layout.size }, point)) return null;
   if (layout.doors.some((door) => samePoint(door.position, point))) return 'door';
   return roomAt(layout, point) ? 'floor' : 'wall';

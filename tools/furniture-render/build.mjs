@@ -1,19 +1,29 @@
 // Pre-render grafik gry z modeli 3D. Użycie (z tego katalogu):
 //   npm install
 //   VNB_PACK="/ścieżka/VNB Low Poly Office Set 2" npm run render [-- cel…]
-// Cele: typy mebli (desk, deskChair, sofa, coffeeMachine, plant), `rooms`, `characters` albo id osoby; bez celów —
-// wszystko. Meble → src/assets/furniture/<typ>-<obrót>.png + src/rendering/furnitureSprites.json;
+// Cele: typy mebli (desk, deskChair, sofa, coffeeMachine, plant), `rooms`, `characters`, `smokers` albo id osoby;
+// bez celów — wszystko. RENDER_OUT=/katalog — zapis pod tym katalogiem zamiast do repozytorium (próbki);
+// SMOKERS=id,id — atlasy palenia dla tych osób zamiast osób z `cigarettesPerDay` > 0. Meble → src/assets/furniture/<typ>-<obrót>.png + src/rendering/furnitureSprites.json;
 // postacie (własne, low poly) → src/assets/characters/<id osoby>.webp
 // + src/rendering/characterSprites.json.
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { ANIMS, CHARACTER, FACINGS, LOOKS } from './characters.mjs';
+import {
+  ANIMS,
+  CHARACTER,
+  FACINGS,
+  LOOKS,
+  SMOKE_ANIM,
+  SMOKE_CHARACTER,
+  SMOKE_FACINGS,
+} from './characters.mjs';
 import { FURNITURE } from './furniture.mjs';
 import { ROOMS } from './rooms.mjs';
 import { startServer } from './server.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const OUT = process.env.RENDER_OUT ? `${process.env.RENDER_OUT.replace(/\/$/, '')}/` : ROOT;
 const PACK =
   process.env.VNB_PACK ??
   fileURLToPath(new URL('../../../VNB Low Poly Office Set 2', import.meta.url));
@@ -34,9 +44,10 @@ try {
   await page.goto('http://localhost:4401/');
   await page.waitForFunction(() => window.ready);
 
-  const furnitureMetaFile = `${ROOT}src/rendering/furnitureSprites.json`;
+  await mkdir(`${OUT}src/rendering`, { recursive: true });
+  const furnitureMetaFile = `${OUT}src/rendering/furnitureSprites.json`;
   const furnitureMeta = JSON.parse(await readFile(furnitureMetaFile, 'utf8').catch(() => '{}'));
-  await mkdir(`${ROOT}src/assets/furniture`, { recursive: true });
+  await mkdir(`${OUT}src/assets/furniture`, { recursive: true });
   for (const [type, spec] of Object.entries(FURNITURE)) {
     if (!wanted(type)) continue;
     for (const rotation of [0, 90, 180, 270]) {
@@ -47,7 +58,7 @@ try {
       });
       const key = `${type}-${rotation}`;
       await writeFile(
-        `${ROOT}src/assets/furniture/${key}.png`,
+        `${OUT}src/assets/furniture/${key}.png`,
         Buffer.from(r.dataURL.split(',')[1], 'base64'),
       );
       const { width, height, anchorX, anchorY, heightPx, scale } = r;
@@ -60,7 +71,7 @@ try {
   // Pomieszczenia: warstwa tylna (podłoga, ściany, drzwi, dekoracje) i przednia (niskie ściany
   // od strony kamery) → src/assets/rooms/<id>-<warstwa>.png + src/rendering/roomSprites.json.
   if (wanted('rooms')) {
-    await mkdir(`${ROOT}src/assets/rooms`, { recursive: true });
+    await mkdir(`${OUT}src/assets/rooms`, { recursive: true });
     const roomMeta = {};
     for (const [id, spec] of Object.entries(ROOMS)) {
       for (const layer of ['back', 'front']) {
@@ -70,12 +81,21 @@ try {
           scale: FURNITURE_SCALE,
         });
         await writeFile(
-          `${ROOT}src/assets/rooms/${id}-${layer}.png`,
+          `${OUT}src/assets/rooms/${id}-${layer}.png`,
           Buffer.from(r.dataURL.split(',')[1], 'base64'),
         );
         const { width, height, anchorX, anchorY, scale } = r;
         roomMeta[id] = { width, height, anchorX, anchorY, scale };
         console.log(`${id}-${layer}`, width, height);
+      }
+      // Teren na zewnątrz powiększa obraz, ale widok startowy pokazuje samo biuro: wymiary tego
+      // samego pomieszczenia bez `outdoor` → `fit` (kamera, `roomFitBounds`).
+      if (spec.outdoor) {
+        const { width, height, anchorX, anchorY } = await page.evaluate(
+          (s) => window.renderRoom(s),
+          { ...spec, outdoor: undefined, layer: 'back', scale: FURNITURE_SCALE },
+        );
+        roomMeta[id].fit = { width, height, anchorX, anchorY };
       }
       // Ściany działowe: kawałek na każde pole, przez które przechodzą (w grze każdy z własną
       // głębokością — postać stoi przed ścianką albo za nią), spakowane w jeden atlas
@@ -96,7 +116,7 @@ try {
           pieces.map(({ r }) => r.dataURL),
         );
         await writeFile(
-          `${ROOT}src/assets/rooms/${id}-pieces.png`,
+          `${OUT}src/assets/rooms/${id}-pieces.png`,
           Buffer.from(atlas.dataURL.split(',')[1], 'base64'),
         );
         roomMeta[id].pieces = pieces.map(({ cell, r }, i) => ({
@@ -112,7 +132,7 @@ try {
       }
     }
     await writeFile(
-      `${ROOT}src/rendering/roomSprites.json`,
+      `${OUT}src/rendering/roomSprites.json`,
       `${JSON.stringify(roomMeta, null, 2)}\n`,
     );
   }
@@ -120,7 +140,7 @@ try {
   // Postacie: wszystkie (`characters`) albo wybrane po id osoby.
   const characterTargets = LOOKS.filter(({ id }) => wanted('characters') || targets.includes(id));
   if (characterTargets.length > 0) {
-    await mkdir(`${ROOT}src/assets/characters`, { recursive: true });
+    await mkdir(`${OUT}src/assets/characters`, { recursive: true });
     let frame = null;
     for (const { id, look } of characterTargets) {
       const r = await page.evaluate((s) => window.renderCharacterAtlas(s), {
@@ -132,7 +152,7 @@ try {
         quality: 0.75,
       });
       await writeFile(
-        `${ROOT}src/assets/characters/${id}.webp`,
+        `${OUT}src/assets/characters/${id}.webp`,
         Buffer.from(r.dataURL.split(',')[1], 'base64'),
       );
       frame = { ...r };
@@ -147,9 +167,48 @@ try {
     };
     delete meta.layout;
     await writeFile(
-      `${ROOT}src/rendering/characterSprites.json`,
+      `${OUT}src/rendering/characterSprites.json`,
       `${JSON.stringify(meta, null, 2)}\n`,
     );
+  }
+
+  // Palenie: małe atlasy tylko dla palaczy → src/assets/characters/smoke/<id osoby>.webp
+  // + src/rendering/smokingSprites.json. Papieros i dym są wtopione w klatki.
+  if (wanted('smokers')) {
+    const chosen = process.env.SMOKERS?.split(',');
+    const smokers = LOOKS.filter(({ id, cigarettesPerDay }) =>
+      chosen ? chosen.includes(id) : cigarettesPerDay > 0,
+    );
+    await mkdir(`${OUT}src/assets/characters/smoke`, { recursive: true });
+    let frame = null;
+    for (const { id, look } of smokers) {
+      const r = await page.evaluate((s) => window.renderCharacterAtlas(s), {
+        ...SMOKE_CHARACTER,
+        look,
+        facings: SMOKE_FACINGS,
+        anims: [SMOKE_ANIM],
+        scale: CHARACTER_SCALE,
+        quality: 0.75,
+      });
+      await writeFile(
+        `${OUT}src/assets/characters/smoke/${id}.webp`,
+        Buffer.from(r.dataURL.split(',')[1], 'base64'),
+      );
+      frame = { ...r };
+      delete frame.dataURL;
+      console.log(`smoke/${id}`, r.frameWidth, r.frameHeight);
+    }
+    if (frame) {
+      const meta = {
+        ...frame,
+        anims: { smoke: { ...frame.layout.smoke, fps: SMOKE_ANIM.fps } },
+      };
+      delete meta.layout;
+      await writeFile(
+        `${OUT}src/rendering/smokingSprites.json`,
+        `${JSON.stringify(meta, null, 2)}\n`,
+      );
+    }
   }
 } finally {
   await browser.close();

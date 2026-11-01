@@ -277,6 +277,24 @@ describe('BuyFurniture (OFF-03, OFF-05, FIN-08)', () => {
     ).toEqual({ ok: false, rejection: { code: 'collision' } });
   });
 
+  it('odmawia zakupu i przeniesienia mebla na polu tarasu', () => {
+    const engine = engineFor();
+    const buy = engine.dispatch({
+      type: 'BuyFurniture',
+      furnitureType: 'plant',
+      origin: { x: 3, y: 16 },
+      rotation: 0,
+    });
+    expect(buy.ok).toBe(false);
+    const move = engine.dispatch({
+      type: 'MoveFurniture',
+      furnitureId: DESK_1,
+      origin: { x: -1, y: 12 },
+      rotation: 0,
+    });
+    expect(move.ok).toBe(false);
+  });
+
   it.each([
     ['biurko', 'desk', { x: 8, y: 7 }, 0, [{ x: 9, y: 9 }]],
     [

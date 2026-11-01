@@ -29,7 +29,14 @@ import {
   placeCharacterSprite,
   type CharacterSprite,
 } from './characterSprites';
-import { ROOM_TEXTURES, roomSprite, roomTextureKey, type RoomSpriteMeta } from './roomSprites';
+import {
+  ROOM_TEXTURES,
+  roomBounds,
+  roomFitBounds,
+  roomSprite,
+  roomTextureKey,
+  type RoomSpriteMeta,
+} from './roomSprites';
 import { bakePieces, type BakedPiece } from './bake';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
@@ -69,6 +76,7 @@ import {
   depthOfPoint,
   gridToScreen,
   interpolate,
+  ROOM_FRONT_DEPTH,
   type ScreenPoint,
 } from './projection';
 
@@ -87,7 +95,6 @@ export type OfficeSceneOptions = {
 };
 
 const FLOOR_DEPTH = -1000;
-const ROOM_FRONT_DEPTH = 1_000_000;
 // Potwierdzenie celu rozkazu: krótki znacznik, który zanika (jeden naraz).
 const TARGET_MARKER_MS = 600;
 
@@ -157,8 +164,10 @@ export class OfficeScene extends Phaser.Scene {
 
     if (this.options.occlusionTest) this.createTestActor();
 
+    const drawnBounds = officeBounds(layout);
     const detachCamera = attachOfficeCamera(this, {
-      bounds: room ? roomBounds(room.meta) : officeBounds(layout),
+      bounds: room ? roomBounds(room.meta) : drawnBounds,
+      fitBounds: room ? roomFitBounds(room.meta) : drawnBounds,
       onTap: (world) => this.tap(world),
     });
 
@@ -197,6 +206,7 @@ export class OfficeScene extends Phaser.Scene {
         id,
         position: pose.position,
         depth: pose.depth,
+        alpha: pose.alpha,
       })),
     );
     const intent = tapIntent({
@@ -518,16 +528,6 @@ function wallPieces(layout: OfficeLayout): BakedPiece[] {
     }
   }
   return pieces;
-}
-
-// Granice wyrenderowanego pomieszczenia na ekranie świata (punkt (0,0) siatki to kotwica).
-function roomBounds(meta: RoomSpriteMeta): Bounds {
-  return {
-    left: -meta.anchorX / meta.scale,
-    right: (meta.width - meta.anchorX) / meta.scale,
-    top: -meta.anchorY / meta.scale,
-    bottom: (meta.height - meta.anchorY) / meta.scale,
-  };
 }
 
 // Granice biura na ekranie świata, łącznie z wysokością tylnych ścian.

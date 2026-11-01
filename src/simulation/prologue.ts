@@ -55,6 +55,7 @@ export function createPrologueState(config: BalanceConfig, seed: number): GameSt
     lowSatisfactionMs: 0,
     breakHold: false,
     orderedRest: false,
+    cigarettesHandled: 0,
   };
 
   const start: GameState = {

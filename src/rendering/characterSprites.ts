@@ -2,69 +2,90 @@ import * as Phaser from 'phaser';
 import type { PersonId } from '../domain/content/people';
 import type { AgentStatus } from '../domain/movement';
 import type { AgentPose, Facing, PoseKind } from './agentPose';
-import meta from './characterSprites.json';
+import {
+  CHARACTER_SHEET as SHEET,
+  SMOKE_SHEET,
+  shownPoseKind,
+  sheetOrigin,
+  type SheetMeta,
+} from './characterSheets';
 import { SELECTION_MARKER_COLOR, SELECTION_MARKER_OUTLINE } from './placeholderStyle';
 import { gridToScreen } from './projection';
 
 // Własne postacie low poly pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
 // na osobę z listy postaci: wiersz = kierunek, kolumny = klatki kolejnych animacji.
-type CharacterMeta = {
-  frameWidth: number;
-  frameHeight: number;
-  anchorX: number;
-  anchorY: number;
-  scale: number;
-  columns: number;
-  rows: Facing[];
-  anims: Record<PoseKind, { start: number; frames: number; fps: number }>;
-};
-
-const SHEET = meta as CharacterMeta;
-
 const ATLAS_URLS = import.meta.glob<string>('../assets/characters/*.webp', {
   eager: true,
   query: '?url',
   import: 'default',
 });
 
+// Atlasy palenia są tylko dla palaczy (`cigarettesPerDay` > 0), w osobnym katalogu.
+const SMOKE_ATLAS_URLS = import.meta.glob<string>('../assets/characters/smoke/*.webp', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+
 const textureKey = (personId: PersonId) => `character-${personId}`;
+const smokeTextureKey = (personId: PersonId) => `character-smoke-${personId}`;
 const animKey = (personId: PersonId, kind: PoseKind, facing: Facing) =>
   `${personId}-${kind}-${facing}`;
 
 // Atlasy są ładowane na żądanie — w biurze jest naraz kilka osób, a komplet 63 tekstur
 // zająłby niepotrzebnie pamięć karty graficznej. Pliki i tak są w cache offline (precache).
 function ensureCharacterTexture(scene: Phaser.Scene, personId: PersonId, onReady: () => void) {
-  const key = textureKey(personId);
+  const url = ATLAS_URLS[`../assets/characters/${personId}.webp`];
+  ensureSheetTexture(scene, personId, textureKey(personId), SHEET, url, onReady);
+}
+
+// Atlas palenia: tak samo na żądanie, dopiero gdy osoba pierwszy raz stanie na tarasie.
+function ensureSmokeTexture(scene: Phaser.Scene, personId: PersonId, onReady: () => void) {
+  const url = SMOKE_ATLAS_URLS[`../assets/characters/smoke/${personId}.webp`];
+  ensureSheetTexture(scene, personId, smokeTextureKey(personId), SMOKE_SHEET, url, onReady);
+}
+
+function ensureSheetTexture<Kind extends PoseKind>(
+  scene: Phaser.Scene,
+  personId: PersonId,
+  key: string,
+  sheet: SheetMeta<Kind>,
+  url: string | undefined,
+  onReady: () => void,
+) {
   if (scene.textures.exists(key)) {
     onReady();
     return;
   }
-  const url = ATLAS_URLS[`../assets/characters/${personId}.webp`];
   if (!url) return;
   scene.load.once(`filecomplete-spritesheet-${key}`, () => {
-    createAnimations(scene, personId);
+    createAnimations(scene, personId, key, sheet);
     onReady();
   });
   if (!scene.load.textureManager.exists(key)) {
     scene.load.spritesheet(key, url, {
-      frameWidth: SHEET.frameWidth,
-      frameHeight: SHEET.frameHeight,
+      frameWidth: sheet.frameWidth,
+      frameHeight: sheet.frameHeight,
     });
   }
   if (!scene.load.isLoading()) scene.load.start();
 }
 
-function createAnimations(scene: Phaser.Scene, personId: PersonId): void {
-  const texture = textureKey(personId);
+function createAnimations<Kind extends PoseKind>(
+  scene: Phaser.Scene,
+  personId: PersonId,
+  texture: string,
+  sheet: SheetMeta<Kind>,
+): void {
   scene.textures.get(texture).setFilter(Phaser.Textures.FilterMode.LINEAR);
-  SHEET.rows.forEach((facing, row) => {
-    for (const [kind, anim] of Object.entries(SHEET.anims) as [
-      PoseKind,
-      CharacterMeta['anims'][PoseKind],
+  sheet.rows.forEach((facing, row) => {
+    for (const [kind, anim] of Object.entries(sheet.anims) as [
+      Kind,
+      SheetMeta<Kind>['anims'][Kind],
     ][]) {
       const key = animKey(personId, kind, facing);
       if (scene.anims.exists(key)) continue;
-      const first = row * SHEET.columns + anim.start;
+      const first = row * sheet.columns + anim.start;
       scene.anims.create({
         key,
         frames: scene.anims.generateFrameNumbers(texture, {
@@ -124,6 +145,8 @@ export type CharacterSprite = {
   chevron: Phaser.GameObjects.Image;
   personId: PersonId;
   ready: boolean;
+  // Atlas palenia: 'none' — jeszcze nieproszony; 'loading' — w toku (albo osoba nie ma atlasu).
+  smoke: 'none' | 'loading' | 'ready';
   facing: Facing;
   // Narysowany znacznik pod stopami — Graphics przerysowujemy tylko przy jego zmianie.
   ringKey: string;
@@ -153,6 +176,7 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
     chevron,
     personId,
     ready: false,
+    smoke: 'none',
     facing: 'px',
     ringKey: '',
     markerTweens: [],
@@ -201,6 +225,13 @@ function startMarkerTweens(sprite: CharacterSprite): void {
   ];
 }
 
+function requestSmokeTexture(sprite: CharacterSprite): void {
+  sprite.smoke = 'loading';
+  ensureSmokeTexture(sprite.body.scene, sprite.personId, () => {
+    if (sprite.body.active) sprite.smoke = 'ready';
+  });
+}
+
 // Pozycja, animacja i znaczniki postaci. `timeScale` — tempo gry (0 = pauza zatrzymuje animację).
 export function placeCharacterSprite(
   sprite: CharacterSprite,
@@ -212,9 +243,17 @@ export function placeCharacterSprite(
   if (pose.facing) sprite.facing = pose.facing;
   const screen = gridToScreen(pose.position);
   sprite.body.setPosition(screen.x, screen.y).setDepth(pose.depth);
+  if (pose.alpha !== sprite.body.alpha) sprite.body.setAlpha(pose.alpha);
+  if (pose.kind === 'smoke' && sprite.smoke === 'none') requestSmokeTexture(sprite);
   if (sprite.ready) {
-    const key = animKey(sprite.personId, pose.kind, sprite.facing);
-    if (sprite.body.anims.currentAnim?.key !== key) sprite.body.play(key);
+    const kind = shownPoseKind(pose.kind, sprite.smoke === 'ready');
+    const key = animKey(sprite.personId, kind, sprite.facing);
+    if (sprite.body.anims.currentAnim?.key !== key) {
+      // Ramka palenia ma inny rozmiar i kotwicę: origin zmienia się w tej samej klatce co
+      // animacja, więc stopy nie przeskakują.
+      const origin = sheetOrigin(kind);
+      sprite.body.setOrigin(origin.x, origin.y).play(key);
+    }
     sprite.body.anims.timeScale = timeScale;
   }
 
@@ -236,9 +275,11 @@ export function placeCharacterSprite(
     if (selected && !wasSelected) startMarkerTweens(sprite);
     if (!selected && wasSelected) stopMarkerTweens(sprite);
   }
-  sprite.ring.setVisible(warning || selected);
+  // Niewidoczna za ścianą: bez znaczników, które zdradzałyby ją przez ścianę.
+  const visible = pose.alpha > 0;
+  sprite.ring.setVisible(visible && (warning || selected));
   sprite.ring.setPosition(screen.x, screen.y).setDepth(pose.depth - 0.001);
-  sprite.chevron.setVisible(selected);
+  sprite.chevron.setVisible(visible && selected);
   if (selected) {
     sprite.chevron.setPosition(
       screen.x,

@@ -57,10 +57,12 @@ const AGENT_HALF_WIDTH = 16;
 // Postacie wybierane tam, gdzie są narysowane (poza — np. siedząca na krześle), nie w polu logicznym.
 export function pickAgent(
   world: ScreenPoint,
-  placed: readonly { id: string; position: GridPoint; depth: number }[],
+  placed: readonly { id: string; position: GridPoint; depth: number; alpha?: number }[],
 ): string | null {
   let best: { id: string; depth: number } | null = null;
-  for (const { id, position, depth } of placed) {
+  for (const { id, position, depth, alpha } of placed) {
+    // Postać niewidoczna za ścianą nie przechwytuje dotknięcia.
+    if (alpha === 0) continue;
     const screen = gridToScreen(position);
     const inside =
       Math.abs(world.x - screen.x) <= AGENT_HALF_WIDTH &&

@@ -7,8 +7,8 @@ import type { GameState } from '../domain/state';
 import { createEngine } from '../simulation/engine';
 import { testState } from '../test/engineFixture';
 import { interactionCells, occupiedCells } from '../world/geometry';
-import { agentPose, deskChairDepth, deskSeat, rotateSeat } from './agentPose';
-import { depthOfFootprint } from './projection';
+import { agentPose, deskChairDepth, deskSeat, outdoorAlpha, rotateSeat } from './agentPose';
+import { depthOfFootprint, ROOM_FRONT_DEPTH } from './projection';
 
 const DESK = 'furniture-1' as FurnitureId;
 const SOFA = 'furniture-3' as FurnitureId;
@@ -109,5 +109,62 @@ describe('poza postaci (prezentacja)', () => {
     const desk: Furniture = { id: DESK, type: 'desk', origin: { x: 0, y: 0 }, rotation: 90 };
     // Środek pola (1,1) przy 0° → pole (0,1) przy 90° (footprint 2×3).
     expect(rotateSeat({ x: 1.5, y: 1.5 }, desk)).toEqual({ x: 0.5, y: 1.5 });
+  });
+
+  it('stojący na miejscu terrace#: kind smoke, facing py', () => {
+    const pose = at(testState(), {
+      ...createAgent('a', { x: 2, y: 16 }),
+      status: 'using',
+      reservedDestination: 'terrace#3',
+    });
+    expect(pose).toMatchObject({
+      kind: 'smoke',
+      facing: 'py',
+      position: { x: 2.5, y: 16.5 },
+      alpha: 1,
+    });
+  });
+
+  it('postać na tarasie ma głębokość powyżej ROOM_FRONT_DEPTH, w biurze poniżej', () => {
+    const state = testState();
+    const smoking = at(state, {
+      ...createAgent('a', { x: 2, y: 16 }),
+      status: 'using',
+      reservedDestination: 'terrace#3',
+    });
+    expect(smoking.depth).toBeGreaterThan(ROOM_FRONT_DEPTH);
+    const walkingOut = at(state, {
+      ...createAgent('b', { x: -1, y: 15 }),
+      move: { to: { x: 0, y: 15 }, elapsed: 0 },
+    });
+    expect(walkingOut.depth).toBeGreaterThan(ROOM_FRONT_DEPTH);
+    const inOffice = at(state, createAgent('c', { x: 4, y: 12 }));
+    expect(inOffice.depth).toBeLessThan(ROOM_FRONT_DEPTH);
+    // Bliżej kamery na tarasie nadal znaczy wyżej.
+    const front = at(state, createAgent('d', { x: 2, y: 17 }));
+    expect(front.depth).toBeGreaterThan(smoking.depth);
+  });
+
+  it('w biurze postać jest w pełni widoczna, a na dojściu za ścianą znika', () => {
+    const state = testState();
+    expect(at(state, createAgent('a', { x: 4, y: 12 })).alpha).toBe(1);
+    expect(at(state, createAgent('b', { x: -1, y: 12 })).alpha).toBe(0);
+    expect(at(state, createAgent('c', { x: -1, y: 15 })).alpha).toBe(1);
+    // Środek pola drzwi: jeszcze w biurze.
+    expect(at(state, createAgent('d', { x: 0, y: 10 })).alpha).toBe(1);
+  });
+
+  it('outdoorAlpha: (-0.5, 12.5) → 0; (-0.5, 15.5) → 1; (3.5, 16.5) → 1; środek drzwi i biuro → 1', () => {
+    expect(outdoorAlpha({ x: -0.5, y: 12.5 })).toBe(0);
+    expect(outdoorAlpha({ x: -0.5, y: 15.5 })).toBe(1);
+    expect(outdoorAlpha({ x: 3.5, y: 16.5 })).toBe(1);
+    expect(outdoorAlpha({ x: 0.5, y: 10.5 })).toBe(1);
+    expect(outdoorAlpha({ x: 5.5, y: 9.5 })).toBe(1);
+  });
+
+  it('outdoorAlpha rośnie przy wyjściu zza narożnika wysokiej ściany', () => {
+    expect(outdoorAlpha({ x: -0.5, y: 14.5 })).toBe(0);
+    expect(outdoorAlpha({ x: -0.5, y: 14.75 })).toBeCloseTo(0.5);
+    expect(outdoorAlpha({ x: -0.5, y: 15 })).toBe(1);
   });
 });

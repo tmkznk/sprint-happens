@@ -23,7 +23,10 @@ export function movementEnvFor(
   let shape = own ? cache.get(furniture) : undefined;
   if (!shape) {
     const items = Object.values(furniture);
-    shape = { grid: gridFromOffice(layout, items), destinations: destinationsOf(items) };
+    shape = {
+      grid: gridFromOffice(layout, items),
+      destinations: [...destinationsOf(items), ...terraceDestinations(layout)],
+    };
     if (own) cache.set(furniture, shape);
   }
   return { ...shape, config: config.movement };
@@ -38,4 +41,20 @@ export function destinationsOf(furniture: readonly Furniture[]): Destination[] {
 
 export function destinationId(furnitureId: string, index: number): string {
   return `${furnitureId}#${index}`;
+}
+
+// Miejsca do palenia na tarasie (`terrace#<indeks>`) — poza meblami, więc osobno od `destinationsOf`.
+export const SMOKING_SPOT_PREFIX = 'terrace';
+
+export function smokingSpotIds(layout: OfficeLayout): string[] {
+  return layout.smokingSpots.map((_, index) => destinationId(SMOKING_SPOT_PREFIX, index));
+}
+
+export function isSmokingSpotId(id: string): boolean {
+  return id.startsWith(`${SMOKING_SPOT_PREFIX}#`);
+}
+
+function terraceDestinations(layout: OfficeLayout): Destination[] {
+  const ids = smokingSpotIds(layout);
+  return layout.smokingSpots.map((cell, index) => ({ id: ids[index] as string, cell }));
 }

@@ -4,7 +4,13 @@ import { useGameSelector } from '../../application/engineHooks';
 import { useSelect } from '../../application/selectionHooks';
 import type { Employee } from '../../domain/employees';
 import { compareIds } from '../../simulation/staff';
-import { EmployeeBio, EmployeeHead, EmployeeNeeds, EmployeeStatus } from '../EmployeeCard';
+import {
+  EmployeeBio,
+  EmployeeHead,
+  EmployeeSmoking,
+  EmployeeNeeds,
+  EmployeeStatus,
+} from '../EmployeeCard';
 import { sameEmployeeCard } from '../employeeDisplay';
 import { EmptyState } from '../EmptyState';
 import { FireEmployeeButton } from '../FireEmployeeButton';
@@ -66,6 +72,7 @@ const TeamMember = memo(
       <li className="employee-card">
         <EmployeeHead employee={employee} />
         <EmployeeBio employee={employee} />
+        <EmployeeSmoking employee={employee} />
         <EmployeeNeeds employee={employee} />
         <EmployeeStatus employeeId={employee.id} />
         <div className="field">

@@ -1,3 +1,4 @@
+import { personById, type PersonId } from '../domain/content/people';
 import { ENERGY_SCALE, SATISFACTION_SCALE, type Employee } from '../domain/employees';
 
 export const energyPercent = (employee: Employee) => Math.round(employee.energy / ENERGY_SCALE);
@@ -20,4 +21,11 @@ export function sameEmployeeCard(a: Employee, b: Employee): boolean {
       energyPercent(a) === energyPercent(b) &&
       satisfactionPercent(a) === satisfactionPercent(b))
   );
+}
+
+// Nałóg jest stały dla osoby, więc karta nie potrzebuje selektora. Tylko dla zatrudnionych —
+// CV kandydata go nie ujawnia (gracz dowiaduje się po zatrudnieniu).
+export function smokingLabel(personId: PersonId): string | null {
+  const perDay = personById(personId)?.cigarettesPerDay ?? 0;
+  return perDay > 0 ? `Pali: ${perDay} dziennie` : null;
 }

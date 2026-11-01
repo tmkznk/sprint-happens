@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import { ENERGY_SCALE, SATISFACTION_SCALE } from '../domain/employees';
 import { createPlayer } from '../test/player';
-import { sameEmployeeCard } from './employeeDisplay';
+import { PEOPLE } from '../domain/content/people';
+import { sameEmployeeCard, smokingLabel } from './employeeDisplay';
 
 function employee() {
   const player = createPlayer(DEFAULT_BALANCE, 1);
@@ -27,5 +28,20 @@ describe('sameEmployeeCard', () => {
     expect(sameEmployeeCard(a, { ...a, deskId: null, projectId: null })).toBe(
       a.deskId === null && a.projectId === null,
     );
+  });
+});
+
+describe('smokingLabel', () => {
+  it('pokazuje liczbę papierosów dziennie palaczowi', () => {
+    const smoker = PEOPLE.find((person) => person.cigarettesPerDay > 0);
+    if (!smoker) throw new Error('brak palacza');
+    expect(smokingLabel(smoker.id)).toBe(`Pali: ${smoker.cigarettesPerDay} dziennie`);
+  });
+
+  it('niepalący i nieznana osoba nie mają wiersza', () => {
+    const nonSmoker = PEOPLE.find((person) => person.cigarettesPerDay === 0);
+    if (!nonSmoker) throw new Error('brak niepalącego');
+    expect(smokingLabel(nonSmoker.id)).toBeNull();
+    expect(smokingLabel('nie-ma-takiej')).toBeNull();
   });
 });

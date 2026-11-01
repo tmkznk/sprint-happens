@@ -71,6 +71,7 @@ export const ACTIVITY_LABELS: Record<Activity, string> = {
   waitingForRest: 'Czeka na wolne miejsce odpoczynku',
   onCoffee: 'Pije kawę',
   onSofa: 'Odpoczywa na kanapie',
+  onSmoke: 'Na papierosie',
   exhausted: 'Wyczerpany — brak miejsca do odpoczynku',
 };
 

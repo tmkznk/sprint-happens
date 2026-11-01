@@ -21,6 +21,7 @@ const SHIRT_OVERRIDES = { [PROLOGUE_OWNER.id]: '#2f5236' };
 
 export const LOOKS = [...PEOPLE, PROLOGUE_OWNER].map((person) => ({
   id: person.id,
+  cigarettesPerDay: person.cigarettesPerDay ?? 0,
   look: {
     ...person.appearance,
     shirt: SHIRT_OVERRIDES[person.id] ?? SHIRTS[person.specialization],
@@ -55,3 +56,9 @@ export const CHARACTER = {
   // Ramka klatki w kaflach: szerokość, wysokość, położenie stóp od góry.
   box: { w: 1.5, h: 2.7, up: 2.3 },
 };
+
+// Palenie: osobny mały atlas tylko dla palaczy, jeden kierunek (py). Ramka inna niż w atlasie
+// postaci: wyższa (dym nad głową) i szersza w prawo (cały cień, też wysuniętej ręki).
+export const SMOKE_ANIM = { name: 'smoke', frames: 6, fps: 4 };
+export const SMOKE_FACINGS = FACINGS.filter((facing) => facing.name === 'py');
+export const SMOKE_CHARACTER = { ...CHARACTER, box: { w: 2.15, h: 3.25, up: 2.6, left: 0.75 } };

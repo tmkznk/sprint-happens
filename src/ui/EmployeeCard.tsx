@@ -11,7 +11,7 @@ import { isTesting } from '../simulation/qa';
 import { isUnhappy } from '../simulation/satisfaction';
 import { isWorking } from '../simulation/work';
 import { Avatar } from './Avatar';
-import { energyPercent, satisfactionPercent } from './employeeDisplay';
+import { energyPercent, satisfactionPercent, smokingLabel } from './employeeDisplay';
 import {
   ACTIVITY_LABELS,
   money,
@@ -44,6 +44,12 @@ export function EmployeeHead({ employee, children }: { employee: Employee; child
 
 export function EmployeeBio({ employee }: { employee: Employee }) {
   return <p className="bio">{personById(employee.personId)?.bio}</p>;
+}
+
+// Wiersz tylko dla palaczy; używany wyłącznie na kartach zatrudnionych (nie w rekrutacji).
+export function EmployeeSmoking({ employee }: { employee: Employee }) {
+  const label = smokingLabel(employee.personId);
+  return label ? <p className="bio bio-smoking">{label}</p> : null;
 }
 
 // NEED-01, NEED-03: energia i zadowolenie obok siebie.

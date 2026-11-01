@@ -2,16 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import { personById } from '../domain/content/people';
 import { SENIORITIES, SPECIALIZATIONS, type CandidateId } from '../domain/employees';
+import type { GridPoint } from '../domain/grid';
 import { createInitialState, type GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
 import { testReport, testState } from '../test/engineFixture';
 import { interactionCells } from '../world/geometry';
 import { cellKey } from '../world/movement/grid';
+import { createMovementState, createAgent } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { cellKindAt, OFFICE_LAYOUT } from '../world/officeLayout';
 import { createEngine } from './engine';
 import { forecastCash, recordOperation } from './finance';
-import { freeDeskCount } from './staff';
+import { freeDeskCount, freeStandingCell, spawnCell } from './staff';
 
 const WAGES = DEFAULT_BALANCE.staff.dailyWage;
 
@@ -78,6 +80,7 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
         lowSatisfactionMs: 0,
         breakHold: false,
         orderedRest: false,
+        cigarettesHandled: 0,
       },
     ]);
     expect(state.finance.wagesDueToday).toEqual({ 'employee-1': candidate.dailyWage });
@@ -108,6 +111,27 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
 
     const desks = Object.values(engine.getState().staff.employees).map((e) => e.deskId);
     expect(desks).toEqual(['furniture-1', 'furniture-2', null]);
+  });
+
+  it('spawnCell i freeStandingCell nie zwracają pola outdoor, także gdy przy drzwiach pełno', () => {
+    const state = testState({ speed: 1 });
+    const spawn = spawnCell(state, DEFAULT_BALANCE);
+    expect(cellKindAt(OFFICE_LAYOUT, spawn as GridPoint)).toBe('floor');
+    // Zajęte pole za drzwiami (1,10) i jego sąsiedzi: najbliższe wolne nadal jest podłogą.
+    const crowd = [
+      { x: 1, y: 10 },
+      { x: 1, y: 9 },
+      { x: 1, y: 11 },
+      { x: 2, y: 10 },
+    ].map((cell, i) => createAgent(`crowd-${i}`, cell));
+    const full = {
+      ...state,
+      world: { ...state.world, movement: createMovementState(crowd) },
+    };
+    const spawned = spawnCell(full, DEFAULT_BALANCE);
+    expect(cellKindAt(OFFICE_LAYOUT, spawned as GridPoint)).toBe('floor');
+    const standing = freeStandingCell(full, DEFAULT_BALANCE, { x: -1, y: 10 });
+    expect(cellKindAt(OFFICE_LAYOUT, standing as GridPoint)).toBe('floor');
   });
 
   it('nowa osoba pojawia się w biurze tuż za drzwiami i idzie do własnego biurka', () => {

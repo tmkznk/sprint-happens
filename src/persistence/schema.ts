@@ -140,6 +140,7 @@ const staffSchema = z.strictObject({
       lowSatisfactionMs: z.int().min(0),
       breakHold: z.boolean(),
       orderedRest: z.boolean(),
+      cigarettesHandled: z.int().nonnegative(),
     }),
   ),
   candidates: z.array(z.strictObject({ id: candidateId, ...person })),

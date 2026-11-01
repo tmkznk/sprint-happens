@@ -6,7 +6,8 @@ import { gameStateSchema, type ValidationContext } from './schema';
 // wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039).
 // Wersja 2: stan prologu (`prologue`). Wersja 3: przyjście i wyjście (`mission.transitSteps`,
 // `staff.entryQueue`). Wersja 4: rozkazy dla postaci (`breakHold`, `orderedRest` pracownika).
-export const SCHEMA_VERSION = 4;
+// Wersja 5: palenie (`cigarettesHandled` pracownika).
+export const SCHEMA_VERSION = 5;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
@@ -38,6 +39,14 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     for (const employee of Object.values(state.staff.employees)) {
       employee.breakHold = false;
       employee.orderedRest = false;
+    }
+    return state;
+  },
+  // 4 → 5: palenie — starsze zapisy nie miały licznika obsłużonych pór papierosa.
+  4: (input) => {
+    const state = input as { staff: { employees: Record<string, Record<string, unknown>> } };
+    for (const employee of Object.values(state.staff.employees)) {
+      employee.cigarettesHandled = 0;
     }
     return state;
   },

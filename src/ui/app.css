@@ -1681,6 +1681,10 @@ progress::-moz-progress-bar {
   line-height: 1.65;
 }
 
+.bio-smoking {
+  margin-top: 4px;
+}
+
 .candidate-list .bio {
   grid-column: 1 / -1;
   margin: 0;

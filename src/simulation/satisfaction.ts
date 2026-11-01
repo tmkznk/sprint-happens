@@ -48,7 +48,7 @@ export function hasBadConditions(
   if (!employee.deskId) return true;
   const activity = activityOf(state, employee, false);
   if (activity === 'waitingForRest' || activity === 'exhausted') return true;
-  const resting = activity === 'onCoffee' || activity === 'onSofa';
+  const resting = activity === 'onCoffee' || activity === 'onSofa' || activity === 'onSmoke';
   return !resting && employee.energy <= config.energy.thresholds.exhausted * ENERGY_SCALE;
 }
 

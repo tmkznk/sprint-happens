@@ -6,6 +6,10 @@ export const TILE_HEIGHT = 32;
 
 export type ScreenPoint = { x: number; y: number };
 
+// Głębokość warstwy przedniej pomieszczenia (niskie ściany od strony kamery): nad całym biurem,
+// ale pod tym, co stoi na zewnątrz przed tymi ścianami (taras).
+export const ROOM_FRONT_DEPTH = 1_000_000;
+
 // T:ART-04 (R): screenX = (x−y)·32, screenY = (x+y)·16. Współrzędne siatki są ciągłe:
 // pole (x, y) to kwadrat [x, x+1]×[y, y+1]; jego środek to (x+0.5, y+0.5).
 export function gridToScreen(point: GridPoint): ScreenPoint {

@@ -241,6 +241,13 @@ describe('OrderEmployee — pole podłogi (decyzja 1c)', () => {
     expect(employee(engine, a).energy).toBe(energy);
   });
 
+  it('pole tarasu → unreachableTarget, stan bez zmian', () => {
+    const { engine, a } = office();
+    const before = engine.getState();
+    expectRejected(engine, a, toCell({ x: 3, y: 16 }), 'unreachableTarget');
+    expect(engine.getState()).toBe(before);
+  });
+
   it('pole pod meblem / ściana / drzwi / punkt korzystania / zajęte / nieosiągalne → unreachableTarget', () => {
     const { engine: base, a, b } = office();
     // Roślina w (1,2) zamyka narożnik (1,1) między ścianami a biurkiem furniture-2.

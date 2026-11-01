@@ -315,6 +315,10 @@
         return j;
       }
 
+      const CIGARETTE_LENGTH = 0.14;
+      // Uniesienie dłoni z papierosem w kolejnych klatkach animacji `smoke` (1 = przy ustach).
+      const SMOKE_LIFT = [1, 1, 0.5, 0, 0, 0.5];
+
       function buildPerson(look) {
         const { skin, shirt, pants, shoes = 0x2b2b2b, hair, hairStyle, glasses } = look;
         const root = new THREE.Group();
@@ -382,6 +386,23 @@
         cup.position.set(0, -0.09, 0.03);
         p.handR.add(cup);
         p.cup = cup;
+        // Papieros w prawej dłoni: trzymany w 1/3 długości; kierunek ustawia aimCigarette.
+        const cigarette = new THREE.Group();
+        cigarette.position.set(0, -0.08, 0.02);
+        const paper = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.014, 0.014, CIGARETTE_LENGTH, 6),
+          mat(0xf6f1e6),
+        );
+        paper.position.y = CIGARETTE_LENGTH / 6;
+        const ember = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.017, 0.017, 0.035, 6),
+          new THREE.MeshBasicMaterial({ color: 0xff5a1f }),
+        );
+        ember.position.y = (CIGARETTE_LENGTH * 2) / 3;
+        cigarette.add(paper, ember);
+        p.handR.add(cigarette);
+        p.cigarette = cigarette;
+        p.ember = ember;
         root.traverse((o) => {
           if (o.isMesh) o.castShadow = o.receiveShadow = true;
         });
@@ -397,6 +418,7 @@
         set('shoulderR', 0, 0.06);
         p.hips.position.y = 0.9;
         p.cup.visible = false;
+        p.cigarette.visible = false;
         const wave = Math.sin(phase * Math.PI * 2);
         if (kind === 'idle') {
           set('spine', 0.015 * wave);
@@ -448,6 +470,113 @@
           set('elbowR', -1.5 - 0.6 * lift);
           p.cup.visible = true;
         }
+        if (kind === 'smoke') {
+          // Zaciągnięcie: dłoń przy ustach w dwóch pierwszych klatkach, potem przy piersi. Kąty
+          // przy ustach dobrane tak, by nasada papierosa wypadła w ustach (FK ramienia).
+          const lift = SMOKE_LIFT[Math.round(phase * SMOKE_LIFT.length) % SMOKE_LIFT.length];
+          const mix = (low, high) => low + (high - low) * lift;
+          set('shoulderR', mix(-0.35, -1.5), mix(0.12, -0.055));
+          set('elbowR', mix(-1.1, -2.105), mix(0, -0.669));
+          set('shoulderL', 0.02 * wave, -0.06);
+          p.cigarette.visible = true;
+        }
+      }
+
+      // Papieros celuje zawsze w tę samą stronę względem postaci (od ust w przód i lekko w dół),
+      // niezależnie od ułożenia dłoni.
+      function aimCigarette(p) {
+        p.root.updateWorldMatrix(true, true);
+        const rootQ = p.root.getWorldQuaternion(new THREE.Quaternion());
+        const handQ = p.handR.getWorldQuaternion(new THREE.Quaternion());
+        const aim = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          new THREE.Vector3(-0.18, -0.05, 0.98).normalize(),
+        );
+        p.cigarette.quaternion.copy(handQ.invert().multiply(rootQ).multiply(aim));
+      }
+
+      // Dym wtopiony w klatki: kłęby to kilka low-poly brył, każda żyje jedną pętlę animacji
+      // (wiek liczony modulo liczba klatek, na końcu życia w pełni wygasa), więc pętla nie ma
+      // skoku. Wstążka unosi się z żaru przez całą pętlę, a wydech idzie z ust po zaciągnięciu.
+      function createSmoke(holder) {
+        const geometry = new THREE.IcosahedronGeometry(1, 1);
+        const puffs = [];
+        const puff = () => {
+          const mesh = new THREE.Mesh(
+            geometry,
+            new THREE.MeshBasicMaterial({ color: 0xf4f4f0, transparent: true, depthWrite: false }),
+          );
+          mesh.visible = false;
+          holder.add(mesh);
+          puffs.push(mesh);
+          return mesh;
+        };
+        // Współrzędne modelu w metrach; „w lewo na ekranie” dla kierunku py to (-x, +z).
+        const LEFT = new THREE.Vector3(-Math.SQRT1_2, 0, Math.SQRT1_2);
+        const UP = new THREE.Vector3(0, 1, 0);
+        const FORWARD = new THREE.Vector3(0, 0, 1);
+        const MOUTH = new THREE.Vector3(0, 1.615, 0.105);
+        return {
+          // Pozycje żaru we wszystkich klatkach — wstążka zaczyna się tam, gdzie żar był.
+          sampleEmbers(person, frames, seat) {
+            const embers = [];
+            for (let i = 0; i < frames; i++) {
+              pose(person, 'smoke', i / frames, seat);
+              aimCigarette(person);
+              person.root.updateWorldMatrix(true, true);
+              embers.push(holder.worldToLocal(person.ember.getWorldPosition(new THREE.Vector3())));
+            }
+            return embers;
+          },
+          show(embers, frame) {
+            const frames = embers.length;
+            let used = 0;
+            const put = (at, radius, opacity) => {
+              const mesh = puffs[used] ?? puff();
+              used += 1;
+              mesh.position.copy(at);
+              mesh.scale.setScalar(radius);
+              mesh.material.opacity = opacity;
+              mesh.visible = true;
+            };
+            const age = (born) => (((frame - born + frames) % frames) + 0.5) / frames;
+            // Wstążka z żaru: dwie bryły na klatkę, gęsto, żeby czytała się jako ciągła smuga.
+            for (let k = 0; k < frames * 2; k++) {
+              const born = k / 2;
+              const t = age(born);
+              const wobble = 0.02 * Math.sin((t + born / frames) * Math.PI * 4);
+              put(
+                embers[Math.floor(born)]
+                  .clone()
+                  .addScaledVector(UP, 0.02 + 0.55 * t)
+                  .addScaledVector(LEFT, 0.05 * t + wobble),
+                0.016 + 0.042 * t,
+                0.85 * Math.min(1, (1 - t) * 1.6),
+              );
+            }
+            // Wydech z ust po zaciągnięciu: kilka kłębów w chmurce.
+            for (const [born, side, rise] of [
+              [2, 0, 0],
+              [2, 0.05, -0.04],
+              [3, -0.03, 0.03],
+              [3, 0.06, 0],
+              [4, 0.02, -0.02],
+            ]) {
+              const t = age(born);
+              put(
+                MOUTH.clone()
+                  .addScaledVector(FORWARD, 0.05 + 0.14 * t)
+                  .addScaledVector(UP, 0.02 + rise + 0.42 * t)
+                  .addScaledVector(LEFT, 0.04 + side + 0.13 * t),
+                0.035 + 0.085 * t,
+                0.9 * Math.min(1, (1 - t) * 1.5),
+              );
+            }
+          },
+          hide() {
+            for (const mesh of puffs) mesh.visible = false;
+          },
+        };
       }
 
       // Atlas postaci: kierunki × animacje w jednej siatce klatek, zakodowany jako WebP z alfą.
@@ -465,7 +594,9 @@
         const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
         const frameWidth = Math.round(spec.box.w * k);
         const frameHeight = Math.round(spec.box.h * k);
-        const anchorX = Math.round(frameWidth / 2);
+        // `box.left` — odległość kotwicy od lewej krawędzi ramki; domyślnie środek.
+        const anchorX =
+          spec.box.left === undefined ? Math.round(frameWidth / 2) : Math.round(spec.box.left * k);
         const anchorY = Math.round(spec.box.up * k);
         Object.assign(camera, {
           left: -anchorX / k,
@@ -497,19 +628,46 @@
           layout[anim.name] = { start: column, frames: anim.frames };
           column += anim.frames;
         }
+        const smoke = createSmoke(holder);
         spec.facings.forEach((facing, row) => {
           holder.rotation.y = THREE.MathUtils.degToRad(facing.angle);
           for (const anim of spec.anims) {
             // Siedząca postać nie rzuca cienia na podłogę — cień daje mebel, na którym siedzi.
             scene.getObjectByName('shadow-floor').visible = !anim.seat;
+            const embers =
+              anim.name === 'smoke'
+                ? smoke.sampleEmbers(person, anim.frames, anim.seat ?? 0)
+                : null;
             for (let i = 0; i < anim.frames; i++) {
               pose(person, anim.name, i / anim.frames, anim.seat ?? 0);
+              if (embers) aimCigarette(person);
               renderer.render(scene, camera);
               ctx.drawImage(
                 renderer.domElement,
                 (layout[anim.name].start + i) * frameWidth,
                 row * frameHeight,
               );
+              if (embers) {
+                // Dym osobnym przebiegiem, zawsze przed postacią i lekko rozmyty — na małym
+                // obrazku bryły inaczej czytają się jak bańki. Przycięty do swojej klatki.
+                const x = (layout[anim.name].start + i) * frameWidth;
+                const y = row * frameHeight;
+                const floor = scene.getObjectByName('shadow-floor');
+                person.root.visible = false;
+                floor.visible = false;
+                smoke.show(embers, i);
+                renderer.render(scene, camera);
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x, y, frameWidth, frameHeight);
+                ctx.clip();
+                ctx.filter = 'blur(0.7px)';
+                ctx.drawImage(renderer.domElement, x, y);
+                ctx.restore();
+                smoke.hide();
+                person.root.visible = true;
+                floor.visible = !anim.seat;
+              }
             }
           }
         });
@@ -581,6 +739,42 @@
         // `tiles` — jeden prostokąt pól z płytkami albo lista (kilka pokoi; pola ścian działowych
         // i przejść między pokojami mają pas bez fug).
         const tileRects = [f.tiles].flat();
+        // Teren na zewnątrz budynku (dojście i taras): płytki na polach jak w pokojach, a pod nimi
+        // grubsza płyta — jej bok jest krawężnikiem tarasu. Bez wpływu na światło biura (`floor`).
+        const out = spec.outdoor;
+        if (out) {
+          for (const r of out.tiles) {
+            for (let z = r.z0; z < r.z1; z += 1) {
+              for (let x = r.x0; x < r.x1; x += 1) {
+                const color = out.colors[(x + z) % 2];
+                slab(x + gap / 2, z + gap / 2, x + 1 - gap / 2, z + 1 - gap / 2, -0.06, 0, color);
+              }
+            }
+          }
+          for (const r of out.strips) slab(r.x0, r.z0, r.x1, r.z1, -0.06, 0, out.border);
+          for (const r of [...out.tiles, ...out.strips])
+            slab(r.x0, r.z0, r.x1, r.z1, -0.18, -0.05, out.grout);
+          for (const r of out.plinths) slab(r.x0, r.z0, r.x1, r.z1, -0.18, 0, out.grout);
+          if (out.ashtray) {
+            const { x, z } = out.ashtray;
+            const cylinder = (radiusM, y0M, y1M, color) => {
+              const m = new THREE.Mesh(
+                new THREE.CylinderGeometry(T(radiusM), T(radiusM), T(y1M - y0M), 14),
+                meshMat(color),
+              );
+              m.position.set(x, T((y0M + y1M) / 2), z);
+              m.castShadow = true;
+              m.receiveShadow = true;
+              scene.add(m);
+            };
+            cylinder(0.13, 0, 0.03, 0x3a3d42); // podstawa
+            // Niska: sprite'y postaci leżą nad warstwą back, więc wyższa wchodziłaby na buty
+            // osoby stojącej za nią na polu (6,16).
+            cylinder(0.05, 0.03, 0.36, 0x4d5158); // słupek
+            cylinder(0.13, 0.36, 0.45, 0x5d6168); // misa
+            cylinder(0.11, 0.45, 0.452, 0xcfc8b4); // piasek
+          }
+        }
         for (const r of tileRects) {
           for (let z = r.z0; z < r.z1; z += 1) {
             for (let x = r.x0; x < r.x1; x += 1) {

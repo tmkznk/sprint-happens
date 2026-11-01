@@ -10,7 +10,13 @@ import { furnitureUsers, salePrice } from '../simulation/furniture';
 import { hasBadConditions, isUnhappy } from '../simulation/satisfaction';
 import { compareIds } from '../simulation/staff';
 import { ConfirmDialog } from './ConfirmDialog';
-import { EmployeeBio, EmployeeHead, EmployeeNeeds, EmployeeStatus } from './EmployeeCard';
+import {
+  EmployeeBio,
+  EmployeeHead,
+  EmployeeSmoking,
+  EmployeeNeeds,
+  EmployeeStatus,
+} from './EmployeeCard';
 import { sameEmployeeCard } from './employeeDisplay';
 import { FireEmployeeButton } from './FireEmployeeButton';
 import { FurnitureEditBar } from './FurnitureEditBar';
@@ -267,6 +273,7 @@ const EmployeePanel = memo(
         </EmployeeHead>
         <OrderRejectionLine id={employee.id} />
         <EmployeeBio employee={employee} />
+        <EmployeeSmoking employee={employee} />
         <EmployeeNeeds employee={employee} />
         <EmployeeStatus employeeId={employee.id} />
         <EmployeeAlerts employeeId={employee.id} />

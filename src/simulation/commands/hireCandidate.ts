@@ -2,6 +2,7 @@ import { fillMarket, MAX_ENERGY, SATISFACTION_SCALE, type Employee } from '../..
 import { allocateId } from '../../domain/ids';
 import type { GameState } from '../../domain/state';
 import { canHire, registerWageDue } from '../finance';
+import { markCigarettesHandled } from '../smoking';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
 import { reject, type CommandHandler, type HireCandidateCommand } from './types';
 
@@ -17,7 +18,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
     if (!candidate) return reject('unknownCandidate');
 
     const allocated = allocateId(state.ids, 'employee');
-    const employee: Employee = {
+    const newcomer: Employee = {
       id: allocated.id,
       personId: candidate.personId,
       name: candidate.name,
@@ -34,7 +35,10 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       lowSatisfactionMs: 0,
       breakHold: false,
       orderedRest: false,
+      cigarettesHandled: 0,
     };
+    // Zatrudniony w trakcie dnia nie ma zaległych papierosów.
+    const employee = markCigarettesHandled(state, newcomer);
 
     // EMP-03: rynek nie traci specjalisty — na miejsce zatrudnionego wchodzi kolejna osoba
     // z listy postaci tej samej specjalizacji i seniority (bez osób, które odeszły z firmy).

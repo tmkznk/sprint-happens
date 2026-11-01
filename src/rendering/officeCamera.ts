@@ -18,7 +18,10 @@ const MAX_ZOOM = 3;
 const WHEEL_ZOOM_SPEED = 0.0015;
 
 export type OfficeCameraOptions = {
+  // Dokąd sięga przesuwanie (cała scena).
   bounds: Bounds;
+  // Co pokazuje widok startowy i od czego liczy się dopasowanie zoomu.
+  fitBounds: Bounds;
   onTap(world: ScreenPoint): void;
 };
 
@@ -45,14 +48,14 @@ export function attachOfficeCamera(scene: Phaser.Scene, options: OfficeCameraOpt
 
   const fit = () => {
     const view = readView();
-    const zoom = fitZoom(view, options.bounds);
+    const zoom = fitZoom(view, options.fitBounds);
     minZoom = zoom * MIN_ZOOM_OF_FIT;
     applyView(
       centerOn(
         { ...view, zoom },
         {
-          x: (options.bounds.left + options.bounds.right) / 2,
-          y: (options.bounds.top + options.bounds.bottom) / 2,
+          x: (options.fitBounds.left + options.fitBounds.right) / 2,
+          y: (options.fitBounds.top + options.fitBounds.bottom) / 2,
         },
       ),
     );
@@ -60,7 +63,7 @@ export function attachOfficeCamera(scene: Phaser.Scene, options: OfficeCameraOpt
 
   const onResize = () => {
     const view = readView();
-    minZoom = fitZoom(view, options.bounds) * MIN_ZOOM_OF_FIT;
+    minZoom = fitZoom(view, options.fitBounds) * MIN_ZOOM_OF_FIT;
     applyView({ ...view, zoom: Math.min(Math.max(view.zoom, minZoom), MAX_ZOOM) });
   };
 
