@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react';
+import { Maximize2, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useBalanceConfig, useGameSelector } from '../application/engineHooks';
 import { useOrderFeedback } from '../application/orderFeedbackHooks';
@@ -56,8 +56,14 @@ export function SelectionStrip({ id, onExpand }: { id: EmployeeId; onExpand(): v
             <b>{energy}%</b>
           </span>
         </div>
-        <button type="button" className="primary-button strip-card" onClick={onExpand}>
-          Karta ▸
+        <button
+          type="button"
+          className="strip-close"
+          onClick={onExpand}
+          aria-label="Pokaż pełną kartę"
+          title="Pokaż pełną kartę"
+        >
+          <Maximize2 size={18} aria-hidden="true" />
         </button>
         <button type="button" className="strip-close" onClick={clear} aria-label="Odznacz">
           ✕

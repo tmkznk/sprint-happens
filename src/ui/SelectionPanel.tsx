@@ -1,4 +1,4 @@
-import { ChevronLeft } from 'lucide-react';
+import { Minimize2 } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../application/engineHooks';
 import { useFurnitureEdit, useFurnitureEditStore } from '../application/furnitureEditHooks';
@@ -235,7 +235,7 @@ function takenDesksKey(state: GameState): string {
 }
 
 // Zaznaczona postać: domyślnie niski pasek (scena zostaje odsłonięta do wskazania celu),
-// „Karta ▸” rozwija pełną kartę, „◂ Pasek” zwija ją z powrotem. Zwolniona lub odchodząca osoba
+// ikona maksymalizacji rozwija pełną kartę, ikona minimalizacji zwija ją z powrotem. Zwolniona lub odchodząca osoba
 // znika z zaznaczenia.
 function EmployeeSelection({ id }: { id: EmployeeId }) {
   const exists = useGameSelector((state) => state.staff.employees[id] !== undefined);
@@ -264,8 +264,14 @@ const EmployeePanel = memo(
     return (
       <section className="selection-panel employee-panel" aria-label={employee.name}>
         <EmployeeHead employee={employee}>
-          <button type="button" className="panel-collapse" onClick={onCollapse}>
-            <ChevronLeft size={14} aria-hidden="true" /> Pasek
+          <button
+            type="button"
+            className="panel-close"
+            onClick={onCollapse}
+            aria-label="Zwiń do paska"
+            title="Zwiń do paska"
+          >
+            <Minimize2 size={18} aria-hidden="true" />
           </button>
           <button type="button" className="panel-close" onClick={clear} aria-label="Zamknij">
             ✕

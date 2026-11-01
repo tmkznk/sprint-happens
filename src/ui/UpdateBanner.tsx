@@ -34,7 +34,12 @@ export function UpdateBanner({ engine, manager }: { engine: Engine; manager: Sav
         <button type="button" className="secondary-button" onClick={() => setDismissed(true)}>
           Później
         </button>
-        <button type="button" disabled={busy} onClick={() => void update()}>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={busy}
+          onClick={() => void update()}
+        >
           {busy ? 'Zapisywanie…' : 'Zapisz i zaktualizuj'}
         </button>
       </div>

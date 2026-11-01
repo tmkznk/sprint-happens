@@ -1989,11 +1989,6 @@ progress::-moz-progress-bar {
   font-weight: 700;
 }
 
-.primary-button.strip-card {
-  flex: none;
-  padding: 0 11px;
-}
-
 .strip-close {
   flex: none;
   min-width: 36px;
@@ -2007,22 +2002,6 @@ progress::-moz-progress-bar {
 .strip-rejection {
   margin: 6px 0 0;
   font-size: var(--fs-small);
-}
-
-.employee-panel .panel-collapse {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  align-self: flex-start;
-  min-height: 30px;
-  margin-top: -4px;
-  padding: 0 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: var(--paper);
-  color: var(--ink);
-  font-size: var(--fs-label);
 }
 
 .employee-panel .panel-close {
