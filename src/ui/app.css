@@ -2391,10 +2391,12 @@ progress::-moz-progress-bar {
     font-size: 12px;
   }
 
+  /* Pasek i pełna karta mają inne odstępy, więc szerokość liczona razem z nimi. */
   .selection-panel,
   .selection-strip {
     right: auto;
-    width: min(400px, calc(100% - 24px));
+    box-sizing: border-box;
+    width: min(430px, calc(100% - 24px));
   }
 
   .scene-bottom:has(> .selection-strip):has(> .prologue-card) {
