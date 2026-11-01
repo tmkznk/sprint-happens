@@ -23,7 +23,16 @@ import {
 // Wspólne części karty pracownika (wzór karty z SH2) — zakładka Zespół i panel w biurze.
 
 // Nagłówek: awatar, imię, stanowisko · poziom, dniówka; `children` — np. przycisk zamknięcia.
-export function EmployeeHead({ employee, children }: { employee: Employee; children?: ReactNode }) {
+// `wageBelowRole` — dniówka pod stanowiskiem, gdy po prawej stoją ikony.
+export function EmployeeHead({
+  employee,
+  wageBelowRole = false,
+  children,
+}: {
+  employee: Employee;
+  wageBelowRole?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <div className="employee-head">
       <Avatar person={employee} size={42} />
@@ -32,11 +41,16 @@ export function EmployeeHead({ employee, children }: { employee: Employee; child
         <p>
           {SPECIALIZATION_LABELS[employee.specialization]} · {SENIORITY_LABELS[employee.seniority]}
         </p>
+        {wageBelowRole && (
+          <p className="employee-wage-line">{money.format(employee.dailyWage)} zł / dzień</p>
+        )}
       </div>
-      <strong className="employee-wage">
-        {money.format(employee.dailyWage)} zł
-        <small>/ dzień</small>
-      </strong>
+      {!wageBelowRole && (
+        <strong className="employee-wage">
+          {money.format(employee.dailyWage)} zł
+          <small>/ dzień</small>
+        </strong>
+      )}
       {children}
     </div>
   );

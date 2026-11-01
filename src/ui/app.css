@@ -1659,6 +1659,11 @@ progress::-moz-progress-bar {
   font-size: var(--fs-label);
 }
 
+.employee-name .employee-wage-line {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .employee-wage {
   flex: none;
   color: var(--ink);

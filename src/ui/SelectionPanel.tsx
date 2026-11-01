@@ -263,7 +263,7 @@ const EmployeePanel = memo(
     const clear = useClearSelection();
     return (
       <section className="selection-panel employee-panel" aria-label={employee.name}>
-        <EmployeeHead employee={employee}>
+        <EmployeeHead employee={employee} wageBelowRole>
           <button
             type="button"
             className="panel-close"
