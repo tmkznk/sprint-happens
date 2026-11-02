@@ -124,7 +124,9 @@ function Offers({
       <EmptyState
         icon={<Briefcase size={40} />}
         title="Tablica jest pusta"
-        text={prologue ? LOCKS.rest : 'Nowe oferty pojawią się następnego dnia.'}
+        text={
+          prologue ? LOCKS.rest : 'Nowe oferty pojawią się następnego dnia lub po oddaniu projektu.'
+        }
       />
     );
   }

@@ -54,12 +54,14 @@ export function maxOfferLevel(deliveredCount: number): 1 | 2 | 3 {
 export type BoardState = { offers: Offer[]; ids: IdSequence; rng: RngState };
 
 // CON-01 (Z): tablica ma stałą liczbę miejsc; wolne miejsca uzupełnia losowanie z ziarnem
-// (TIME-T04). Na tablicy nie ma dwóch ofert z tego samego szablonu (SH-032 A3a).
+// (TIME-T04). Na tablicy nie ma dwóch ofert z tego samego szablonu (SH-032 A3a), a szablon raz
+// przyjętego zlecenia nie wraca (decyzja właściciela 2026-11-02, zmienia A3a). Gdy szablony
+// dostępnego poziomu się skończą, tablica zostaje niepełna.
 export function fillBoard(
   board: BoardState,
   deliveredCount: number,
   config: BalanceConfig,
-  options: { guaranteeStarter?: boolean } = {},
+  options: { guaranteeStarter?: boolean; acceptedTemplateIds?: ReadonlySet<string> } = {},
 ): BoardState {
   let { offers, ids, rng } = board;
   offers = [...offers];
@@ -78,7 +80,9 @@ export function fillBoard(
   const maxLevel = maxOfferLevel(deliveredCount);
   while (offers.length < config.contracts.boardSize) {
     const onBoard = new Set(offers.map((offer) => offer.templateId));
-    const available = CONTRACT_TEMPLATES.filter((t) => t.level <= maxLevel && !onBoard.has(t.id));
+    const available = CONTRACT_TEMPLATES.filter(
+      (t) => t.level <= maxLevel && !onBoard.has(t.id) && !options.acceptedTemplateIds?.has(t.id),
+    );
     if (available.length === 0) break;
     const draw = nextRandom(rng);
     rng = draw.state;

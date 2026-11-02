@@ -188,6 +188,41 @@ describe('AcceptOffer (CON-03, FIN-01, TIME-08)', () => {
     expect(new Set(next.contracts.offers.map((o) => o.templateId)).size).toBe(3);
   });
 
+  it('przyjęte zlecenie nie wraca na tablicę — ani w trakcie prac, ani po oddaniu', () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const engine = engineFor(createInitialState(DEFAULT_BALANCE, seed));
+      const accepted = engine.getState().contracts.offers[0];
+      if (!accepted) throw new Error('brak oferty');
+      engine.dispatch({ type: 'AcceptOffer', offerId: accepted.id });
+      const state = engine.getState();
+      const project = Object.values(state.contracts.projects)[0];
+      if (!project) throw new Error('brak projektu');
+
+      const whileActive = toNextDay(state);
+      const afterDelivery = toNextDay({
+        ...state,
+        contracts: {
+          ...state.contracts,
+          projects: { [project.id]: { ...project, status: 'delivered' } },
+          deliveredCount: 1,
+        },
+      });
+
+      for (const { contracts } of [whileActive, afterDelivery]) {
+        expect(contracts.offers.map((o) => o.templateId)).not.toContain(accepted.templateId);
+      }
+    }
+  });
+
+  it('gdy szablony się skończą, tablica zostaje niepełna', () => {
+    const levelOne = CONTRACT_TEMPLATES.filter((t) => t.level === 1).map((t) => t.id);
+    const board = fillBoard({ offers: [], ids: {}, rng: 1 }, 0, DEFAULT_BALANCE, {
+      acceptedTemplateIds: new Set(levelOne.slice(1)),
+    });
+
+    expect(board.offers.map((o) => o.templateId)).toEqual([levelOne[0]]);
+  });
+
   it('nieprzyjęte oferty nie wygasają (SH-032 A3c)', () => {
     let state = testState();
     const ids = state.contracts.offers.map((o) => o.id);

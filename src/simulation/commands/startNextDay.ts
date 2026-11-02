@@ -15,6 +15,11 @@ export const startNextDay: CommandHandler<StartNextDayCommand> = {
       { offers: [...state.contracts.offers], ids: state.ids, rng: state.rng },
       state.contracts.deliveredCount,
       config,
+      {
+        acceptedTemplateIds: new Set(
+          Object.values(state.contracts.projects).map((project) => project.templateId),
+        ),
+      },
     );
     const next: typeof state = {
       ...state,
