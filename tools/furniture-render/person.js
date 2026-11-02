@@ -411,8 +411,8 @@ function addHair(head, onFace, hairStyle, hairMat, accentMat) {
     fringe(0.042, 0.034);
     nape();
     sideburns();
-    add(ball(0.058, 0.054, 0.058, hairMat, 0, 0.248, -0.062));
-    add(ball(0.03, 0.012, 0.03, accentMat, 0, 0.207, -0.048));
+    add(ball(0.052, 0.048, 0.052, hairMat, 0, 0.226, -0.066));
+    add(ball(0.03, 0.012, 0.03, accentMat, 0, 0.19, -0.052));
   }
   if (hairStyle === 'ponytail') {
     cap();
@@ -443,7 +443,7 @@ function addHair(head, onFace, hairStyle, hairMat, accentMat) {
     cap(-0.42);
     nape();
     sideburns();
-    const quiff = ball(0.072, 0.04, 0.056, hairMat, 0, 0.232, 0.052);
+    const quiff = ball(0.072, 0.036, 0.05, hairMat, 0, 0.212, 0.07);
     quiff.rotation.x = -0.5;
     add(quiff);
   }

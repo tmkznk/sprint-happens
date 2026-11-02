@@ -12,10 +12,11 @@ import {
   sheetOrigin,
   type SheetMeta,
 } from './characterSheets';
+import { firstNameOf, NAME_TAG, nameTagSize } from './nameTag';
 import { SELECTION_MARKER_COLOR } from './placeholderStyle';
-import { CHARACTER_SHADOW_DEPTH, gridToScreen } from './projection';
+import { CHARACTER_RING_DEPTH, CHARACTER_SHADOW_DEPTH, gridToScreen } from './projection';
 
-// Własne postacie low poly pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
+// Własne postacie pre-renderowane do atlasów WebP (tools/furniture-render), jeden atlas
 // na osobę z listy postaci: wiersz = kierunek, kolumny = klatki kolejnych animacji.
 const ATLAS_URLS = import.meta.glob<string>('../assets/characters/*.webp', {
   eager: true,
@@ -120,41 +121,58 @@ function createAnimations<Kind extends PoseKind>(
 
 const WARNING_STATUSES: readonly AgentStatus[] = ['noRoute', 'deadlocked'];
 
-// Znacznik zaznaczenia (wariant D): pulsujący pierścień pod stopami i unosząca się strzałka nad
-// głową. Animują je tweeny (alfa, przesunięcie) — Graphics pierścienia przerysowujemy tylko przy
-// zmianie znacznika, a strzałka to tekstura wygenerowana raz na scenę.
-const CHEVRON_TEXTURE = 'selection-chevron';
-const CHEVRON_WIDTH = 16;
-const CHEVRON_HEIGHT = 12;
-// Strzałka nad czubkiem klatki postaci (punkt zaczepienia jest przy stopach).
-const CHEVRON_GAP = 2;
-// Siedząca postać jest niższa niż klatka — strzałka schodzi do głowy (px świata, z oka).
-const SEATED_CHEVRON_DROP = 20;
+// Znacznik zaznaczenia: pulsujący pierścień na podłodze i unoszący się dymek z imieniem nad głową.
+// Animują je tweeny (alfa, przesunięcie) — Graphics pierścienia przerysowujemy tylko przy zmianie
+// znacznika, a dymek to tekstura tworzona raz na imię, przy pierwszym zaznaczeniu.
+const NAME_TAG_TEXTURE_PREFIX = 'name-tag-';
+const NAME_TAG_SCALE = 2;
+const NAME_TAG_TEXT_COLOR = '#0d3321';
+const NAME_TAG_FONT = `600 ${String(NAME_TAG.fontSize * NAME_TAG_SCALE)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, ui-sans-serif, system-ui, sans-serif`;
+// Dymek nad czubkiem klatki postaci (punkt zaczepienia jest przy stopach).
+const NAME_TAG_GAP = 2;
+// Siedząca postać jest niższa niż klatka — dymek schodzi do głowy (px świata, z pomiaru atlasów).
+const SEATED_NAME_TAG_DROP = 16;
 const SEATED_POSES: readonly PoseKind[] = ['sitChair', 'typing', 'sitSofa'];
 const MARKER_PULSE_MS = 1400;
-const CHEVRON_LIFT = 6;
-// Strzałka to element interfejsu — zawsze nad biurem, także nad przednimi ścianami.
-const CHEVRON_DEPTH = 2_000_000;
+const NAME_TAG_LIFT = 3;
+// Dymek to element interfejsu — zawsze nad biurem, także nad przednimi ścianami.
+const NAME_TAG_DEPTH = 2_000_000;
 
-function ensureChevronTexture(scene: Phaser.Scene): void {
-  if (scene.textures.exists(CHEVRON_TEXTURE)) return;
-  const pad = 2;
-  const w = CHEVRON_WIDTH;
-  const h = CHEVRON_HEIGHT;
-  // Gruby „V” skierowany w dół.
-  const points = [
-    { x: pad, y: pad },
-    { x: pad + w * 0.32, y: pad },
-    { x: pad + w / 2, y: pad + h * 0.5 },
-    { x: pad + w * 0.68, y: pad },
-    { x: pad + w, y: pad },
-    { x: pad + w / 2, y: pad + h },
-  ].map((point) => new Phaser.Math.Vector2(point.x, point.y));
-  const graphics = scene.make.graphics({}, false);
-  graphics.fillStyle(SELECTION_MARKER_COLOR, 1).fillPoints(points, true);
-  graphics.generateTexture(CHEVRON_TEXTURE, w + pad * 2, h + pad * 2);
-  graphics.destroy();
-  scene.textures.get(CHEVRON_TEXTURE).setFilter(Phaser.Textures.FilterMode.LINEAR);
+function ensureNameTagTexture(scene: Phaser.Scene, label: string): string {
+  const key = `${NAME_TAG_TEXTURE_PREFIX}${label}`;
+  if (scene.textures.exists(key)) return key;
+  const measure = document.createElement('canvas').getContext('2d');
+  if (!measure) return key;
+  measure.font = NAME_TAG_FONT;
+  const size = nameTagSize(measure.measureText(label).width / NAME_TAG_SCALE);
+  const texture = scene.textures.createCanvas(
+    key,
+    size.width * NAME_TAG_SCALE,
+    size.height * NAME_TAG_SCALE,
+  );
+  if (!texture) return key;
+  const g = texture.getContext();
+  const width = size.width * NAME_TAG_SCALE;
+  const height = NAME_TAG.height * NAME_TAG_SCALE;
+  const tail = (NAME_TAG.tailWidth * NAME_TAG_SCALE) / 2;
+  g.fillStyle = `#${SELECTION_MARKER_COLOR.toString(16).padStart(6, '0')}`;
+  g.beginPath();
+  g.roundRect(0, 0, width, height, height / 2);
+  g.fill();
+  g.beginPath();
+  g.moveTo(width / 2 - tail, height - 1);
+  g.lineTo(width / 2 + tail, height - 1);
+  g.lineTo(width / 2, size.height * NAME_TAG_SCALE);
+  g.closePath();
+  g.fill();
+  g.fillStyle = NAME_TAG_TEXT_COLOR;
+  g.font = NAME_TAG_FONT;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(label, width / 2, height / 2 + 1);
+  texture.refresh();
+  texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  return key;
 }
 
 export type CharacterSprite = {
@@ -162,7 +180,9 @@ export type CharacterSprite = {
   shadow: Phaser.GameObjects.Image;
   shadowReady: boolean;
   ring: Phaser.GameObjects.Graphics;
-  chevron: Phaser.GameObjects.Image;
+  // Dymek z imieniem: tekstura ustawiana przy pierwszym zaznaczeniu.
+  nameTag: Phaser.GameObjects.Image;
+  nameTagReady: boolean;
   personId: PersonId;
   ready: boolean;
   // Atlas palenia: 'none' — jeszcze nieproszony; 'loading' — w toku (albo osoba nie ma atlasu).
@@ -172,14 +192,13 @@ export type CharacterSprite = {
   ringKey: string;
   // Tweeny znacznika zaznaczenia — działają tylko dla zaznaczonej postaci.
   markerTweens: Phaser.Tweens.Tween[];
-  // Bieżące uniesienie strzałki (animowane tweenem, stosowane przy ustawianiu pozycji).
+  // Bieżące uniesienie dymka (animowane tweenem, stosowane przy ustawianiu pozycji).
   lift: { value: number };
   destroy(): void;
 };
 
 export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): CharacterSprite {
-  ensureChevronTexture(scene);
-  const ring = scene.add.graphics();
+  const ring = scene.add.graphics().setDepth(CHARACTER_RING_DEPTH);
   const shadow = scene.add
     .image(0, 0, '__MISSING')
     .setOrigin(
@@ -194,17 +213,19 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
     .setOrigin(SHEET.anchorX / SHEET.frameWidth, SHEET.anchorY / SHEET.frameHeight)
     .setScale(1 / SHEET.scale)
     .setVisible(false);
-  const chevron = scene.add
-    .image(0, 0, CHEVRON_TEXTURE)
+  const nameTag = scene.add
+    .image(0, 0, '__MISSING')
     .setOrigin(0.5, 1)
-    .setDepth(CHEVRON_DEPTH)
+    .setScale(1 / NAME_TAG_SCALE)
+    .setDepth(NAME_TAG_DEPTH)
     .setVisible(false);
   const sprite: CharacterSprite = {
     body,
     shadow,
     shadowReady: false,
     ring,
-    chevron,
+    nameTag,
+    nameTagReady: false,
     personId,
     ready: false,
     smoke: 'none',
@@ -217,7 +238,7 @@ export function createCharacterSprite(scene: Phaser.Scene, personId: PersonId): 
       body.destroy();
       shadow.destroy();
       ring.destroy();
-      chevron.destroy();
+      nameTag.destroy();
     },
   };
   ensureShadowTexture(scene, () => {
@@ -253,7 +274,7 @@ function startMarkerTweens(sprite: CharacterSprite): void {
     }),
     tweens.add({
       targets: sprite.lift,
-      value: { from: 0, to: CHEVRON_LIFT },
+      value: { from: 0, to: NAME_TAG_LIFT },
       duration: MARKER_PULSE_MS / 2,
       ease: 'Sine.easeInOut',
       yoyo: true,
@@ -316,15 +337,21 @@ export function placeCharacterSprite(
   // Niewidoczna za ścianą: bez znaczników, które zdradzałyby ją przez ścianę.
   const visible = pose.alpha > 0;
   sprite.ring.setVisible(visible && (warning || selected));
-  sprite.ring.setPosition(screen.x, screen.y).setDepth(pose.depth - 0.001);
-  sprite.chevron.setVisible(visible && selected);
+  sprite.ring.setPosition(screen.x, screen.y);
+  if (selected && !sprite.nameTagReady) {
+    sprite.nameTag.setTexture(
+      ensureNameTagTexture(sprite.nameTag.scene, firstNameOf(sprite.personId)),
+    );
+    sprite.nameTagReady = true;
+  }
+  sprite.nameTag.setVisible(visible && selected);
   if (selected) {
-    sprite.chevron.setPosition(
+    sprite.nameTag.setPosition(
       screen.x,
       screen.y -
         SHEET.anchorY / SHEET.scale -
-        CHEVRON_GAP +
-        (SEATED_POSES.includes(pose.kind) ? SEATED_CHEVRON_DROP : 0) -
+        NAME_TAG_GAP +
+        (SEATED_POSES.includes(pose.kind) ? SEATED_NAME_TAG_DROP : 0) -
         sprite.lift.value,
     );
   }

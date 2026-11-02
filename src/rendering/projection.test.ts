@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHARACTER_RING_DEPTH,
+  CHARACTER_SHADOW_DEPTH,
   cellAtScreen,
   cellCenter,
   depthOfFootprint,
@@ -10,6 +12,15 @@ import {
 } from './projection';
 
 describe('projection', () => {
+  it('znacznik pod stopami leży nad cieniem i pod każdym obiektem biura', () => {
+    expect(CHARACTER_RING_DEPTH).toBeGreaterThan(CHARACTER_SHADOW_DEPTH);
+    // Najniższy punkt świata: dojście na zewnątrz biura (x −2, y 10).
+    expect(CHARACTER_RING_DEPTH).toBeLessThan(depthOfPoint({ x: -2, y: 10 }));
+    expect(CHARACTER_RING_DEPTH).toBeLessThan(
+      depthOfFootprint({ x: 0, y: 0 }, { width: 1, height: 1 }),
+    );
+  });
+
   it('rzutuje według ART-04: screenX = (x−y)·32, screenY = (x+y)·16', () => {
     expect(gridToScreen({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
     expect(gridToScreen({ x: 1, y: 0 })).toEqual({ x: 32, y: 16 });

@@ -15,6 +15,9 @@ export const ROOM_FRONT_DEPTH = 1_000_000;
 // Podłoga pod całą sceną; cienie postaci leżą tuż nad nią, więc nigdy nie wchodzą na meble.
 export const FLOOR_DEPTH = -1000;
 export const CHARACTER_SHADOW_DEPTH = FLOOR_DEPTH + 0.5;
+// Znacznik pod stopami leży na podłodze, nad cieniem: meble zawsze go przykrywają, także przy
+// siedzącej postaci, której głębokość jest większa niż krzesła.
+export const CHARACTER_RING_DEPTH = CHARACTER_SHADOW_DEPTH + 0.1;
 
 export function gridToScreen(point: GridPoint): ScreenPoint {
   return {
