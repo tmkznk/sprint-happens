@@ -17,6 +17,7 @@
       import * as THREE from 'three';
       import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
       import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+      import { buildPerson, MOUTH } from './person.js';
 
       const cache = new Map();
       async function loadModel(name) {
@@ -294,120 +295,9 @@
         return camera;
       }
 
-      // Własna postać low poly (proporcje ~1,72 m, płaskie cieniowanie jak meble VNB):
-      // hierarchia stawów, pozy liczone w kodzie. Postać patrzy w stronę +Z.
-      const mat = (color) =>
-        new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true });
-      function box(w, h, d, color, y = 0, z = 0, x = 0) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
-        m.position.set(x, y, z);
-        return m;
-      }
-      function limb(rTop, rBottom, len, color) {
-        const g = new THREE.CylinderGeometry(rTop, rBottom, len, 7);
-        g.translate(0, -len / 2, 0);
-        return new THREE.Mesh(g, mat(color));
-      }
-      function joint(parent, x, y, z = 0) {
-        const j = new THREE.Group();
-        j.position.set(x, y, z);
-        parent.add(j);
-        return j;
-      }
-
-      const CIGARETTE_LENGTH = 0.14;
+      const CHARACTER_SUPERSAMPLE = 3;
       // Uniesienie dłoni z papierosem w kolejnych klatkach animacji `smoke` (1 = przy ustach).
       const SMOKE_LIFT = [1, 1, 0.5, 0, 0, 0.5];
-
-      function buildPerson(look) {
-        const { skin, shirt, pants, shoes = 0x2b2b2b, hair, hairStyle, glasses } = look;
-        const root = new THREE.Group();
-        const hips = joint(root, 0, 0.9);
-        hips.add(box(0.3, 0.14, 0.18, pants, -0.02));
-        const p = { root, hips };
-        for (const [side, s] of [
-          [-1, 'L'],
-          [1, 'R'],
-        ]) {
-          const thigh = joint(hips, side * 0.085, -0.04);
-          thigh.add(limb(0.07, 0.06, 0.42, pants));
-          const knee = joint(thigh, 0, -0.42);
-          knee.add(limb(0.055, 0.045, 0.4, pants));
-          const ankle = joint(knee, 0, -0.4);
-          ankle.add(box(0.1, 0.07, 0.24, shoes, -0.03, 0.05));
-          p[`thigh${s}`] = thigh;
-          p[`knee${s}`] = knee;
-        }
-        const spine = joint(hips, 0, 0.05);
-        spine.add(box(0.34, 0.5, 0.2, shirt, 0.25));
-        spine.add(box(0.38, 0.1, 0.21, shirt, 0.46));
-        p.spine = spine;
-        const neck = joint(spine, 0, 0.52);
-        neck.add(box(0.08, 0.08, 0.08, skin, 0.03));
-        const head = joint(neck, 0, 0.07);
-        head.add(box(0.19, 0.23, 0.2, skin, 0.115));
-        for (const side of [-1, 1])
-          head.add(box(0.025, 0.03, 0.01, 0x2a2420, 0.13, 0.101, side * 0.045));
-        if (glasses) head.add(box(0.17, 0.035, 0.02, 0x222222, 0.13, 0.105));
-        const H = (w, h, d, y, z = 0, x = 0) => head.add(box(w, h, d, hair, y, z, x));
-        if (hairStyle !== 'bald') H(0.21, 0.07, 0.22, 0.235, -0.005);
-        if (['short', 'beard', 'quiff', 'bun', 'ponytail'].includes(hairStyle))
-          H(0.21, 0.1, 0.05, 0.17, -0.09);
-        if (hairStyle === 'quiff') H(0.17, 0.06, 0.08, 0.28, 0.06);
-        if (hairStyle === 'bald') H(0.2, 0.06, 0.05, 0.12, -0.085);
-        if (hairStyle === 'beard') H(0.17, 0.07, 0.03, 0.035, 0.095);
-        if (hairStyle === 'long') {
-          H(0.22, 0.32, 0.07, 0.07, -0.085);
-          H(0.04, 0.24, 0.16, 0.1, -0.02, 0.105);
-          H(0.04, 0.24, 0.16, 0.1, -0.02, -0.105);
-        }
-        if (hairStyle === 'bob') {
-          H(0.22, 0.17, 0.06, 0.15, -0.085);
-          H(0.04, 0.15, 0.17, 0.15, -0.015, 0.105);
-          H(0.04, 0.15, 0.17, 0.15, -0.015, -0.105);
-        }
-        if (hairStyle === 'bun') H(0.1, 0.1, 0.1, 0.27, -0.1);
-        if (hairStyle === 'ponytail') H(0.07, 0.22, 0.07, 0.06, -0.13);
-        for (const [side, s] of [
-          [-1, 'L'],
-          [1, 'R'],
-        ]) {
-          const shoulder = joint(spine, side * 0.215, 0.45);
-          shoulder.add(limb(0.05, 0.045, 0.29, shirt));
-          const elbow = joint(shoulder, 0, -0.29);
-          elbow.add(limb(0.043, 0.036, 0.25, skin));
-          const hand = joint(elbow, 0, -0.25);
-          hand.add(box(0.06, 0.09, 0.08, skin, -0.04));
-          p[`shoulder${s}`] = shoulder;
-          p[`elbow${s}`] = elbow;
-          p[`hand${s}`] = hand;
-        }
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.09, 8), mat(0xf4f1ea));
-        cup.position.set(0, -0.09, 0.03);
-        p.handR.add(cup);
-        p.cup = cup;
-        // Papieros w prawej dłoni: trzymany w 1/3 długości; kierunek ustawia aimCigarette.
-        const cigarette = new THREE.Group();
-        cigarette.position.set(0, -0.08, 0.02);
-        const paper = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.014, 0.014, CIGARETTE_LENGTH, 6),
-          mat(0xf6f1e6),
-        );
-        paper.position.y = CIGARETTE_LENGTH / 6;
-        const ember = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.017, 0.017, 0.035, 6),
-          new THREE.MeshBasicMaterial({ color: 0xff5a1f }),
-        );
-        ember.position.y = (CIGARETTE_LENGTH * 2) / 3;
-        cigarette.add(paper, ember);
-        p.handR.add(cigarette);
-        p.cigarette = cigarette;
-        p.ember = ember;
-        root.traverse((o) => {
-          if (o.isMesh) o.castShadow = o.receiveShadow = true;
-        });
-        return p;
-      }
 
       // Pozy (kąty w radianach; obrót wokół X: ujemny = do przodu). `seat` — wysokość siedziska (m).
       function pose(p, kind, phase, seat) {
@@ -475,8 +365,8 @@
           // przy ustach dobrane tak, by nasada papierosa wypadła w ustach (FK ramienia).
           const lift = SMOKE_LIFT[Math.round(phase * SMOKE_LIFT.length) % SMOKE_LIFT.length];
           const mix = (low, high) => low + (high - low) * lift;
-          set('shoulderR', mix(-0.35, -1.5), mix(0.12, -0.055));
-          set('elbowR', mix(-1.1, -2.105), mix(0, -0.669));
+          set('shoulderR', mix(-0.35, -1.428), mix(0.12, -0.133));
+          set('elbowR', mix(-1.1, -1.84), mix(0, -0.569));
           set('shoulderL', 0.02 * wave, -0.06);
           p.cigarette.visible = true;
         }
@@ -515,7 +405,6 @@
         const LEFT = new THREE.Vector3(-Math.SQRT1_2, 0, Math.SQRT1_2);
         const UP = new THREE.Vector3(0, 1, 0);
         const FORWARD = new THREE.Vector3(0, 0, 1);
-        const MOUTH = new THREE.Vector3(0, 1.615, 0.105);
         return {
           // Pozycje żaru we wszystkich klatkach — wstążka zaczyna się tam, gdzie żar był.
           sampleEmbers(person, frames, seat) {
@@ -592,6 +481,10 @@
         holder.add(person.root);
         scene.add(holder);
         const camera = stage(scene, new THREE.Vector3(0, 0, 0), 3);
+        // Gładkie powierzchnie: bez tego cień własny robi pasy na krągłościach.
+        scene.traverse((node) => {
+          if (node.isDirectionalLight) node.shadow.normalBias = 0.012;
+        });
         const frameWidth = Math.round(spec.box.w * k);
         const frameHeight = Math.round(spec.box.h * k);
         // `box.left` — odległość kotwicy od lewej krawędzi ramki; domyślnie środek.
@@ -611,7 +504,8 @@
           preserveDrawingBuffer: true,
         });
         renderer.setPixelRatio(1);
-        renderer.setSize(frameWidth, frameHeight);
+        // Nadpróbkowanie: render większy niż klatka — tekstury i drobne rysy twarzy bez migotania.
+        renderer.setSize(frameWidth * CHARACTER_SUPERSAMPLE, frameHeight * CHARACTER_SUPERSAMPLE);
         renderer.setClearColor(0x000000, 0);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -622,6 +516,7 @@
         atlas.width = frameWidth * columns;
         atlas.height = frameHeight * spec.facings.length;
         const ctx = atlas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
         const layout = {};
         let column = 0;
         for (const anim of spec.anims) {
@@ -656,6 +551,8 @@
                 renderer.domElement,
                 (layout[anim.name].start + i) * frameWidth,
                 row * frameHeight,
+                frameWidth,
+                frameHeight,
               );
               if (embers) {
                 // Dym osobnym przebiegiem, zawsze przed postacią i lekko rozmyty — na małym
@@ -672,7 +569,7 @@
                 ctx.rect(x, y, frameWidth, frameHeight);
                 ctx.clip();
                 ctx.filter = `blur(${0.7 * S}px)`;
-                ctx.drawImage(renderer.domElement, x, y);
+                ctx.drawImage(renderer.domElement, x, y, frameWidth, frameHeight);
                 ctx.restore();
                 smoke.hide();
                 person.root.visible = true;

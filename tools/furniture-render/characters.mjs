@@ -1,4 +1,4 @@
-// Własne postacie low poly: wygląd z listy postaci gry, kolor koszulki wg stanowiska,
+// Własne postacie: wygląd z listy postaci gry, kolor koszulki wg stanowiska,
 // kierunki i animacje atlasu.
 import { PEOPLE, PROLOGUE_OWNER } from '../../src/domain/content/people.ts';
 
@@ -12,7 +12,8 @@ const SHIRTS = {
   designer: '#d0679b',
   pm: '#59606b',
 };
-const PANTS = ['#2f3e5c', '#30333a', '#4a4a68', '#2b2b2b', '#5a4a3a', '#3b4a3f'];
+// Na tyle jasne, żeby splot dżinsu był widoczny.
+const PANTS = ['#3f5480', '#4a4f5c', '#5a5a80', '#3d4048', '#6e5c48', '#4c5f50'];
 
 const hash = (text) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 

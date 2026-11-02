@@ -7,7 +7,7 @@ import type { Seniority, Specialization } from '../employees';
 // (`src/assets/avatars/<id>.png`) i atlasu postaci w biurze (`src/assets/characters/<id>.webp`).
 export type PersonId = string;
 
-// Wygląd postaci w biurze (własne postacie low poly, tools/furniture-render): karnacja, włosy,
+// Wygląd postaci w biurze (własne postacie, tools/furniture-render): karnacja, włosy,
 // fryzura zgodna z płcią imienia, okulary. Kolor koszulki wynika ze stanowiska.
 export const HAIR_STYLES = [
   'long',

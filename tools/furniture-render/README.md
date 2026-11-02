@@ -3,7 +3,7 @@
 Pre-renders the office furniture and character sprites from 3D models.
 
 - Furniture: **Low Poly Office Set 2** by VNB (Leo) — https://vnbp.itch.io/ — used under the pack's licence (free for commercial and non-commercial projects; the models themselves are not redistributed here, only the rendered images in `src/assets/furniture/`).
-- Characters: built in code (`render.html` → `buildPerson`, `pose`) as simple low-poly figures; appearance comes from the game's roster (`src/domain/content/people.ts`), shirt colour from the specialization (`characters.mjs`).
+- Characters: built in code (`person.js` → `buildPerson`, poses in `render.html` → `pose`) as rounded, smooth-shaded figures with procedural textures and an enlarged head; appearance comes from the game's roster (`src/domain/content/people.ts`), shirt colour from the specialization (`characters.mjs`).
 
 ```bash
 npm install
