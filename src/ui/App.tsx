@@ -20,6 +20,7 @@ import { OfficeView } from './OfficeView';
 import { PlanAside } from './PlanAside';
 import { tabLock } from './prologue/guide';
 import { PrologueFinale } from './prologue/PrologueViews';
+import { SpotlightOverlay } from './prologue/SpotlightOverlay';
 import { Sheet } from './Sheet';
 import { TopBar } from './TopBar';
 import { FinanceView } from './views/FinanceView';
@@ -163,6 +164,7 @@ export function App({
               <DayReportDialog onNewGame={() => onNewGame()} />
               <EventDialog />
               <PrologueFinale onFinish={() => onNewGame('mission')} />
+              <SpotlightOverlay />
             </NavigationContext>
           </OrderFeedbackContext>
         </FurnitureEditContext>
