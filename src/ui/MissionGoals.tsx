@@ -18,7 +18,7 @@ export function MissionGoals() {
       done: delivered >= victory.deliveredProjects,
     },
     {
-      label: `Mieć na koncie ${money.format(victory.cash)} zł.`,
+      label: `Mieć ${money.format(victory.cash)}\u00a0zł.`,
       value: `${money.format(cash)} zł`,
       done: cash >= victory.cash,
     },
