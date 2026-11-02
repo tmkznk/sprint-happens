@@ -164,7 +164,7 @@ function Offers({
       </p>
       <button
         type="button"
-        className={spotlight('primary-button full', acceptGuided)}
+        className={spotlight('primary-button full offer-accept', acceptGuided)}
         disabled={!isWorking}
         onClick={() => accept(offer)}
       >

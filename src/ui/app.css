@@ -1350,6 +1350,28 @@ h4 {
   font-size: 13px;
 }
 
+/* Telefon: „Przyjmij zlecenie” przyklejone do dołu panelu, widoczne także na niskim ekranie.
+   Nieaktywny przycisk jest półprzezroczysty, więc zostaje na miejscu. Pseudoelement zasłania
+   tekst pod przyciskiem i przepuszcza dotyk, żeby nie przyjąć zlecenia przypadkiem. */
+@media (max-width: 899.98px) {
+  .project-card .offer-accept:not(:disabled) {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+  }
+
+  .project-card .offer-accept:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 16px;
+    background: var(--paper);
+    pointer-events: none;
+  }
+}
+
 .offer-numbers + .secondary-button.full {
   margin-top: 16px;
 }
