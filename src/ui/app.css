@@ -1037,6 +1037,15 @@ h4 {
   font-size: var(--fs-label);
 }
 
+/* Wąska kolumna: pusty stan ciaśniej niż w zakładkach, żeby panel mieścił się bez suwaka. */
+.plan-section .empty-state {
+  padding: 14px 16px 0;
+}
+
+.plan-section .empty-state p {
+  margin-bottom: 4px;
+}
+
 .cta-card {
   margin-top: auto;
   padding: 16px;
