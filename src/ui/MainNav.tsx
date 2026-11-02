@@ -10,7 +10,7 @@ const ITEMS: { tab: Tab; label: string; icon: ReactNode; className?: string }[] 
   { tab: 'projects', label: 'Projekty', icon: <Briefcase size={22} /> },
   { tab: 'team', label: 'Zespół', icon: <Users size={22} /> },
   { tab: 'furnish', label: 'Urządź', icon: <Armchair size={22} /> },
-  { tab: 'finance', label: 'Finanse', icon: <Wallet size={22} /> },
+  { tab: 'finance', label: 'Finanse', icon: <Wallet size={22} />, className: 'nav-finance' },
   { tab: 'goals', label: 'Cel misji', icon: <Flag size={22} />, className: 'nav-goals' },
 ];
 
@@ -26,9 +26,8 @@ export function MainNav() {
       .join(','),
   ).split(',');
   const target = navTarget(useGuide(), tab);
-  // Na telefonie „Cel misji” jest w nawigacji tylko w prologu (bieżące zadanie samouczka);
-  // w zamian w prologu nie ma tam Finansów (mniej ikon w dolnym pasku).
-  const prologue = useGameSelector((state) => state.prologue !== null);
+  // Na telefonie w dolnym pasku jest „Cel misji” zamiast Finansów (mniej ikon) — Finanse otwiera
+  // dotknięcie budżetu w nagłówku.
   return (
     <nav className="main-nav" aria-label="Nawigacja">
       {ITEMS.map((item) => {
@@ -38,14 +37,8 @@ export function MainNav() {
             key={item.tab}
             type="button"
             className={spotlight(
-              [
-                item.className,
-                isLocked ? 'nav-locked' : undefined,
-                prologue && item.tab === 'goals' ? 'nav-prologue' : undefined,
-                prologue && item.tab === 'finance' ? 'nav-prologue-hidden' : undefined,
-              ]
-                .filter(Boolean)
-                .join(' ') || undefined,
+              [item.className, isLocked ? 'nav-locked' : undefined].filter(Boolean).join(' ') ||
+                undefined,
               target === item.tab,
             )}
             aria-current={current === item.tab ? 'page' : undefined}

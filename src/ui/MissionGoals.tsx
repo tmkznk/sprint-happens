@@ -1,11 +1,11 @@
+import { Check } from 'lucide-react';
 import { useBalanceConfig, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
+import { projectsCount } from './plural';
 
-const percent = (current: number, target: number) =>
-  target <= 0 ? 100 : Math.max(0, Math.min(100, Math.round((current / target) * 100)));
-
-// MIS-03 (Z): trzy progi zwycięstwa z postępem; spełnienie rozstrzyga silnik w rozliczeniu dnia
-// (simulation/mission.ts). Selektory zwracają wartości proste (useSyncExternalStore).
+// MIS-03 (Z): trzy progi zwycięstwa jako punkty, jak cele prologu, z bieżącą wartością; progi
+// obowiązują naraz, więc każdy niespełniony jest bieżący. Zwycięstwo rozstrzyga silnik
+// w rozliczeniu dnia (simulation/mission.ts). Selektory zwracają wartości proste.
 export function MissionGoals() {
   const { victory } = useBalanceConfig().mission;
   const delivered = useGameSelector((state) => state.contracts.deliveredCount);
@@ -13,34 +13,35 @@ export function MissionGoals() {
   const reputation = useGameSelector((state) => state.mission.reputation);
   const goals = [
     {
-      label: 'Oddane projekty',
+      label: `Oddać ${projectsCount(victory.deliveredProjects)}.`,
       value: `${delivered} / ${victory.deliveredProjects}`,
-      percent: percent(delivered, victory.deliveredProjects),
+      done: delivered >= victory.deliveredProjects,
     },
     {
-      label: 'Saldo',
-      value: `${money.format(cash)} zł / ${money.format(victory.cash)} zł`,
-      percent: percent(cash, victory.cash),
+      label: `Mieć na koncie ${money.format(victory.cash)} zł.`,
+      value: `${money.format(cash)} zł`,
+      done: cash >= victory.cash,
     },
     {
-      label: 'Reputacja',
+      label: `Zbudować reputację ${victory.reputation}.`,
       value: `${reputation} / ${victory.reputation}`,
-      percent: percent(reputation, victory.reputation),
+      done: reputation >= victory.reputation,
     },
   ];
   return (
-    <ul className="goal-list" aria-label="Cele misji">
-      {goals.map((goal) => (
-        <li key={goal.label}>
-          <div>
-            <span>{goal.label}</span>
-            <strong>{goal.value}</strong>
-          </div>
-          <span className="bar">
-            <span style={{ width: `${goal.percent}%` }} />
+    <ol className="prologue-goals" aria-label="Cele misji">
+      {goals.map((goal, index) => (
+        <li key={goal.label} className={goal.done ? 'done' : 'current'}>
+          <span className="prologue-goal-mark" aria-hidden="true">
+            {goal.done ? <Check size={12} /> : index + 1}
           </span>
+          <span>
+            {goal.label}
+            {goal.done && <span className="visually-hidden"> (spełnione)</span>}
+          </span>
+          <span className="goal-value">{goal.value}</span>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }

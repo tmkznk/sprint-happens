@@ -4,14 +4,15 @@ import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
 import { AboutButton } from './AboutButton';
 import { money } from './labels';
-import type { MissionKind } from './navigation';
+import { useNavigation, type MissionKind } from './navigation';
 import { NewGameButton } from './NewGameButton';
 import { InstallButton } from './InstallButton';
 import { OfflineBadge } from './OfflineBadge';
 import { SaveIndicator } from './SaveIndicator';
 
-// SH-033 (wzór SH2): logo, budżet i reputacja (REP-01) zawsze widoczne; ustawienia z nową grą,
-// stanem zapisu, gotowością offline, instalacją aplikacji (PWA-01) i informacją o autorze.
+// SH-033 (wzór SH2): logo, budżet i reputacja (REP-01) zawsze widoczne; budżet otwiera Finanse
+// (na telefonie jedyna droga — w dolnym pasku jest „Cel misji”); ustawienia z nową grą, stanem
+// zapisu, gotowością offline, instalacją aplikacji (PWA-01) i informacją o autorze.
 export function TopBar({
   manager,
   onNewGame,
@@ -22,6 +23,7 @@ export function TopBar({
   const cash = useGameSelector((state) => state.finance.cash);
   const reputation = useGameSelector((state) => state.mission.reputation);
   const [menu, setMenu] = useState(false);
+  const { open } = useNavigation();
 
   return (
     <header className="top-bar">
@@ -40,13 +42,13 @@ export function TopBar({
       </div>
       <div className="top-stats">
         <SaveIndicator manager={manager} errorsOnly />
-        <div className="stat">
+        <button type="button" className="stat stat-link" onClick={() => open('finance')}>
           <Wallet className="stat-icon" size={22} aria-hidden="true" />
-          <div>
+          <span className="stat-text">
             <span>Budżet firmy</span>
             <strong className={cash < 0 ? 'negative' : undefined}>{money.format(cash)} zł</strong>
-          </div>
-        </div>
+          </span>
+        </button>
         <div className="stat">
           <Star className="stat-icon" size={22} aria-hidden="true" />
           <div>
