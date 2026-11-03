@@ -2,7 +2,7 @@
 
 Mobilna gra przeglądarkowa (PWA) o prowadzeniu software house'u. Zatrudniasz zespół, przyjmujesz kontrakty, pilnujesz terminów, błędów i budżetu — a wszystko z przymrużeniem oka wobec branży IT. Inspiracja: Theme Hospital. Widok biura w izometrycznym pixel arcie, projektowany przede wszystkim na telefon.
 
-**Zagraj:** https://tmkznk.github.io/sprint-happens/ — działa w przeglądarce, można zainstalować jako aplikację i grać offline.
+**Zagraj:** https://sprint-happens.fun/ — działa w przeglądarce, można zainstalować jako aplikację i grać offline.
 
 > **Status:** MVP w budowie. Pełna pętla rozgrywki działa (zlecenia, zespół, błędy i testy, oddania, reputacja, zdarzenia, zwycięstwo/bankructwo); grafika biura jest jeszcze zastępcza.
 
@@ -54,8 +54,8 @@ Commity w stylu [Conventional Commits](https://www.conventionalcommits.org/), np
 
 ## Publikacja
 
-Każdy push na `main` uruchamia [workflow](.github/workflows/deploy.yml): lint, testy i build, a potem publikację katalogu `dist/` na GitHub Pages. Ścieżkę bazową (`/sprint-happens/`) ustawia zmienna `BASE_PATH`; lokalnie gra działa w katalogu głównym. Build pod ścieżką Pages można sprawdzić lokalnie:
+Każdy push na `main` uruchamia [workflow](.github/workflows/deploy.yml): lint, testy i build, a potem publikację katalogu `dist/` na GitHub Pages, pod domeną `sprint-happens.fun`. Gra działa w katalogu głównym domeny. Build produkcyjny można sprawdzić lokalnie:
 
 ```bash
-BASE_PATH=/sprint-happens/ npm run build && BASE_PATH=/sprint-happens/ npm run preview
+npm run build && npm run preview
 ```
