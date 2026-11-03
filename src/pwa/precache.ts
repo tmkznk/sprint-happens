@@ -7,13 +7,17 @@ export function cacheName(version: string): string {
   return `${CACHE_PREFIX}${version}`;
 }
 
+// Pliki dla wyszukiwarek i podglądu linków — gra ich nie używa, więc telefon gracza ich nie pobiera.
+const CRAWLER_FILES = new Set(['og-image.jpg', 'robots.txt', 'sitemap.xml']);
+
 // Ścieżki zasobów z buildu → adresy względem zakresu service workera (np. `assets/a.js`).
 // Strona startowa jest dostępna pod `./` i `index.html`.
 export function precacheUrls(files: readonly string[]): string[] {
   const urls = new Set<string>(['./']);
   for (const file of files) {
-    if (file === 'sw.js' || file.endsWith('.map')) continue;
-    urls.add(file.replace(/^\/+/, ''));
+    const url = file.replace(/^\/+/, '');
+    if (url === 'sw.js' || url.endsWith('.map') || CRAWLER_FILES.has(url)) continue;
+    urls.add(url);
   }
   return [...urls].sort();
 }

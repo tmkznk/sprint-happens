@@ -1,8 +1,9 @@
 {
   "name": "Sprint Happens!",
   "short_name": "Sprint Happens",
-  "description": "Prowadź software house — zlecenia, zespół, błędy i terminy.",
+  "description": "Rekrutuj zespół, przyjmuj zlecenia i łataj bugi, zanim skończy się budżet. Gra o prowadzeniu software house’u. U nas działa!",
   "lang": "pl",
+  "categories": ["games", "entertainment"],
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

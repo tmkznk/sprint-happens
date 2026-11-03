@@ -3,7 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" type="image/png" href="/icons/favicon-32.png" />
+    <title>Sprint Happens! Małe biuro. Wielkie ambicje.</title>
+    <meta
+      name="description"
+      content="Rekrutuj zespół, przyjmuj zlecenia i łataj bugi, zanim skończy się budżet. Gra o prowadzeniu software house’u. U nas działa!"
+    />
+    <link rel="canonical" href="https://sprint-happens.fun/" />
+    <!-- Podgląd linku w mediach społecznościowych; adresy muszą być bezwzględne. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sprint Happens!" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:url" content="https://sprint-happens.fun/" />
+    <meta property="og:title" content="Sprint Happens! Małe biuro. Wielkie ambicje." />
+    <meta
+      property="og:description"
+      content="Rekrutuj zespół, przyjmuj zlecenia i łataj bugi, zanim skończy się budżet. Gra o prowadzeniu software house’u. U nas działa!"
+    />
+    <meta property="og:image" content="https://sprint-happens.fun/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Izometryczne biuro software house’u: zespół przy biurkach, ktoś przy ekspresie, dwie osoby na papierosie na tarasie. Hasło: Małe biuro. Wielkie ambicje."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Dane strukturalne: nazwa witryny w Google i opis gry. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Sprint Happens!",
+            "url": "https://sprint-happens.fun/",
+            "inLanguage": "pl"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Sprint Happens!",
+            "url": "https://sprint-happens.fun/",
+            "image": "https://sprint-happens.fun/og-image.jpg",
+            "description": "Rekrutuj zespół, przyjmuj zlecenia i łataj bugi, zanim skończy się budżet. Gra o prowadzeniu software house’u. U nas działa!",
+            "inLanguage": "pl",
+            "genre": ["Strategia", "Symulacja biznesowa"],
+            "applicationCategory": "GameApplication"
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" href="/favicon.ico" sizes="32x32 48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#fcfbf6" />
@@ -12,10 +64,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Sprint Happens" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>Sprint Happens!</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Sprint Happens!</h1>
+      <p>
+        Małe biuro, wielkie ambicje. Gra o prowadzeniu software house’u. Do gry potrzebny jest
+        JavaScript. Włącz go, zanim klient zauważy.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

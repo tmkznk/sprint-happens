@@ -8,6 +8,13 @@ describe('lista zasobów offline (PWA-T01, PWA-T04)', () => {
     ).toEqual(['./', 'assets/a-1.js', 'icons/i.png', 'index.html']);
   });
 
+  it('pomija pliki dla wyszukiwarek i podglądu linków', () => {
+    expect(precacheUrls(['index.html', 'og-image.jpg', 'robots.txt', 'sitemap.xml'])).toEqual([
+      './',
+      'index.html',
+    ]);
+  });
+
   it('gotowość tylko przy komplecie', () => {
     expect(missingUrls(['a', 'b'], ['a', 'b', 'c'])).toEqual([]);
     expect(missingUrls(['a', 'b'], ['a'])).toEqual(['b']);
