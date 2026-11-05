@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type * as Phaser from 'phaser';
+import { attachAnalytics } from '../application/analytics';
 import { EngineContext } from '../application/engineHooks';
 import { browserEnvironment, startGameLoop, type FrameClock } from '../application/gameLoop';
 import { attachAutosave, type SaveManager } from '../application/saveManager';
@@ -97,6 +98,8 @@ export function App({
     () => attachAutosave(saveManager, engine, { onBackground: browserEnvironment.onBackground }),
     [saveManager, engine],
   );
+
+  useEffect(() => attachAnalytics(engine), [engine]);
 
   useEffect(() => {
     if (!sceneRef.current) return;

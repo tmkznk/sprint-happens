@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { startAnalytics } from './application/analytics';
 import { installer } from './pwa/install';
 import { GameRoot } from './ui/GameRoot';
 import { MovementDemo } from './ui/MovementDemo';
@@ -8,6 +9,10 @@ import './ui/app.css';
 
 // Przed pierwszym renderem — przeglądarka zgłasza gotowość instalacji tylko raz.
 installer();
+
+// Kod witryny tylko w `.env.production` — dev i testy nie ładują statystyk.
+const analyticsSiteCode = import.meta.env.VITE_GOATCOUNTER_CODE;
+if (analyticsSiteCode) startAnalytics(analyticsSiteCode);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Brak elementu #root');
