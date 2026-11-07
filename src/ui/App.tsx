@@ -16,7 +16,13 @@ import { DayReportDialog } from './DayReportDialog';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
 import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
-import { NavigationContext, type MissionKind, type Navigation, type Tab } from './navigation';
+import {
+  FULL_WIDTH_TABS,
+  NavigationContext,
+  type MissionKind,
+  type Navigation,
+  type Tab,
+} from './navigation';
 import { OfficeView } from './OfficeView';
 import { PlanAside } from './PlanAside';
 import { tabLock } from './prologue/guide';
@@ -29,6 +35,7 @@ import { FurnishView } from './views/FurnishView';
 import { GoalsView } from './views/GoalsView';
 import { ProjectsView } from './views/ProjectsView';
 import { RecruitmentView } from './views/RecruitmentView';
+import { RulesView } from './views/RulesView';
 import { TeamView } from './views/TeamView';
 
 // Scena testowa okluzji dla SH-002: ?scene=occlusion
@@ -38,7 +45,7 @@ type SheetProps = { onNewGame(kind: MissionKind): void };
 
 const SHEETS: Record<
   Exclude<Tab, 'office'>,
-  { title: string; view: (props: SheetProps) => ReactNode }
+  { title: string; kicker?: string; view: (props: SheetProps) => ReactNode }
 > = {
   projects: { title: 'Projekty i zlecenia', view: () => <ProjectsView /> },
   team: { title: 'Twój zespół', view: () => <TeamView /> },
@@ -49,6 +56,7 @@ const SHEETS: Record<
     title: 'Cel misji',
     view: ({ onNewGame }) => <GoalsView onSkipPrologue={() => onNewGame('mission')} />,
   },
+  rules: { title: 'Zasady gry', kicker: 'Sprint Happens! / Pomoc', view: () => <RulesView /> },
 };
 
 // Komunikat blokady prologu znika sam po kilku sekundach.
@@ -87,8 +95,10 @@ export function App({
   );
   const sceneRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
-  // Na telefonie panel zarządzania jest pełnoekranowy i zasłania biuro.
-  const sceneCovered = useMediaQuery(PHONE_LAYOUT) && tab !== 'office';
+  // Na telefonie panel zarządzania jest pełnoekranowy i zasłania biuro; zakładki pełnej
+  // szerokości zasłaniają je także na desktopie.
+  const fullWidth = FULL_WIDTH_TABS.includes(tab);
+  const sceneCovered = (useMediaQuery(PHONE_LAYOUT) && tab !== 'office') || fullWidth;
   // „Plan na dzisiaj” jest widoczny tylko na szerokim ekranie — gdzie indziej się nie renderuje.
   const wide = useMediaQuery(WIDE_LAYOUT);
 
@@ -154,7 +164,12 @@ export function App({
                 <OfficeView sceneRef={sceneRef} engine={engine} manager={saveManager} />
                 {wide && <PlanAside />}
                 {sheet && (
-                  <Sheet title={sheet.title} onClose={() => setTab('office')}>
+                  <Sheet
+                    title={sheet.title}
+                    kicker={sheet.kicker}
+                    fullWidth={fullWidth}
+                    onClose={() => setTab('office')}
+                  >
                     {sheet.view({ onNewGame })}
                   </Sheet>
                 )}

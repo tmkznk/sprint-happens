@@ -1,4 +1,4 @@
-import { Settings, Star, Wallet } from 'lucide-react';
+import { BookOpen, Settings, Star, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
@@ -12,7 +12,7 @@ import { SaveIndicator } from './SaveIndicator';
 
 // SH-033 (wzór SH2): logo, budżet i reputacja (REP-01) zawsze widoczne; budżet otwiera Finanse
 // (na telefonie jedyna droga — w dolnym pasku jest „Cel misji”); ustawienia z nową grą, stanem
-// zapisu, gotowością offline, instalacją aplikacji (PWA-01) i informacją o autorze.
+// zapisu, gotowością offline, instalacją aplikacji (PWA-01), zasadami gry i informacją o autorze.
 export function TopBar({
   manager,
   onNewGame,
@@ -89,6 +89,16 @@ export function TopBar({
                   onNewGame('prologue');
                 }}
               />
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setMenu(false);
+                  open('rules');
+                }}
+              >
+                <BookOpen size={16} aria-hidden="true" /> Zasady gry
+              </button>
               <AboutButton />
             </div>
           )}

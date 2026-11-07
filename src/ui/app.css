@@ -1129,6 +1129,79 @@ h4 {
   font-size: var(--fs-body);
 }
 
+/* ===== Zasady gry: FAQ z rozwijanymi odpowiedziami ===== */
+
+.rules {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.rules > .hint {
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.rules-section {
+  margin-bottom: 18px;
+}
+
+.rules-section h3 {
+  margin: 0 0 8px;
+  color: var(--green);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+}
+
+.rules-item {
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.rules-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px var(--pad-card);
+  color: var(--ink);
+  font-size: var(--fs-strong);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.rules-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.rules-item summary::after {
+  content: '+';
+  flex: none;
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.rules-item[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.rules-item p {
+  margin: 0;
+  padding: 0 var(--pad-card) 10px;
+  line-height: 1.55;
+}
+
+.rules-item p:last-child {
+  padding-bottom: 13px;
+}
+
 .segmented {
   display: flex;
   gap: 4px;
@@ -2461,6 +2534,14 @@ progress::-moz-progress-bar {
     width: min(520px, 100%);
     border-left: 1px solid var(--line);
     box-shadow: var(--shadow);
+  }
+
+  /* Zakładki pełnej szerokości (Zasady gry) — cały obszar biura, scena uśpiona. */
+  .sheet-full .sheet {
+    flex: 1;
+    width: auto;
+    border-left: 0;
+    box-shadow: none;
   }
 
   .segmented button {

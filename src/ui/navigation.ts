@@ -3,7 +3,12 @@ import { createContext, use } from 'react';
 // SH-033: zakładki interfejsu (wzór SH2). „Biuro” to widok główny ze sceną; pozostałe otwierają
 // się nad nim (telefon: pełny ekran, desktop: panel z prawej), więc scena Phaser nie jest
 // odmontowywana przy przełączaniu (T:VIEW-05).
-export type Tab = 'office' | 'projects' | 'team' | 'recruit' | 'furnish' | 'finance' | 'goals';
+export type Tab =
+  'office' | 'projects' | 'team' | 'recruit' | 'furnish' | 'finance' | 'goals' | 'rules';
+
+// „Zasady gry” zajmują na desktopie cały obszar biura (czytanie, nie zarządzanie), więc scena
+// jest wtedy zasłonięta i uśpiona także na szerokim ekranie.
+export const FULL_WIDTH_TABS: readonly Tab[] = ['rules'];
 
 export type Navigation = {
   tab: Tab;
