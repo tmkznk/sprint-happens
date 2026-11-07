@@ -7,9 +7,9 @@ import { isTesting } from '../simulation/qa';
 import { isWorking } from '../simulation/work';
 import { interactionCells } from '../world/geometry';
 import { isSmokingSpotId } from '../world/movement/officeEnv';
-import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
+import { cellKindAt, officeLayoutOf, type OfficeLayout } from '../world/officeLayout';
 import { displayPosition } from './agentPosition';
-import { depthOfFootprint, depthOfPoint, ROOM_FRONT_DEPTH } from './projection';
+import { depthOfFootprint, depthOfPoint, gridToScreen, ROOM_FRONT_DEPTH } from './projection';
 
 // Poza postaci w biurze — wyłącznie prezentacja (T:TIME-T02): co postać robi i gdzie ją narysować.
 // Pozycja logiczna w silniku się nie zmienia; siedząca postać jest tylko rysowana na siedzisku.
@@ -23,8 +23,10 @@ export type AgentPose = {
   facing: Facing | null;
   position: GridPoint;
   depth: number;
-  // Widoczność sprite'a: 0 za wysoką ścianą na dojściu, 1 poza nim (`outdoorAlpha`).
+  // Widoczność sprite'a: 0, gdy cała postać jest za wysoką ścianą (`wallVisibility`).
   alpha: number;
+  // Za wysoką ścianą: prostokąt widoczności (otwór drzwi albo obszar zza końca ściany).
+  clip: ScreenClip | null;
 };
 
 // Strona punktów korzystania mebla (przód) dla obrotu: przy 0° to +y siatki (T:ART-03).
@@ -89,15 +91,59 @@ function facingOf(from: GridPoint, to: GridPoint): Facing {
   return dy >= 0 ? 'py' : 'ny';
 }
 
-// Odsłonięcie postaci przy wyjściu zza końca wysokiej ściany x = 0 (ściana leży w warstwie pod
-// sprite'ami, więc nie zasłoni ich sama): liczy się kolumna ekranu y − x względem końca ściany.
-const WALL_END_SCREEN = 15;
-const WALL_END_FADE = 0.5;
+// Wysoka ściana x = 0 z drzwiami wejściowymi leży w warstwie pod sprite'ami, więc sama nie zasłoni
+// postaci za nią. Geometria z renderu pomieszczenia (tools/furniture-render/rooms.mjs): tafla
+// x 0,39…0,61, ściana sięga do y = (ostatni rząd siatki) + 0,61; prześwit drzwi wyznacza
+// ościeżnica `Door_Frame` powiększona w pionie ×1,14 (światło 1,0 m × 2,30 m, głębokość ±0,112 m
+// od środka ściany x = 0,5) — postać (do ~1,96 m) mieści się pod nadprożem.
+// Postać za licem ościeżnicy widać tylko przez prześwit (przycięcie do niego) albo zza końca
+// ściany (przycięcie na jej krawędzi) — bez przezroczystości.
+const WALL_BACK_X = 0.39;
+const WALL_END_OVERHANG = 0.61;
+const FRAME_FRONT_X = 0.5 + 0.112 / 0.75;
+const FRAME_BACK_X = 0.5 - 0.112 / 0.75;
+const OPENING_HALF = 0.5 / 0.75;
+// Wysokość prześwitu w pikselach świata: 2,30 m; pionowe pole w rzucie (elewacja 30°) to
+// 32·√2·cos 30° px.
+const LINTEL_PX = ((2.02 * 1.14) / 0.75) * 32 * Math.SQRT2 * Math.cos(Math.PI / 6);
+// Połowa szerokości głowy w pikselach świata (cięcie pod nadprożem).
+const HEAD_HALF_WIDTH = 6;
+// Połowa szerokości sylwetki w pikselach świata — mniej znaczy, że za ścianą nic nie widać.
+const BODY_HALF_WIDTH = 14;
+const COLUMN_PX = gridToScreen({ x: 1, y: 0 }).x;
 
-export function outdoorAlpha(point: GridPoint): number {
-  if (point.y >= WALL_END_SCREEN || point.x >= 0.5) return 1;
-  const reveal = (point.y - point.x - WALL_END_SCREEN) / WALL_END_FADE;
-  return Math.min(Math.max(reveal, 0), 1);
+// Prostokąt widoczności w pikselach świata (poza nim sprite jest przycięty).
+export type ScreenClip = { left: number; right: number; top: number };
+export type WallVisibility = { alpha: number; clip: ScreenClip | null };
+// Ściana z drzwiami wejściowymi: pole drzwi (y) i koniec ściany (y).
+export type EntranceWall = { doorY: number; endY: number };
+
+export function entranceWall(layout: OfficeLayout): EntranceWall | null {
+  const door = layout.doors.find((d) => d.isEntrance)?.position;
+  if (door?.x !== 0) return null;
+  return { doorY: door.y, endY: layout.size.height - 1 + WALL_END_OVERHANG };
+}
+
+const FULL: WallVisibility = { alpha: 1, clip: null };
+
+export function wallVisibility(point: GridPoint, wall: EntranceWall | null): WallVisibility {
+  if (!wall || point.y >= wall.endY || point.x >= FRAME_FRONT_X) return FULL;
+  const x = gridToScreen(point).x;
+  // Prześwit widoczny przez oba lica ościeżnicy — lewa krawędź z przedniego, prawa z tylnego.
+  const middle = wall.doorY + 0.5;
+  const left = (FRAME_FRONT_X - (middle + OPENING_HALF)) * COLUMN_PX;
+  const right = (FRAME_BACK_X - (middle - OPENING_HALF)) * COLUMN_PX;
+  if (x + BODY_HALF_WIDTH > left && x - BODY_HALF_WIDTH < right) {
+    // Nadproże zasłania jego przednia krawędź (na ekranie niżej niż tylna). W rzucie opada w lewo,
+    // a cięcie jest poziome — wysokość z lewej połowy głowy: głowa nie wchodzi na nadproże
+    // i nie zostaje nad nią widoczna szczelina.
+    const column = Math.min(Math.max(x - HEAD_HALF_WIDTH, left), right) / COLUMN_PX;
+    const top = gridToScreen({ x: FRAME_FRONT_X, y: FRAME_FRONT_X - column }).y - LINTEL_PX;
+    return { alpha: 1, clip: { left, right, top } };
+  }
+  const end = gridToScreen({ x: WALL_BACK_X, y: wall.endY }).x;
+  const hidden = x - BODY_HALF_WIDTH >= end;
+  return { alpha: hidden ? 0 : 1, clip: { left: -Infinity, right: end, top: -Infinity } };
 }
 
 // Sprite'y i warstwa przednia to jedna kolejka głębokości: kto stoi na zewnątrz, jest przed
@@ -112,7 +158,7 @@ export function agentPose(
   const cell = { x: Math.floor(pose.position.x), y: Math.floor(pose.position.y) };
   return {
     ...pose,
-    alpha: outdoorAlpha(pose.position),
+    ...wallVisibility(pose.position, entranceWall(officeLayoutOf(state))),
     depth:
       cellKindAt(officeLayoutOf(state), cell) === 'outdoor'
         ? ROOM_FRONT_DEPTH + pose.depth
@@ -125,7 +171,7 @@ function basePose(
   agent: ReadonlyAgent,
   alpha: number,
   config: BalanceConfig,
-): Omit<AgentPose, 'alpha'> {
+): Omit<AgentPose, 'alpha' | 'clip'> {
   const position = displayPosition(agent, alpha, config.movement.stepsPerCell);
   if (agent.move) {
     return {

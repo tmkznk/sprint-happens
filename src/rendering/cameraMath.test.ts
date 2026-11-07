@@ -66,8 +66,8 @@ describe('cameraMath', () => {
   describe('biuro z tarasem: dopasowanie do samego biura, przesuwanie do tarasu', () => {
     const office = roomSprite(OFFICE_LAYOUT);
     if (!office) throw new Error('brak renderu biura');
-    // Render biura sprzed dodania tarasu: 1829×1169, kotwica (915, 230), skala 2.
-    const beforeTerrace = { left: -457.5, right: 457, top: -115, bottom: 469.5 };
+    // Render samego biura, bez tarasu (ściany 2,7 m): 1829×1201, kotwica (915, 262), skala 2.
+    const beforeTerrace = { left: -457.5, right: 457, top: -131, bottom: 469.5 };
 
     it.each([
       [420, 700],

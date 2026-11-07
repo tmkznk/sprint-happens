@@ -7,8 +7,17 @@ import type { GameState } from '../domain/state';
 import { createEngine } from '../simulation/engine';
 import { testState } from '../test/engineFixture';
 import { interactionCells, occupiedCells } from '../world/geometry';
-import { agentPose, deskChairDepth, deskSeat, outdoorAlpha, rotateSeat } from './agentPose';
-import { depthOfFootprint, ROOM_FRONT_DEPTH } from './projection';
+import {
+  agentPose,
+  deskChairDepth,
+  deskSeat,
+  entranceWall,
+  rotateSeat,
+  wallVisibility,
+} from './agentPose';
+import { depthOfFootprint, gridToScreen, ROOM_FRONT_DEPTH } from './projection';
+import { OFFICE_LAYOUT, PROLOGUE_LAYOUT } from '../world/officeLayout';
+import type { GridPoint } from '../domain/grid';
 
 const DESK = 'furniture-1' as FurnitureId;
 const SOFA = 'furniture-3' as FurnitureId;
@@ -145,26 +154,66 @@ describe('poza postaci (prezentacja)', () => {
     expect(front.depth).toBeGreaterThan(smoking.depth);
   });
 
-  it('w biurze postać jest w pełni widoczna, a na dojściu za ścianą znika', () => {
+  const WALL = entranceWall(OFFICE_LAYOUT);
+  const wallVisibilityAt = (point: GridPoint) => wallVisibility(point, WALL);
+
+  it('w biurze postać jest w pełni widoczna, a na dojściu za ścianą (z dala od drzwi) znika', () => {
     const state = testState();
     expect(at(state, createAgent('a', { x: 4, y: 12 })).alpha).toBe(1);
     expect(at(state, createAgent('b', { x: -1, y: 12 })).alpha).toBe(0);
     expect(at(state, createAgent('c', { x: -1, y: 15 })).alpha).toBe(1);
-    // Środek pola drzwi: jeszcze w biurze.
-    expect(at(state, createAgent('d', { x: 0, y: 10 })).alpha).toBe(1);
+    // Pole przed drzwiami: w pełni w biurze, bez przycięcia.
+    expect(at(state, createAgent('e', { x: 1, y: 10 }))).toMatchObject({ alpha: 1, clip: null });
+    // Tuż przed drzwiami (przed licem ościeżnicy): bez przycięcia — postać mieści się pod nadprożem.
+    expect(wallVisibilityAt({ x: 0.7, y: 10.5 })).toEqual({ alpha: 1, clip: null });
   });
 
-  it('outdoorAlpha: (-0.5, 12.5) → 0; (-0.5, 15.5) → 1; (3.5, 16.5) → 1; środek drzwi i biuro → 1', () => {
-    expect(outdoorAlpha({ x: -0.5, y: 12.5 })).toBe(0);
-    expect(outdoorAlpha({ x: -0.5, y: 15.5 })).toBe(1);
-    expect(outdoorAlpha({ x: 3.5, y: 16.5 })).toBe(1);
-    expect(outdoorAlpha({ x: 0.5, y: 10.5 })).toBe(1);
-    expect(outdoorAlpha({ x: 5.5, y: 9.5 })).toBe(1);
+  it('entranceWall: drzwi i koniec wysokiej ściany x = 0 (misja i prolog)', () => {
+    expect(WALL).toEqual({ doorY: 10, endY: 14.61 });
+    expect(entranceWall(PROLOGUE_LAYOUT)).toEqual({ doorY: 4, endY: 6.61 });
   });
 
-  it('outdoorAlpha rośnie przy wyjściu zza narożnika wysokiej ściany', () => {
-    expect(outdoorAlpha({ x: -0.5, y: 14.5 })).toBe(0);
-    expect(outdoorAlpha({ x: -0.5, y: 14.75 })).toBeCloseTo(0.5);
-    expect(outdoorAlpha({ x: -0.5, y: 15 })).toBe(1);
+  it('wallVisibility: biuro i taras w pełni widoczne, bez przycięcia', () => {
+    for (const point of [
+      { x: 5.5, y: 9.5 },
+      { x: 1.5, y: 10.5 },
+      { x: 3.5, y: 16.5 },
+      { x: -0.5, y: 15.5 },
+    ]) {
+      expect(wallVisibility(point, WALL)).toEqual({ alpha: 1, clip: null });
+    }
+  });
+
+  it('wallVisibility: w drzwiach — nieprzezroczysta, przycięta do prześwitu i nadproża', () => {
+    const inDoorway = wallVisibility({ x: 0.5, y: 10.5 }, WALL);
+    expect(inDoorway.alpha).toBe(1);
+    const clip = inDoorway.clip;
+    expect(clip).not.toBeNull();
+    // Prześwit ościeżnicy (1,0 m): szerokość ok. 33 px świata wokół kolumny drzwi (x − y = −10).
+    expect((clip?.right ?? 0) - (clip?.left ?? 0)).toBeCloseTo(33.1, 0);
+    expect(clip?.left).toBeLessThan(gridToScreen({ x: 0.5, y: 10.5 }).x);
+    expect(clip?.right).toBeGreaterThan(gridToScreen({ x: 0.5, y: 10.5 }).x);
+    // Nadproże (przednia krawędź, 2,30 m) wyżej niż najwyższa postać (~1,96 m ≈ 103 px).
+    expect(clip?.top).toBeLessThan(gridToScreen({ x: 0.5, y: 10.5 }).y - 105);
+    // Pole za drzwiami na wprost nich: kamera patrzy przez otwór w prawo i w głąb, więc postać
+    // zasłania lewy słupek i ściana.
+    expect(wallVisibility({ x: -0.5, y: 10.5 }, WALL).alpha).toBe(0);
+    // Za drzwiami, ale w prawo (w stronę mniejszego y) — widoczna przez prześwit.
+    expect(wallVisibility({ x: -0.3, y: 9.6 }, WALL)).toMatchObject({ alpha: 1 });
+    // Dalej za ścianą, poza otworem — niewidoczna.
+    expect(wallVisibility({ x: -0.5, y: 12.5 }, WALL).alpha).toBe(0);
+    // Bez opisu ściany (inny układ) — bez zmian.
+    expect(wallVisibility({ x: -0.5, y: 12.5 }, null)).toEqual({ alpha: 1, clip: null });
+  });
+
+  it('wallVisibility: przy końcu ściany postać wychodzi zza rogu — przycięcie na krawędzi', () => {
+    const corner = gridToScreen({ x: 0.39, y: 14.61 }).x;
+    const behind = wallVisibility({ x: -0.5, y: 14.2 }, WALL);
+    expect(behind.clip?.right).toBeCloseTo(corner);
+    expect(behind.clip?.left).toBe(-Infinity);
+    // Część sylwetki wystaje już zza krawędzi — widoczna (przycięta), nie przezroczysta.
+    expect(behind.alpha).toBe(1);
+    // Przed końcem ściany (w y) — bez przycięcia.
+    expect(wallVisibility({ x: -0.5, y: 14.7 }, WALL)).toEqual({ alpha: 1, clip: null });
   });
 });

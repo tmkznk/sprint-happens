@@ -621,6 +621,7 @@
           m.userData.front = front;
           m.userData.partition = partition;
           scene.add(m);
+          return m;
         };
         const place = async (name, { x, z, y = 0, rotY = 0, scale = 1 }) => {
           const node = await loadModel(name);
@@ -721,6 +722,7 @@
 
         // Ściany: tafla na linii środka pola ściany, z otworami; nad otworem nadproże.
         const t = spec.wallThickness / 2;
+        const TALL_WALL_M = Math.max(...spec.walls.map((w) => w.height));
         for (const w of spec.walls) {
           const h = T(w.height);
           // Ściana działowa: `sides` — kolor strony o mniejszej i większej współrzędnej (każda
@@ -755,27 +757,81 @@
         }
         // Za drzwiami (po zewnętrznej stronie ściany, niewidocznej dla kamery) zaślepka otworu —
         // światło nie wpada przez okienko drzwi plamą na podłogę; przez szybę widać jasny korytarz.
+        // Otwarte drzwi (`open` > 0, skrzydło odchylone na zewnątrz): zaślepki nie ma (skrzydło
+        // by przez nią przeszło); za otworem jasne tło „korytarza” poza zasięgiem skrzydła i pas
+        // gruntu pod nim — przez otwór nie widać pustki.
         for (const d of spec.doors ?? []) {
           const half = T(0.55);
           const y1 = T(2.1);
+          if ((d.open ?? 0) > 0) {
+            // Tło tuż za zasięgiem skrzydła, niższe od ściany (dalej w głąb — na ekranie wyżej);
+            // nie rzuca cienia, więc słońce wpada przez otwór. Zasłaniacz nad ścianą (tylko
+            // głębia) chowa wszystko, co za ścianą wystawałoby ponad nią (górę skrzydła, tło).
+            const back = d.at - t - T(1.1);
+            const [a0, a1] = [d.center - T(1.9), d.center + T(0.6)];
+            // Poza kadrem renderu (`noFrame`): fazy otwarcia mają ten sam kadr co zamknięte tło.
+            const quiet = (m) => {
+              m.castShadow = false;
+              m.userData.noFrame = true;
+              return m;
+            };
+            if (d.axis === 'x') {
+              quiet(slab(a0, back - 0.05, a1, back, 0, T(1.35), 0xe8e4da));
+              quiet(slab(a0, back, a1, d.at, -0.06, 0, 0xa4a79e));
+            } else {
+              quiet(slab(back - 0.05, a0, back, a1, 0, T(1.35), 0xe8e4da));
+              quiet(slab(back, a0, d.at, a1, -0.06, 0, 0xa4a79e));
+            }
+            // Cienka płyta przy zewnętrznym licu, od wierzchu ściany w górę: wierzch ściany
+            // (bliżej kamery) zostaje widoczny, a to, co dalej, jest zasłonięte.
+            const wallTop = T(TALL_WALL_M) - 0.02;
+            const outer = d.at - t - 0.01;
+            const cap =
+              d.axis === 'x'
+                ? slab(a0, outer, a1 + 2, outer + 0.01, wallTop, wallTop + T(1.5), 0)
+                : slab(outer, a0, outer + 0.01, a1 + 2, wallTop, wallTop + T(1.5), 0);
+            cap.castShadow = false;
+            cap.userData.noFrame = true;
+            cap.renderOrder = -1;
+            cap.material = Object.assign(cap.material.clone(), { colorWrite: false });
+            continue;
+          }
           if (d.axis === 'x')
             slab(d.center - half, d.at - t, d.center + half, d.at - 0.06, 0, y1, 0xe8e4da);
           else slab(d.at - t, d.center - half, d.at - 0.06, d.center + half, 0, y1, 0xe8e4da);
         }
         // Drzwi z paczki w oryginalnym rozmiarze, wyśrodkowane na polu drzwi (płaszczyzna ściany).
+        // `hinge`: 'left' (domyślnie, zawiasy po stronie większej współrzędnej wzdłuż ściany) albo
+        // 'right' — lustrzane: zawiasy po stronie mniejszej, klamka po przeciwnej. `open` — kąt
+        // otwarcia skrzydła na zewnątrz (od pokoju) w stopniach.
         for (const d of spec.doors ?? []) {
           const rot = d.axis === 'x' ? 0 : 90;
           const along = (m) =>
             d.axis === 'x' ? { x: d.center + T(m), z: d.at } : { x: d.at, z: d.center - T(m) };
-          await place('Door_Frame', { ...along(-0.5), rotY: rot });
-          await place(d.leaf, { ...along(-0.505), rotY: rot });
+          const right = d.hinge === 'right';
+          const open = d.open ?? 0;
+          // `scaleY` — drzwi wyższe w pionie (model ma oś z w górę).
+          const tall = [1, 1, d.scaleY ?? 1];
+          await place('Door_Frame', { ...along(-0.5), rotY: rot, scale: tall });
+          // Skrzydło: oś obrotu modelu to krawędź zawiasów (x = 0). Lustro = obrót o 180°
+          // z zawiasami po drugiej stronie otworu; na zewnątrz to −X (ściana x) albo −Z (ściana z).
+          const closedRot = right ? rot + 180 : rot;
+          const swing = (right ? -1 : 1) * (d.axis === 'z' ? open : -open);
+          const hinge = along(right ? 0.505 : -0.505);
+          await place(d.leaf, { ...hinge, rotY: closedRot + swing, scale: tall });
           if (d.handle) {
-            const p = along(0.38);
+            // Klamka obraca się ze skrzydłem wokół osi zawiasów. Przy drzwiach lustrzanych model
+            // klamki jest odbity (nie obrócony): wystaje do pokoju, dźwignia w stronę zawiasów.
+            const p = along(right ? -0.38 : 0.38);
+            const dx = p.x + (d.axis === 'z' ? T(0.06) : 0) - hinge.x;
+            const dz = p.z + (d.axis === 'x' ? T(0.06) : 0) - hinge.z;
+            const a = THREE.MathUtils.degToRad(swing);
             await place(d.handle, {
-              x: p.x + (d.axis === 'z' ? T(0.06) : 0),
-              z: p.z + (d.axis === 'x' ? T(0.06) : 0),
+              x: hinge.x + dx * Math.cos(a) + dz * Math.sin(a),
+              z: hinge.z - dx * Math.sin(a) + dz * Math.cos(a),
               y: 1.0,
-              rotY: rot,
+              rotY: rot + swing,
+              scale: right ? [-1, 1, 1] : 1,
             });
           }
         }
@@ -845,7 +901,7 @@
           minV = Infinity,
           maxV = -Infinity;
         scene.traverse((o) => {
-          if (!o.isMesh) return;
+          if (!o.isMesh || o.userData.noFrame) return;
           const pos = o.geometry.attributes.position;
           const v = new THREE.Vector3();
           for (let i = 0; i < pos.count; i++) {
@@ -965,6 +1021,76 @@
         const dataURL = renderer.domElement.toDataURL('image/png');
         renderer.dispose();
         return { dataURL, width, height, anchorX, anchorY, scale: S };
+      };
+
+      // Fazy otwarcia drzwi: piksele różniące się od zamkniętego tła (`base`) w obszarze `roi`
+      // — wspólny prostokąt dla wszystkich faz; klatki wycięte z faz i ułożone w pasek (bez
+      // kompresji stratnej — wycinek kładziony na tło nie może mieć widocznego szwu).
+      window.doorStrip = async (base, frames, roi) => {
+        const load = (url) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = url;
+          });
+        const pixels = (img) => {
+          const c = document.createElement('canvas');
+          c.width = img.width;
+          c.height = img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          return ctx.getImageData(0, 0, img.width, img.height).data;
+        };
+        const baseImg = await load(base);
+        const width = baseImg.width;
+        const ref = pixels(baseImg);
+        const imgs = await Promise.all(frames.map(load));
+        let x0 = Infinity,
+          y0 = Infinity,
+          x1 = -1,
+          y1 = -1;
+        for (const img of imgs) {
+          const data = pixels(img);
+          for (let y = roi.y0; y < roi.y1; y++) {
+            for (let x = roi.x0; x < roi.x1; x++) {
+              const i = (y * width + x) * 4;
+              const diff = Math.max(
+                Math.abs(data[i] - ref[i]),
+                Math.abs(data[i + 1] - ref[i + 1]),
+                Math.abs(data[i + 2] - ref[i + 2]),
+                Math.abs(data[i + 3] - ref[i + 3]),
+              );
+              if (diff <= 3) continue;
+              x0 = Math.min(x0, x);
+              y0 = Math.min(y0, y);
+              x1 = Math.max(x1, x);
+              y1 = Math.max(y1, y);
+            }
+          }
+        }
+        const PAD = 2;
+        x0 = Math.max(roi.x0, x0 - PAD);
+        y0 = Math.max(roi.y0, y0 - PAD);
+        x1 = Math.min(roi.x1 - 1, x1 + PAD);
+        y1 = Math.min(roi.y1 - 1, y1 + PAD);
+        const w = x1 - x0 + 1,
+          h = y1 - y0 + 1;
+        // Przezroczysty odstęp między klatkami: przy wygładzaniu tekstury sąsiednia klatka nie
+        // przenika na krawędź (brzeg klatki i tak równa się tłu — margines PAD).
+        const GAP = 2;
+        const strip = document.createElement('canvas');
+        strip.width = (w + GAP) * imgs.length - GAP;
+        strip.height = h;
+        const ctx = strip.getContext('2d');
+        imgs.forEach((img, i) => ctx.drawImage(img, x0, y0, w, h, i * (w + GAP), 0, w, h));
+        return {
+          dataURL: strip.toDataURL('image/png'),
+          x: x0,
+          y: y0,
+          width: w,
+          height: h,
+          gap: GAP,
+        };
       };
 
       // Atlas kawałków: półki od najwyższego, wiersze do 2048 px. Zwraca obraz i ramki (x, y)

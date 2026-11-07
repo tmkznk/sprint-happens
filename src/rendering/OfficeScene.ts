@@ -35,9 +35,11 @@ import {
   roomFitBounds,
   roomSprite,
   roomTextureKey,
+  type RoomDoorMeta,
   type RoomSpriteMeta,
 } from './roomSprites';
 import { bakePieces, type BakedPiece } from './bake';
+import { doorFrame, doorHeldOpen, doorSpeed, doorWanted, stepDoor } from './doorAnimation';
 import type { Bounds } from './cameraMath';
 import { drawPrism, fillPolygon, rectCorners, shade, toVectors } from './draw';
 import {
@@ -75,6 +77,7 @@ import {
   depthOfPoint,
   gridToScreen,
   interpolate,
+  DOOR_DEPTH,
   FLOOR_DEPTH,
   ROOM_FRONT_DEPTH,
   type ScreenPoint,
@@ -122,6 +125,8 @@ export class OfficeScene extends Phaser.Scene {
   private readonly agentSprites = new Map<string, CharacterSprite>();
   // Ostatnie pozy postaci — do wybierania dotykiem tam, gdzie postać jest narysowana.
   private agentPoses = new Map<string, AgentPose>();
+  // Drzwi wejściowe wyrenderowanego pomieszczenia: wycinek tła z fazami otwarcia (prezentacja).
+  private door: { image: Phaser.GameObjects.Image; meta: RoomDoorMeta; open: number } | null = null;
   private furnitureGraphics: Phaser.GameObjects.GameObject[] = [];
   private renderedFurniture: GameState['world']['furniture'] | null = null;
   private renderedSelection: Selection = null;
@@ -273,6 +278,7 @@ export class OfficeScene extends Phaser.Scene {
 
   override update(_time: number, deltaMs: number): void {
     this.renderAgents();
+    this.updateDoor(deltaMs);
     if (!this.actor) return;
     this.actorAccumulatorMs += deltaMs;
     while (this.actorAccumulatorMs >= TEST_STEP_MS) {
@@ -318,6 +324,28 @@ export class OfficeScene extends Phaser.Scene {
       this.agentSprites.delete(id);
     }
     this.agentPoses = poses;
+  }
+
+  // Drzwi otwierają się, gdy podchodzi do nich (albo w nich stoi) postać, i zamykają po przejściu;
+  // rano i po pracy są otwarte do ostatniej osoby. Tempo jak gra (pauza zatrzymuje). Nakładka
+  // zmienia się tylko przy zmianie fazy.
+  private updateDoor(deltaMs: number): void {
+    const door = this.door;
+    if (!door) return;
+    const visitors = [...this.agentPoses.values()].map((pose) => ({
+      position: pose.position,
+      walking: pose.kind === 'walk',
+    }));
+    const { phase, speed } = this.engine.getState().mission;
+    const wanted = doorHeldOpen(phase) || doorWanted(door.meta, visitors);
+    door.open = stepDoor(door.open, wanted, Math.min(deltaMs, 250), doorSpeed(phase, speed));
+    const frame = doorFrame(door.open, door.meta.angles.length);
+    if (frame === null) {
+      if (door.image.visible) door.image.setVisible(false);
+      return;
+    }
+    if (door.image.frame.name !== `${frame}`) door.image.setFrame(`${frame}`);
+    if (!door.image.visible) door.image.setVisible(true);
   }
 
   private syncFurniture(): void {
@@ -402,6 +430,21 @@ export class OfficeScene extends Phaser.Scene {
         .setOrigin(meta.anchorX / meta.width, meta.anchorY / meta.height)
         .setScale(1 / meta.scale)
         .setDepth(depth);
+    }
+    if (meta.door) {
+      const door = meta.door;
+      const texture = this.textures.get(roomTextureKey(id, 'door'));
+      door.angles.forEach((_, i) => {
+        if (!texture.has(`${i}`))
+          texture.add(`${i}`, 0, i * (door.width + door.gap), 0, door.width, door.height);
+      });
+      const image = this.add
+        .image(0, 0, texture.key, '0')
+        .setOrigin(door.anchorX / door.width, door.anchorY / door.height)
+        .setScale(1 / meta.scale)
+        .setDepth(DOOR_DEPTH)
+        .setVisible(false);
+      this.door = { image, meta: door, open: 0 };
     }
     const atlas = this.textures.get(roomTextureKey(id, 'pieces'));
     for (const piece of meta.pieces ?? []) {

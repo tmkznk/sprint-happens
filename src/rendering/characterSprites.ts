@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import type { PersonId } from '../domain/content/people';
 import type { AgentStatus } from '../domain/movement';
-import type { AgentPose, Facing, PoseKind } from './agentPose';
+import type { AgentPose, Facing, PoseKind, ScreenClip } from './agentPose';
 import shadowUrl from '../assets/characters/shadow/shadow.webp?url';
 import {
   castsFloorShadow,
@@ -290,6 +290,25 @@ function requestSmokeTexture(sprite: CharacterSprite): void {
   });
 }
 
+// Za wysoką ścianą: przycięcie obrazu do prostokąta widoczności (otwór drzwi albo obszar zza
+// końca ściany, piksele świata). Crop w pikselach ramki; tani (bez masek i filtrów), zdejmowany
+// poza ścianą. Ustawiany co klatkę, bo zależy od pozycji, ramki animacji i kotwicy.
+function clipTo(
+  image: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image,
+  clip: ScreenClip | null,
+): void {
+  if (clip === null) {
+    if (image.isCropped) image.setCrop();
+    return;
+  }
+  const left = image.x - image.displayOriginX * image.scaleX;
+  const top = image.y - image.displayOriginY * image.scaleY;
+  const x0 = Math.min(Math.max((clip.left - left) / image.scaleX, 0), image.width);
+  const x1 = Math.min(Math.max((clip.right - left) / image.scaleX, 0), image.width);
+  const y0 = Math.min(Math.max((clip.top - top) / image.scaleY, 0), image.height);
+  image.setCrop(x0, y0, Math.max(x1 - x0, 0), image.height - y0);
+}
+
 // Pozycja, animacja i znaczniki postaci. `timeScale` — tempo gry (0 = pauza zatrzymuje animację).
 export function placeCharacterSprite(
   sprite: CharacterSprite,
@@ -319,6 +338,8 @@ export function placeCharacterSprite(
     }
     sprite.body.anims.timeScale = timeScale;
   }
+  clipTo(sprite.body, pose.clip);
+  clipTo(sprite.shadow, pose.clip);
 
   // Znacznik pod stopami: zaznaczenie albo problem z ruchem (brak drogi, blokada).
   const warning = WARNING_STATUSES.includes(status);

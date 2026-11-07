@@ -33,6 +33,8 @@ const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/M
 const FURNITURE_SCALE = 2; // 2 px obrazu na 1 px gry
 const CHARACTER_SCALE = 2; // postacie w tej samej rozdzielczości co meble (decyzja właściciela)
 const CHARACTER_QUALITY = 0.75; // WebP: wyższa jakość prawie niewidoczna, a pliki o połowę większe
+// Fazy otwarcia drzwi wejściowych (stopnie, skrzydło na zewnątrz); 0° to samo tło pomieszczenia.
+const DOOR_ANGLES = [15, 30, 45, 60, 75];
 const targets = process.argv.slice(2);
 const wanted = (name) => targets.length === 0 || targets.includes(name);
 
@@ -77,6 +79,7 @@ try {
     await mkdir(`${OUT}src/assets/rooms`, { recursive: true });
     const roomMeta = {};
     for (const [id, spec] of Object.entries(ROOMS)) {
+      let back = null;
       for (const layer of ['back', 'front']) {
         const r = await page.evaluate((s) => window.renderRoom(s), {
           ...spec,
@@ -89,7 +92,68 @@ try {
         );
         const { width, height, anchorX, anchorY, scale } = r;
         roomMeta[id] = { width, height, anchorX, anchorY, scale };
+        if (layer === 'back') back = r;
         console.log(`${id}-${layer}`, width, height);
+      }
+      // Drzwi wejściowe: fazy otwarcia jako wycinki tła (to, co się zmienia: skrzydło, otwór,
+      // światło na podłodze) w pasku <id>-door.png; w grze kładzione na tło według stanu drzwi.
+      // Zamknięte drzwi to samo tło — faza 0° nie ma klatki.
+      const door = spec.doors?.[0];
+      if (door && back) {
+        const frames = [];
+        for (const open of DOOR_ANGLES) {
+          const r = await page.evaluate((s) => window.renderRoom(s), {
+            ...spec,
+            doors: spec.doors.map((d, i) => (i === 0 ? { ...d, open } : d)),
+            layer: 'back',
+            scale: FURNITURE_SCALE,
+          });
+          frames.push(r.dataURL);
+        }
+        // Obszar szukania zmian: kilka pól wokół drzwi, od wierzchu ściany do podłogi.
+        const cell =
+          door.axis === 'z'
+            ? { x: Math.floor(door.at), y: Math.floor(door.center) }
+            : { x: Math.floor(door.center), y: Math.floor(door.at) };
+        const S = FURNITURE_SCALE;
+        const cx = back.anchorX + (cell.x - cell.y) * 32 * S;
+        const cy = back.anchorY + (cell.x + cell.y + 1) * 16 * S;
+        // Lewa granica nie dalej niż koniec ściany z drzwiami (dla ściany z: jej koniec przy
+        // większym z) — tło za otworem nie może wyjrzeć zza ściany.
+        const t = spec.wallThickness / 2;
+        const wallEnd = Math.max(
+          ...spec.walls
+            .filter((w) => w.axis === door.axis && w.at === door.at && !w.partition)
+            .map((w) => w.to),
+        );
+        const endX =
+          door.axis === 'z'
+            ? back.anchorX + (door.at - t - wallEnd) * 32 * S
+            : back.anchorX - Infinity;
+        const roi = {
+          x0: Math.max(0, Math.round(cx - 4 * 32 * S), Math.ceil(endX)),
+          x1: Math.min(back.width, Math.round(cx + 4 * 32 * S)),
+          y0: Math.max(0, Math.round(cy - 10 * 16 * S)),
+          y1: Math.min(back.height, Math.round(cy + 4 * 16 * S)),
+        };
+        const strip = await page.evaluate(
+          ({ base, frames, roi }) => window.doorStrip(base, frames, roi),
+          { base: back.dataURL, frames, roi },
+        );
+        await writeFile(
+          `${OUT}src/assets/rooms/${id}-door.png`,
+          Buffer.from(strip.dataURL.split(',')[1], 'base64'),
+        );
+        roomMeta[id].door = {
+          ...cell,
+          angles: DOOR_ANGLES,
+          gap: strip.gap,
+          width: strip.width,
+          height: strip.height,
+          anchorX: back.anchorX - strip.x,
+          anchorY: back.anchorY - strip.y,
+        };
+        console.log(`${id}-door`, strip.width, strip.height, DOOR_ANGLES.length);
       }
       // Teren na zewnątrz powiększa obraz, ale widok startowy pokazuje samo biuro: wymiary tego
       // samego pomieszczenia bez `outdoor` → `fit` (kamera, `roomFitBounds`).

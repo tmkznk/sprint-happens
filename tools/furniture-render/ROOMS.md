@@ -48,7 +48,7 @@ kolejnym pomieszczeniu (poziomie).
 ## Ściany
 
 - Tafla na linii środka pola ściany (jak w grze), grubość 0,22 pola.
-- **Wysokie ściany tylne** (x = 0 i y = 0): 2,4 m — wyraźnie wyższe niż drzwi (ok. 2,1 m).
+- **Wysokie ściany tylne** (x = 0 i y = 0): 2,7 m — wyraźnie wyższe niż drzwi (ok. 2,4 m z ościeżnicą).
 - **Ściany od strony kamery: niskie** (0,35 m). **Ściany działowe: niskie** — musi być widać,
   co jest w narożnikach pokoi.
 - **Narożniki:** wysokie ściany sięgają do zewnętrznego narożnika; niskie dochodzą do lica
@@ -79,10 +79,25 @@ kolejnym pomieszczeniu (poziomie).
   klamka `Door_Handle_1`. **Oryginalny rozmiar — nie zwężać** do szerokości pola. W grze
   przejście nadal zajmuje jedno pole; ościeżnica wizualnie wchodzi na sąsiednie pola ściany.
 - **Drzwi wejściowe w wysokiej ścianie** (widoczne w całości), osadzone w niej: otwór 1,10 m
-  wyśrodkowany na polu drzwi, nadproże od 2,1 m do szczytu ściany.
+  wyśrodkowany na polu drzwi, nadproże od 2,39 m do szczytu ściany. Modele drzwi powiększone
+  w pionie ×1,14 (`scaleY`, światło ~2,30 m): postacie mają do ~1,96 m i przechodząc przez
+  grubość ściany muszą zmieścić się pod przednią krawędzią nadproża (decyzja właściciela
+  2026-11-07).
 - Za drzwiami jasna zaślepka (niewidoczna dla kamery) — bez plamy światła na podłodze, przez szybę
   widać jasny „korytarz”.
 - Nowa postać pojawia się w biurze na pierwszym polu na wprost drzwi, nie w progu (`spawnCell`).
+- **Strona zawiasów:** `hinge: 'right'` w `rooms.mjs` — drzwi lustrzane (zawiasy po stronie mniejszej
+  współrzędnej wzdłuż ściany, klamka po przeciwnej). Drzwi wejściowe misji i prologu są lustrzane:
+  skrzydło otwiera się na zewnątrz w prawo, poza dojście palaczy (decyzja właściciela 2026-11-07).
+- **Animacja otwierania:** narzędzie renderuje tło z drzwiami otwartymi pod kątami `DOOR_ANGLES`
+  (`build.mjs`, na zewnątrz, do 75°) i wycina obszar, który się zmienia (skrzydło, otwór, światło
+  na podłodze) — pasek `<id>-door.png` (PNG, bez szwu na tle) i `door` w `roomSprites.json`.
+  Obszar wycinka nie wychodzi poza koniec ściany z drzwiami. Przy otwartych drzwiach za otworem
+  stoi jasne tło „korytarza” z pasem gruntu, a nad ścianą niewidoczny zasłaniacz (tylko głębia),
+  który chowa to, co za ścianą wystawałoby ponad nią; elementy pomocnicze nie wpływają na kadr
+  (`noFrame`). Klatki w pasku rozdziela przezroczysty odstęp `gap` (bez przenikania przy
+  wygładzaniu). W grze stan drzwi liczy `src/rendering/doorAnimation.ts` z pozycji postaci; rano
+  i po pracy drzwi są otwarte do ostatniej osoby.
 - Pozycję drzwi sprawdzić regułami gry (dostęp do mebli, `validateAccess`) — nie każde pole ściany
   się nadaje.
 
@@ -97,8 +112,10 @@ kolejnym pomieszczeniu (poziomie).
 - Obraz rośnie o teren, a widok startowy pokazuje samo pomieszczenie: narzędzie renderuje je też
   bez `outdoor` i zapisuje te wymiary jako `fit` w `roomSprites.json` (kamera: `roomFitBounds`).
 - Wysoka ściana leży w warstwie `back`, pod sprite'ami, więc nie zasłania postaci na dojściu za nią:
-  robi to przezroczystość (`outdoorAlpha` w `src/rendering/agentPose.ts`). Przy innym przebiegu
-  ściany trzeba zmienić ten wzór.
+  robi to `wallVisibility` w `src/rendering/agentPose.ts`: za licem ościeżnicy sprite jest
+  przycinany do prześwitu drzwi (z nadprożem), a dalej — pionową linią na krawędzi końca ściany
+  (geometria z `rooms.mjs` i modelu `Door_Frame`), bez przezroczystości. Przy innym przebiegu
+  ściany albo innych drzwiach trzeba zmienić te stałe.
 - Postać na terenie ma głębokość powyżej warstwy `front` — stoi przed niskimi ścianami.
 
 ## Pola gry są wolne

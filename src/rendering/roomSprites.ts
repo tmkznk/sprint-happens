@@ -19,6 +19,22 @@ export type RoomPieceMeta = {
   anchorY: number;
 };
 
+// Fazy otwarcia drzwi wejściowych (tools/furniture-render, `<id>-door.png`): pasek klatek
+// o jednakowym rozmiarze, kolejno coraz szerzej otwarte; zamknięte drzwi to samo tło.
+export type RoomDoorMeta = {
+  // Pole drzwi w siatce gry.
+  x: number;
+  y: number;
+  angles: number[];
+  // Przezroczysty odstęp między klatkami w pasku (px).
+  gap: number;
+  width: number;
+  height: number;
+  // Piksel punktu (0,0) siatki względem lewego górnego rogu klatki.
+  anchorX: number;
+  anchorY: number;
+};
+
 export type RoomSpriteMeta = {
   width: number;
   height: number;
@@ -26,6 +42,7 @@ export type RoomSpriteMeta = {
   anchorY: number;
   scale: number;
   pieces?: RoomPieceMeta[];
+  door?: RoomDoorMeta;
   // Wymiary tego samego renderu bez terenu na zewnątrz (zapisuje je tools/furniture-render/build.mjs)
   // — obszar widoku startowego. Brak: nie ma terenu, cały obraz to pomieszczenie.
   fit?: { width: number; height: number; anchorX: number; anchorY: number };
@@ -74,5 +91,5 @@ export function roomFitBounds(meta: RoomSpriteMeta): Bounds {
   return frameBounds(meta.fit ?? meta, meta.scale);
 }
 
-export const roomTextureKey = (id: string, layer: 'back' | 'front' | 'pieces') =>
+export const roomTextureKey = (id: string, layer: 'back' | 'front' | 'pieces' | 'door') =>
   `room-${id}-${layer}`;

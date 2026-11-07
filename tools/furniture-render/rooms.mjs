@@ -11,7 +11,13 @@ const FACE = 0.5 + WALL / 2 + T(0.03);
 const MUSTARD = 0xe0a640;
 const GREEN = 0x9db58f;
 const BURGUNDY = 0x8e4f5f;
-const TALL = 2.4;
+// Wysokie ściany i drzwi: postacie w stylu „cute” mają do ~1,96 m, a przechodząc przez grubość
+// ściany muszą zmieścić się pod przednią krawędzią nadproża (widok z góry) — drzwi powiększone
+// w pionie do ~2,3 m w świetle, ściany podniesione, by nad drzwiami został pas ściany (decyzja
+// właściciela 2026-11-07).
+const TALL = 2.7;
+const DOOR_SCALE_Y = 1.14;
+const DOOR_LINTEL = 2.1 * DOOR_SCALE_Y;
 const LOW = 0.35;
 const onBack = (name, x, y, extra = {}) => ({ name, x, z: FACE, y, rotY: 0, ...extra });
 const onLeft = (name, z, y, extra = {}) => ({ name, x: FACE, z, y, rotY: 90, ...extra });
@@ -42,15 +48,16 @@ export const ROOMS = {
       grout: 0x7e5f3c,
     },
     walls: [
-      { axis: 'x', at: 0.5, from: 0.39, to: 7.61, height: 2.4, color: MUSTARD },
+      { axis: 'x', at: 0.5, from: 0.39, to: 7.61, height: TALL, color: MUSTARD },
       {
         axis: 'z',
         at: 0.5,
         from: 0.61,
         to: 6.61,
-        height: 2.4,
+        height: TALL,
         color: MUSTARD,
         openings: [[DOOR_CENTER - OPENING, DOOR_CENTER + OPENING]],
+        lintel: DOOR_LINTEL,
       },
       {
         axis: 'x',
@@ -71,7 +78,17 @@ export const ROOMS = {
         front: true,
       },
     ],
-    doors: [{ axis: 'z', at: 0.5, center: DOOR_CENTER, leaf: 'Door_2', handle: 'Door_Handle_1' }],
+    doors: [
+      {
+        axis: 'z',
+        at: 0.5,
+        center: DOOR_CENTER,
+        leaf: 'Door_2',
+        handle: 'Door_Handle_1',
+        hinge: 'right',
+        scaleY: DOOR_SCALE_Y,
+      },
+    ],
     decor: [
       onBack('Painting_Small', 2.3, 1.75),
       onBack('Painting', 4.4, 1.7),
@@ -134,6 +151,7 @@ export const ROOMS = {
         height: TALL,
         color: GREEN,
         openings: [[10.5 - OPENING, 10.5 + OPENING]],
+        lintel: DOOR_LINTEL,
       },
       { axis: 'x', at: 14.5, from: 0.61, to: 14.61, height: LOW, color: GREEN, front: true },
       { axis: 'z', at: 14.5, from: 0.61, to: 5.5, height: LOW, color: MUSTARD, front: true },
@@ -170,7 +188,19 @@ export const ROOMS = {
         partition: true,
       },
     ],
-    doors: [{ axis: 'z', at: 0.5, center: 10.5, leaf: 'Door_2', handle: 'Door_Handle_1' }],
+    // Drzwi wejściowe lustrzane (zawiasy po prawej): skrzydło otwiera się na zewnątrz w prawo,
+    // poza dojście palaczy (y ≥ 10) — decyzja właściciela 2026-11-07.
+    doors: [
+      {
+        axis: 'z',
+        at: 0.5,
+        center: 10.5,
+        leaf: 'Door_2',
+        handle: 'Door_Handle_1',
+        hinge: 'right',
+        scaleY: DOOR_SCALE_Y,
+      },
+    ],
     decor: [
       // Gabinet szefa: obrazy na obu wysokich ścianach.
       onBack('Painting', 3.5, 1.75),

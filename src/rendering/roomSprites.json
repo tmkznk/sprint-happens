@@ -1,22 +1,42 @@
 {
   "prologue": {
     "width": 869,
-    "height": 689,
+    "height": 721,
     "anchorX": 403,
-    "anchorY": 230,
-    "scale": 2
+    "anchorY": 262,
+    "scale": 2,
+    "door": {
+      "x": 0,
+      "y": 4,
+      "angles": [15, 30, 45, 60, 75],
+      "gap": 2,
+      "width": 292,
+      "height": 359,
+      "anchorX": 398,
+      "anchorY": 160
+    }
   },
   "office": {
     "width": 2199,
-    "height": 1184,
+    "height": 1215,
     "anchorX": 1285,
-    "anchorY": 230,
+    "anchorY": 262,
     "scale": 2,
+    "door": {
+      "x": 0,
+      "y": 10,
+      "angles": [15, 30, 45, 60, 75],
+      "gap": 2,
+      "width": 338,
+      "height": 359,
+      "anchorX": 828,
+      "anchorY": -32
+    },
     "fit": {
       "width": 1829,
-      "height": 1169,
+      "height": 1201,
       "anchorX": 915,
-      "anchorY": 230
+      "anchorY": 262
     },
     "pieces": [
       {
