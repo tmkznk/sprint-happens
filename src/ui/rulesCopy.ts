@@ -130,7 +130,8 @@ export const RULES: RulesSection[] = [
         question: 'Czy mogę sam wysłać kogoś na przerwę?',
         answer: [
           'Tak. Zaznacz postać w biurze i wyślij ją do ekspresu, na kanapę, do biurka albo na wybrane miejsce. Odpoczynek na kanapie z Twojego polecenia trwa przynajmniej chwilę, nawet gdy ktoś jest już wypoczęty.',
-          'Uwaga: po Twoim poleceniu pracownik przestaje sam chodzić na przerwy, dopóki nie padnie ze zmęczenia. Odesłanie kogoś do biurka, gdy termin goni, działa — ale zmęczony robi więcej błędów i traci humor.',
+          'Po kawie czy kanapie z Twojego polecenia pracownik sam wraca do biurka i dalej chodzi na przerwy jak zwykle.',
+          'Inaczej, gdy odeślesz kogoś do biurka albo w wybrane miejsce: wtedy nie pójdzie sam na przerwę, dopóki nie padnie ze zmęczenia (albo do końca dnia). Gdy termin goni, to działa — ale zmęczony robi więcej błędów i traci humor.',
         ],
       },
     ],
