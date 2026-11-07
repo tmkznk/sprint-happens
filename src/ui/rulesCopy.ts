@@ -126,6 +126,13 @@ export const RULES: RulesSection[] = [
           'Niektórzy wychodzą też na papierosa na taras — to przerwa, która energii nie dodaje.',
         ],
       },
+      {
+        question: 'Czy mogę sam wysłać kogoś na przerwę?',
+        answer: [
+          'Tak. Zaznacz postać w biurze i wyślij ją do ekspresu, na kanapę, do biurka albo na wybrane miejsce. Odpoczynek na kanapie z Twojego polecenia trwa przynajmniej chwilę, nawet gdy ktoś jest już wypoczęty.',
+          'Uwaga: po Twoim poleceniu pracownik przestaje sam chodzić na przerwy, dopóki nie padnie ze zmęczenia. Odesłanie kogoś do biurka, gdy termin goni, działa — ale zmęczony robi więcej błędów i traci humor.',
+        ],
+      },
     ],
   },
   {
@@ -144,6 +151,17 @@ export const RULES: RulesSection[] = [
         answer: [
           'Tak. Bardzo niezadowolony pracownik dostaje ostrzeżenie, a jeśli długo nic się nie zmieni — składa wypowiedzenie. Nie ma tu losowania: wystarczy w porę poprawić warunki.',
           'Gdy warunki są dobre, zadowolenie samo wraca do normy.',
+        ],
+      },
+      {
+        question: 'Jak mogę zadbać o zespół?',
+        answer: [
+          'Daj każdemu biurko — bez niego nikt nie pracuje i każdy się frustruje, nawet gdy nic nie robi.',
+          'Kup tyle ekspresów i kanap, żeby nie było kolejek, i postaw je niedaleko biurek — krótsza droga to krótsza przerwa. Bez ekspresu ludzie nie robią sobie małych przerw zawczasu i częściej dochodzą do zmęczenia.',
+          'Nie dopuszczaj do wyczerpania: jeśli trzymasz kogoś przy biurku poleceniami, pamiętaj, żeby w porę wysłać go na odpoczynek. Męczy tylko praca — ktoś bez zadań odpocznie po prostu siedząc.',
+          'Ważąc decyzje w zdarzeniach, licz się z humorem zespołu — oszczędność czasu bywa okupiona niezadowoleniem.',
+          'Rośliny cieszą oko, ale na energię i humor nie wpływają. Wysokość pensji ani tempo gry — też nie.',
+          'Gdy ktoś ma już ostrzeżenie, a warunków nie da się szybko poprawić, możesz go zwolnić, zanim sam odejdzie — dniówkę za ten dzień i tak zapłacisz.',
         ],
       },
     ],
