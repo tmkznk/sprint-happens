@@ -170,7 +170,7 @@ export const RULES: RulesSection[] = [
           'Kup tyle ekspresów i kanap, żeby nie było kolejek, i postaw je niedaleko biurek — krótsza droga to krótsza przerwa. Bez ekspresu ludzie nie robią sobie małych przerw zawczasu i częściej dochodzą do ściany.',
           'Nie dopuszczaj do wyczerpania: jeśli przyciskasz kogoś przy biurku, pamiętaj, żeby w porę wysłać go na odpoczynek. Męczy tylko praca — ktoś bez zadań odpocznie po prostu siedząc.',
           'W zdarzeniach licz się z humorem zespołu — oszczędność czasu bywa okupiona niezadowoleniem.',
-          'Rośliny cieszą oko, ale na energię i humor nie wpływają. Pensja ani tempo gry — też nie. Pizza też nie, bo jej nie ma.',
+          'Rośliny cieszą oko, ale na energię i humor nie wpływają. Pensja ani tempo gry — też nie.',
           'Gdy ktoś ma już ostrzeżenie, a warunków nie da się szybko poprawić, możesz go zwolnić, zanim sam odejdzie — dniówkę za ten dzień i tak zapłacisz.',
         ],
       },
