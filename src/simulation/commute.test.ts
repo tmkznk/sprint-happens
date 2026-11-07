@@ -13,7 +13,7 @@ import { interactionCells } from '../world/geometry';
 import { neighbours, sameCell } from '../world/movement/grid';
 import { destinationId } from '../world/movement/officeEnv';
 import { cellKindAt, OFFICE_LAYOUT, PROLOGUE_LAYOUT } from '../world/officeLayout';
-import { entryCell, maxTransitSteps } from './commute';
+import { doorwayCell, entryCell, maxTransitSteps } from './commute';
 import { createEngine, type Engine } from './engine';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -23,7 +23,8 @@ const P1 = 'project-1' as ProjectId;
 const SOFA = 'furniture-3' as FurnitureId;
 const SOFA_SEAT = destinationId(SOFA, 0);
 const STEP_MS = DEFAULT_BALANCE.simulation.stepMs;
-const ENTRANCE = OFFICE_LAYOUT.doors.find((door) => door.isEntrance)?.position;
+// Pole za drzwiami wejściowymi (dojście za ścianą): tu postacie pojawiają się rano i znikają po pracy.
+const MISSION_DOORWAY = { x: -1, y: 10 };
 
 function engineFrom(state: GameState): Engine {
   return createEngine({ config: DEFAULT_BALANCE, initialState: deepFreeze(state) });
@@ -117,7 +118,7 @@ describe('wyjście z biura po pracy (TIME-08, SH-004 B4)', () => {
     });
     expect(world.movement.agents).toHaveLength(3);
     for (const agent of world.movement.agents) {
-      expect(agent.tasks).toEqual([{ kind: 'goTo', cell: ENTRANCE }]);
+      expect(agent.tasks).toEqual([{ kind: 'goTo', cell: MISSION_DOORWAY }]);
     }
   });
 
@@ -284,6 +285,12 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
     expect(entryCell(PROLOGUE_LAYOUT)).toEqual({ x: 1, y: 4 });
   });
 
+  it('pole przejścia: za drzwiami na dojściu (misja), w samych drzwiach bez terenu (prolog)', () => {
+    expect(doorwayCell(OFFICE_LAYOUT)).toEqual(MISSION_DOORWAY);
+    expect(cellKindAt(OFFICE_LAYOUT, MISSION_DOORWAY)).toBe('outdoor');
+    expect(doorwayCell(PROLOGUE_LAYOUT)).toEqual({ x: 0, y: 4 });
+  });
+
   it.each([
     ['OFFICE_LAYOUT', OFFICE_LAYOUT],
     ['PROLOGUE_LAYOUT', PROLOGUE_LAYOUT],
@@ -306,7 +313,7 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
     expect(world.movement.reservations).toEqual({});
   });
 
-  it('postacie wchodzą pojedynczo przez entryCell', () => {
+  it('postacie wchodzą pojedynczo zza drzwi przez entryCell', () => {
     const engine = morning();
     const order = [...engine.getState().staff.entryQueue];
     engine.dispatch({ type: 'SetSpeed', speed: 1 });
@@ -316,10 +323,10 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
       const { agents } = engine.getState().world.movement;
       expect(agents.filter((a) => onCell(a, MISSION_ENTRY)).length).toBeLessThanOrEqual(1);
       const newcomers = agents.filter((a) => !appeared.includes(a.id));
-      // Najwyżej jedna nowa postać na krok — pojawia się na polu wejścia.
+      // Najwyżej jedna nowa postać na krok — pojawia się za drzwiami, na dojściu.
       expect(newcomers.length).toBeLessThanOrEqual(1);
       for (const agent of newcomers) {
-        expect(sameCell(agent.cell, MISSION_ENTRY)).toBe(true);
+        expect(sameCell(agent.cell, MISSION_DOORWAY)).toBe(true);
         appeared.push(agent.id);
       }
     }

@@ -23,17 +23,16 @@ export function maxTransitSteps(config: BalanceConfig): number {
   return Math.round((config.simulation.maxTransitSeconds * 1000) / config.simulation.stepMs);
 }
 
-function entranceOf(state: GameState): GridPoint {
-  const entrance = officeLayoutOf(state).doors.find((door) => door.isEntrance)?.position;
-  if (!entrance) throw new Error('Biuro bez drzwi wejściowych');
-  return entrance;
+function exitOf(state: GameState): GridPoint {
+  return doorwayCell(officeLayoutOf(state));
 }
 
-// O 17:00 wszyscy przerywają czynność (praca, kawa, kanapa, kolejka) i idą do drzwi wejściowych;
+// O 17:00 wszyscy przerywają czynność (praca, kawa, kanapa, kolejka) i wychodzą drzwiami
+// wejściowymi (`doorwayCell` — za drzwi, gdy jest tam teren);
 // rezerwacje miejsc są zwalniane od razu (MOVE-03). Tempo bez zmian — gracz może przyspieszyć.
 // Wyjście kasuje rozkazy: wstrzymanie przerw (decyzja 2b) i kanapę z rozkazu (3c).
 export function beginLeaving(state: GameState): GameState {
-  const door = entranceOf(state);
+  const door = exitOf(state);
   let movement = state.world.movement;
   for (const agent of state.world.movement.agents) {
     movement = redirectAgent(movement, agent.id, [{ kind: 'goTo', cell: door }]);
@@ -52,10 +51,10 @@ export function beginLeaving(state: GameState): GameState {
   };
 }
 
-// Krok wyjścia: ruch, a kto stoi w drzwiach (bez trwającego przejścia), znika z biura.
+// Krok wyjścia: ruch, a kto stoi na polu wyjścia (bez trwającego przejścia), znika z biura.
 // Gdy biuro jest puste albo minął limit przejścia — koniec pracy na pauzie (raport, rozliczenie).
 export function advanceLeaving(state: GameState, config: BalanceConfig): GameState {
-  const door = entranceOf(state);
+  const door = exitOf(state);
   let movement = state.world.movement;
   if (movement.agents.length > 0) {
     movement = stepMovement(movement, movementEnvFor(state, config));
@@ -91,6 +90,16 @@ export function entryCell(layout: OfficeLayout): GridPoint {
   return cell;
 }
 
+// Pole, na którym postać pojawia się rano i znika wieczorem: za drzwiami wejściowymi, gdy jest tam
+// teren (dojście za ścianą — wchodzi i wychodzi zza ściany, decyzja właściciela 2026-11-07);
+// bez terenu na zewnątrz (prolog) — same drzwi.
+export function doorwayCell(layout: OfficeLayout): GridPoint {
+  const door = layout.doors.find((d) => d.isEntrance)?.position;
+  if (!door) throw new Error('Biuro bez drzwi wejściowych');
+  const outside = neighbours(door).find((cell) => cellKindAt(layout, cell) === 'outdoor');
+  return outside ?? door;
+}
+
 // TIME-04, TIME-05: po „Następny dzień” biuro jest puste, a wszyscy pracownicy czekają przed
 // wejściem w stałej kolejności ID (deterministycznie). Zegar dnia stoi na 9:00.
 export function beginArriving(state: GameState): GameState {
@@ -109,15 +118,24 @@ export function beginArriving(state: GameState): GameState {
   };
 }
 
-// Krok przyjścia: gdy pole wejścia jest wolne, wchodzi następna osoba z kolejki; potem ruch.
+// Krok przyjścia: gdy pole przejścia (`doorwayCell`) i pole wejścia są wolne, wchodzi następna
+// osoba z kolejki; potem ruch.
 // Gdy wszyscy doszli (albo minął limit przejścia) — dzień pracy od 9:00, tempo bez zmian.
 // Bez pracy, potrzeb, zadowolenia, zdarzeń i kosztów.
 export function advanceArriving(state: GameState, config: BalanceConfig): GameState {
-  const entry = entryCell(officeLayoutOf(state));
+  const layout = officeLayoutOf(state);
+  const entry = entryCell(layout);
+  const doorway = doorwayCell(layout);
   let current = state;
   const [next, ...rest] = current.staff.entryQueue;
-  if (next !== undefined && cellIsFree(current, config, entry)) {
-    current = withAgentAt(current, config, next, entry, entry);
+  // Następna osoba wchodzi zza drzwi, gdy pole przejścia i pole wejścia są wolne (bez tłoku
+  // w progu).
+  if (
+    next !== undefined &&
+    cellIsFree(current, config, doorway) &&
+    cellIsFree(current, config, entry)
+  ) {
+    current = withAgentAt(current, config, next, doorway, entry);
     current = { ...current, staff: { ...current.staff, entryQueue: rest } };
   }
   let movement = current.world.movement;
