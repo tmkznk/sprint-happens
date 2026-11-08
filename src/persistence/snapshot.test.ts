@@ -8,7 +8,9 @@ import { createAgent } from '../domain/movement';
 import { createInitialState, type GameState } from '../domain/state';
 import type { EmployeeId } from '../domain/employees';
 import { createEngine } from '../simulation/engine';
+import { beginChapterTwo } from '../simulation/chapters';
 import { createPrologueState } from '../simulation/prologue';
+import { wonChapterOne } from '../test/chapterFixture';
 import { runUntilPhase } from '../test/engineFixture';
 import { createPlayer } from '../test/player';
 import { DAY_LENGTH_MS } from '../simulation/time';
@@ -1068,5 +1070,13 @@ describe('rozdziały i magazyn mebli (rozdział 2)', () => {
       }),
       'world.storage',
     );
+  });
+});
+
+describe('przejście do rozdziału 2 w zapisie (SH-049)', () => {
+  it('stan po przejściu przechodzi walidację i round-trip', () => {
+    const result = beginChapterTwo(wonChapterOne(), DEFAULT_BALANCE);
+    if (!result.ok) throw new Error(result.code);
+    expect(roundTrip(result.state)).toEqual(result.state);
   });
 });
