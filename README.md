@@ -4,7 +4,7 @@ Mobilna gra przeglądarkowa (PWA) o prowadzeniu software house'u. Zatrudniasz ze
 
 **Zagraj:** https://sprint-happens.fun/ — działa w przeglądarce, można zainstalować jako aplikację i grać offline.
 
-> **Status:** wersja 1.0.0 — MVP: jedna misja w jednym biurze z samouczkiem, pełna pętla rozgrywki (zlecenia, zespół, błędy i testy, oddania, reputacja, zdarzenia, zwycięstwo/bankructwo). Interfejs po polsku, bez dźwięku. Zapis lokalny w przeglądarce, bez kont.
+> **Status:** wersja 2.0.0 — kampania: prolog-samouczek, rozdział 1 (pierwsze biuro) i rozdział 2 „Agile, czyli szybciej” — większe biuro z salką konferencyjną, Scrum Master, sprinty z celem, daily, retrospektywa z kartami usprawnień. Pełna pętla rozgrywki (zlecenia, zespół, błędy i testy, oddania, reputacja, zdarzenia, zwycięstwo/bankructwo). Interfejs po polsku, bez dźwięku. Zapis lokalny w przeglądarce, bez kont.
 
 ## Wymagania
 
