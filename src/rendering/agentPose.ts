@@ -80,9 +80,8 @@ function footprintDepth(furniture: Furniture): number {
 }
 
 // SH-052: stół konferencyjny — krzesło na każdym polu miejsca siedzącego, przodem do stołu.
-// Obrazek krzesła przy obrocie 0° jest przodem do −y siatki (kompozycja w
-// tools/furniture-render/furniture.mjs: Chair_2 obrócone o 180°, model −y = siatka +y); obrót
-// mebla o 90° (render: rotation.y = −90°) obraca kierunek −y → +x.
+// Obrazek krzesła przy obrocie 0° jest przodem (siedziskiem) do −y siatki, kolejne obroty: +x,
+// +y, −x — sprawdzone w grze przy obu ustawieniach stołu (właściciel: siedziska do stołu).
 const CHAIR_ROTATION: Record<Facing, Rotation> = { ny: 0, px: 90, py: 180, nx: 270 };
 
 function tableCenter(table: Furniture): GridPoint {
@@ -96,14 +95,42 @@ function tableCenter(table: Furniture): GridPoint {
 
 const cellCenter = (cell: GridPoint): GridPoint => ({ x: cell.x + 0.5, y: cell.y + 0.5 });
 
+// Kierunek siedzącego przy stole: z boku obrysu, przy którym stoi krzesło (nie ze środka stołu —
+// krzesła skrajne przy długim boku obróciłyby się wtedy o 90°).
+function seatFacing(table: Furniture, cell: GridPoint): Facing {
+  const { width, height } = FURNITURE_CATALOG[table.type].footprint;
+  const turned = table.rotation === 90 || table.rotation === 270;
+  const w = turned ? height : width;
+  const h = turned ? width : height;
+  if (cell.y < table.origin.y) return 'py';
+  if (cell.y >= table.origin.y + h) return 'ny';
+  if (cell.x < table.origin.x) return 'px';
+  if (cell.x >= table.origin.x + w) return 'nx';
+  return facingOf(cellCenter(cell), tableCenter(table));
+}
+
 export type ConferenceChair = { cell: GridPoint; rotation: Rotation; depth: number };
 
+// Blat 4×2 ma jedną głębokość (środek obrysu), więc krzesło w narożniku po dalszej stronie
+// (−x, −y) wypadałoby na blacie, a po bliższej — pod nim. Miejsce przy stole: dalsza strona
+// zawsze pod blatem, bliższa — nad nim (krzesło i siedząca postać).
+const TABLE_SIDE_GAP = 0.02;
+
+function conferenceSeatDepth(table: Furniture, cell: GridPoint): number {
+  const base = depthOfPoint(cellCenter(cell));
+  const tableDepth = footprintDepth(table);
+  const facing = seatFacing(table, cell);
+  const far = facing === 'px' || facing === 'py';
+  return far
+    ? Math.min(base, tableDepth - TABLE_SIDE_GAP)
+    : Math.max(base, tableDepth + TABLE_SIDE_GAP);
+}
+
 export function conferenceChairs(table: Furniture): ConferenceChair[] {
-  const center = tableCenter(table);
   return interactionCells(table).map((cell) => ({
     cell,
-    rotation: CHAIR_ROTATION[facingOf(cellCenter(cell), center)],
-    depth: depthOfPoint(cellCenter(cell)),
+    rotation: CHAIR_ROTATION[seatFacing(table, cell)],
+    depth: conferenceSeatDepth(table, cell),
   }));
 }
 
@@ -237,12 +264,12 @@ function basePose(
       const cell = interactionCells(furniture)[Number(index)];
       if (cell) {
         const seat = cellCenter(cell);
-        const chairDepth = depthOfPoint(seat);
+        const chairDepth = conferenceSeatDepth(furniture, cell);
         const towardTable =
           footprintDepth(furniture) > chairDepth ? SEAT_DEPTH_BIAS : -SEAT_DEPTH_BIAS;
         return {
           kind: 'sitChair',
-          facing: facingOf(seat, center),
+          facing: seatFacing(furniture, cell),
           position: seat,
           depth: chairDepth + towardTable,
         };

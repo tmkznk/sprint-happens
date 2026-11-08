@@ -86,8 +86,7 @@ export const FURNITURE = {
       { model: 'Table', at: [0.75, 0.375, 0], scale: [0.81, 1, 1] },
     ],
   },
-  // Krzesło przy stole konferencyjnym, 1×1, obrót 0 — przodem do −y siatki (Chair_2 obrócone o 180°, jak
-  // krzesło biurka); obrót wybiera gra (src/rendering/agentPose.ts: CHAIR_ROTATION).
+  // Krzesło przy stole konferencyjnym, 1×1, obrót 0 — siedziskiem do −y siatki; obrót wybiera gra (src/rendering/agentPose.ts: CHAIR_ROTATION).
   // Dwie warstwy jak przy biurku: siedzisko pod siedzącą postacią, oparcie przed nią albo za nią.
   conferenceChairSeat: {
     footprint: { w: 1, h: 1 },

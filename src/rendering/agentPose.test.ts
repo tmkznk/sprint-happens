@@ -14,6 +14,7 @@ import {
   entranceWall,
   rotateSeat,
   wallVisibility,
+  conferenceChairs,
 } from './agentPose';
 import { depthOfFootprint, gridToScreen, ROOM_FRONT_DEPTH } from './projection';
 import { OFFICE_LAYOUT, PROLOGUE_LAYOUT } from '../world/officeLayout';
@@ -233,8 +234,6 @@ describe('stół konferencyjny (SH-052)', () => {
       world: { ...state.world, furniture: { ...state.world.furniture, [TABLE]: table } },
     };
   }
-  const center = (rotation: Furniture['rotation']) =>
-    rotation === 90 || rotation === 270 ? { x: 9, y: 11 } : { x: 10, y: 10 };
 
   it.each(ROTATIONS)(
     'obrót %i: na miejscu siedzącym postać siedzi na krześle przodem do stołu',
@@ -249,15 +248,20 @@ describe('stół konferencyjny (SH-052)', () => {
           reservedDestination: `${TABLE}#${index}`,
         });
         expect(pose.kind).toBe('sitChair');
-        const c = center(rotation);
+        // Przodem do boku obrysu stołu, przy którym stoi krzesło (także krzesła skrajne).
+        const turned = rotation === 90 || rotation === 270;
+        const w = turned ? 2 : 4;
+        const h = turned ? 4 : 2;
         const toward =
-          Math.abs(c.x - (cell.x + 0.5)) >= Math.abs(c.y - (cell.y + 0.5))
-            ? c.x > cell.x + 0.5
-              ? 'px'
-              : 'nx'
-            : c.y > cell.y + 0.5
-              ? 'py'
-              : 'ny';
+          cell.y < 9
+            ? 'py'
+            : cell.y >= 9 + h
+              ? 'ny'
+              : cell.x < 8
+                ? 'px'
+                : cell.x >= 8 + w
+                  ? 'nx'
+                  : null;
         expect(pose.facing, `${index}`).toBe(toward);
       });
     },
@@ -272,4 +276,26 @@ describe('stół konferencyjny (SH-052)', () => {
     });
     expect(pose).toMatchObject({ kind: 'idle', facing: 'px' });
   });
+});
+
+describe('stół konferencyjny — kolejność rysowania (SH-052)', () => {
+  it.each(ROTATIONS)(
+    'obrót %i: krzesła po dalszej stronie pod blatem, po bliższej nad nim',
+    (rotation) => {
+      const table: Furniture = {
+        id: 'furniture-9' as FurnitureId,
+        type: 'conferenceTable',
+        origin: { x: 8, y: 9 },
+        rotation,
+      };
+      const turned = rotation === 90 || rotation === 270;
+      const size = turned ? { width: 2, height: 4 } : { width: 4, height: 2 };
+      const tableDepth = depthOfFootprint(table.origin, size);
+      for (const chair of conferenceChairs(table)) {
+        const far = chair.cell.x < table.origin.x || chair.cell.y < table.origin.y;
+        if (far) expect(chair.depth, `${chair.cell.x},${chair.cell.y}`).toBeLessThan(tableDepth);
+        else expect(chair.depth, `${chair.cell.x},${chair.cell.y}`).toBeGreaterThan(tableDepth);
+      }
+    },
+  );
 });
