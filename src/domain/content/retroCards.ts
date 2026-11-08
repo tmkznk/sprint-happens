@@ -1,7 +1,7 @@
 import type { RetroCardId } from '../scrum';
 
 // SH-056: karty usprawnień z retrospektywy — każda z plusem i minusem, efekty wyłącznie przez
-// istniejące parametry. Teksty i lista robocze; pełna lista do akceptacji właściciela (SH-057).
+// istniejące parametry. Lista zaakceptowana przez właściciela 2026-11-08 (SH-057); liczby — B.
 export type RetroCardEffect = {
   // Tempo pracy (technika, naprawy, design), ‰.
   workPermille?: number;
@@ -73,6 +73,41 @@ export const RETRO_CARDS: readonly RetroCard[] = [
     plus: 'Krótsze ceremonie',
     minus: 'Zadowolenie spada',
     effect: { ceremonyPermille: -300, satisfactionPerDay: -1 },
+  }),
+  card('storyPointsBoard', {
+    title: 'Story pointy na tablicy',
+    text: 'Velocity rośnie. Nikt nie wie, czy to praca, czy inflacja punktów.',
+    plus: 'Praca szybciej',
+    minus: 'Zadowolenie spada',
+    effect: { workPermille: 100, satisfactionPerDay: -1 },
+  }),
+  card('pairReview', {
+    title: 'Code review we dwoje',
+    text: 'Każdy merge zatwierdzają dwie osoby. Trzecia pyta, czemu tak długo.',
+    plus: 'Mniej błędów',
+    minus: 'Praca wolniej',
+    effect: { bugRiskPermille: -250, workPermille: -100 },
+  }),
+  card('asyncDaily', {
+    title: 'Asynchroniczne daily na Slacku',
+    text: 'Wszyscy piszą, nikt nie czyta.',
+    plus: 'Dużo krótsze ceremonie',
+    minus: 'Więcej błędów',
+    effect: { ceremonyPermille: -500, bugRiskPermille: 100 },
+  }),
+  card('specialtyCoffee', {
+    title: 'Kawa speciality',
+    text: 'Ekspres z młynkiem. Kolejka do niego to nowe spotkanie integracyjne.',
+    plus: 'Wolniejsze zmęczenie',
+    minus: 'Praca odrobinę wolniej',
+    effect: { drainPermille: -150, workPermille: -50 },
+  }),
+  card('fridayHackathon', {
+    title: 'Hackathon w piątki',
+    text: 'Raz w tygodniu robimy, co chcemy. Zwykle to samo, ale z naklejkami.',
+    plus: 'Zadowolenie rośnie',
+    minus: 'Praca wolniej',
+    effect: { satisfactionPerDay: 2, workPermille: -100 },
   }),
 ];
 

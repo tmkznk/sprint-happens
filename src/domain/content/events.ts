@@ -181,6 +181,152 @@ export const EVENT_TEMPLATES: readonly GameEventTemplate[] = [
       { id: 'no', label: 'Nie tym razem', effects: [] },
     ],
   },
+  // Rozdział 2 — zdarzenia agile (SH-057, zaakceptowane przez właściciela 2026-11-08).
+  {
+    id: 'agile-long-daily',
+    chapters: [2],
+    title: '„Daily na 45 minut”',
+    description: 'Ktoś zauważył, że „szanujemy komunikację”. Daily właśnie wchodzi w drugą rundę.',
+    condition: { kind: 'minEmployees', count: 3 },
+    options: [
+      {
+        id: 'let-them-talk',
+        label: 'Niech się wygadają',
+        effects: [
+          { kind: 'meeting', seconds: 56 },
+          { kind: 'satisfactionAll', delta: 2 },
+        ],
+      },
+      {
+        id: 'standing',
+        label: 'Daily na stojąco i do rzeczy',
+        effects: [{ kind: 'satisfactionAll', delta: -2 }],
+      },
+    ],
+  },
+  {
+    id: 'agile-sold-deadline',
+    chapters: [2],
+    title: '„Termin już sprzedany”',
+    description: 'Zespół estymuje zadania. Klient ma termin w umowie od tygodnia.',
+    condition: { kind: 'activeProjectWith', specialization: 'backend' },
+    options: [
+      { id: 'catch-up', label: 'Nadgonimy', effects: [{ kind: 'satisfactionAll', delta: -4 }] },
+      {
+        id: 'ask',
+        label: 'Prosimy o przesunięcie',
+        effects: [
+          { kind: 'deadlineDays', days: 2 },
+          { kind: 'reputation', delta: -2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'agile-points-kpi',
+    chapters: [2],
+    title: '„Story pointy jako KPI”',
+    description: 'Janusz chce rankingu pracowników według punktów. „Przecież to obiektywne”.',
+    condition: { kind: 'minEmployees', count: 3 },
+    options: [
+      {
+        id: 'ranking',
+        label: 'Ranking na tablicy',
+        effects: [
+          { kind: 'satisfactionAll', delta: -5 },
+          { kind: 'cash', amount: 1_000 },
+        ],
+      },
+      {
+        id: 'team',
+        label: 'Punkty zostają zespołowi',
+        effects: [{ kind: 'satisfactionAll', delta: 2 }],
+      },
+    ],
+  },
+  {
+    id: 'agile-foosball',
+    chapters: [2],
+    title: '„Piłkarzyki obok backendu”',
+    description:
+      'Konsultant poleca piłkarzyki na integrację. Wolne miejsce jest tylko obok backendu.',
+    condition: { kind: 'minCash', amount: 800 },
+    options: [
+      {
+        id: 'buy',
+        label: 'Stawiamy',
+        effects: [
+          { kind: 'cash', amount: -800 },
+          { kind: 'satisfactionAll', delta: 4 },
+        ],
+      },
+      { id: 'no', label: 'Nie tym razem', effects: [{ kind: 'satisfactionAll', delta: -2 }] },
+    ],
+  },
+  {
+    id: 'agile-flat-structure',
+    chapters: [2],
+    title: '„Płaska struktura”',
+    description:
+      'W ogłoszeniu: płaska struktura i autonomia. W praktyce każdą decyzję zatwierdza Janusz.',
+    condition: { kind: 'minEmployees', count: 3 },
+    options: [
+      {
+        id: 'approve',
+        label: 'Zatwierdzam osobiście',
+        effects: [{ kind: 'satisfactionAll', delta: -3 }],
+      },
+      {
+        id: 'team-decides',
+        label: 'Niech zespół decyduje',
+        effects: [
+          { kind: 'satisfactionAll', delta: 3 },
+          { kind: 'reputation', delta: -1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'agile-new-framework',
+    chapters: [2],
+    title: '„Nowy framework”',
+    description:
+      'Wyszedł nowy framework. Frontend chce przepisać działającą aplikację „póki jest czas”.',
+    condition: { kind: 'activeProjectWith', specialization: 'frontend', minPoints: 30 },
+    options: [
+      {
+        id: 'rewrite',
+        label: 'Przepisujemy',
+        effects: [
+          { kind: 'scopePercent', specialization: 'frontend', percent: 30 },
+          { kind: 'satisfactionAll', delta: 3 },
+        ],
+      },
+      {
+        id: 'keep',
+        label: 'Działa, nie ruszamy',
+        effects: [{ kind: 'satisfactionAll', delta: -2 }],
+      },
+    ],
+  },
+  {
+    id: 'agile-ceremony-reports',
+    chapters: [2],
+    title: '„Raport z każdej ceremonii”',
+    description: 'Konsultant przekonał klienta, że każda ceremonia potrzebuje raportu. Z wykresem.',
+    condition: { kind: 'minCash', amount: 0 },
+    options: [
+      {
+        id: 'write',
+        label: 'Piszemy raporty',
+        effects: [
+          { kind: 'cash', amount: 1_500 },
+          { kind: 'satisfactionAll', delta: -3 },
+        ],
+      },
+      { id: 'demo', label: 'Wystarczy demo', effects: [{ kind: 'reputation', delta: -1 }] },
+    ],
+  },
 ];
 
 // EVT-01: scenki biurowe bez decyzji i bez skutków.
