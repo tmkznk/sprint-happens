@@ -73,8 +73,10 @@ export function App({
   saveManager,
   onNewGame,
   chapterActions,
+  intro = null,
 }: {
   engine: Engine;
+  intro?: InterludeId | null;
   saveManager: SaveManager;
   onNewGame(kind?: MissionKind): void;
   chapterActions: ChapterActions;
@@ -85,8 +87,8 @@ export function App({
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const [tab, setTab] = useState<Tab>('office');
   const [notice, setNotice] = useState<string | null>(null);
-  // SH-048: przerywnik fabularny przed nową misją po prologu i przed rozdziałem 2.
-  const [interlude, setInterlude] = useState<InterludeId | null>(null);
+  // SH-048: przerywnik fabularny na początku prologu, po prologu i przed rozdziałem 2.
+  const [interlude, setInterlude] = useState<InterludeId | null>(intro);
   // Zablokowana w prologu zakładka nie otwiera się — gracz widzi warunek dostępu.
   const navigation = useMemo<Navigation>(
     () => ({
@@ -207,9 +209,11 @@ export function App({
                 <InterludeCard
                   id={interlude}
                   onDone={() =>
-                    interlude === 'afterPrologue'
-                      ? onNewGame('mission')
-                      : chapterActions.onContinue()
+                    interlude === 'beforePrologue'
+                      ? setInterlude(null)
+                      : interlude === 'afterPrologue'
+                        ? onNewGame('mission')
+                        : chapterActions.onContinue()
                   }
                 />
               )}

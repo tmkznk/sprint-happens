@@ -1,7 +1,7 @@
-// Przerywniki fabularne między rozdziałami kampanii (SH-048). Gracz jest Januszem — jak w prologu.
+// Przerywniki fabularne kampanii: przed prologiem i między rozdziałami (SH-048). Gracz jest Januszem — jak w prologu.
 // Wzór: rozdział, który się zaczyna, jego nazwa w cudzysłowie i podtytuł (teksty zaakceptowane
 // przez właściciela 2026-11-08).
-export type InterludeId = 'afterPrologue' | 'afterChapterOne';
+export type InterludeId = 'beforePrologue' | 'afterPrologue' | 'afterChapterOne';
 
 export type Interlude = {
   kicker: string;
@@ -12,6 +12,17 @@ export type Interlude = {
 };
 
 export const INTERLUDES: Readonly<Record<InterludeId, Interlude>> = {
+  beforePrologue: {
+    kicker: 'Prolog',
+    title: '„Na swoim”',
+    subtitle: 'Firma w garażu',
+    paragraphs: [
+      'Etat w korporacji się skończył — z twojej inicjatywy, co podkreślasz przy każdej okazji. Masz laptopa, garaż i pomysł na software house.',
+      'Siedziba JanuszSoftu mieści się w garażu, serwerownia — na półce między wiertarką a słoikami z gwoździami. Na start wystarczy.',
+      'Pierwszy klient już czeka. Wujek Zbyszek wszystko załatwił.',
+    ],
+    button: 'Do garażu',
+  },
   afterPrologue: {
     kicker: 'Rozdział 1',
     title: '„Teraz jesteśmy firmą”',

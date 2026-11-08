@@ -25,11 +25,13 @@ import { pwa } from '../pwa/register';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import { App } from './App';
 import type { MissionKind } from './navigation';
+import type { InterludeId } from '../domain/content/interludes';
 import { ConfirmDialog } from './ConfirmDialog';
 
 const CONTEXT: ValidationContext = { config: DEFAULT_BALANCE, layout: OFFICE_LAYOUT };
 
-type Session = { id: number; engine: Engine; manager: SaveManager };
+// `intro` — przerywnik pokazywany na starcie sesji (początek prologu), poza stanem gry.
+type Session = { id: number; engine: Engine; manager: SaveManager; intro: InterludeId | null };
 
 type View =
   | { kind: 'starting' }
@@ -76,10 +78,16 @@ function newState(kind: MissionKind): GameState {
     : createInitialState(DEFAULT_BALANCE, randomSeed());
 }
 
+// SH-048: przerywnik „Na swoim” na początku prologu (za flagą rozdziału 2, razem z pozostałymi).
+function prologueIntro(kind: MissionKind): InterludeId | null {
+  return CHAPTER_TWO_ENABLED && kind === 'prologue' ? 'beforePrologue' : null;
+}
+
 function createSession(
   store: SaveStore,
   state: GameState,
   saved: { revision: number | null; state: GameState | null; keepPrevious?: boolean },
+  intro: InterludeId | null = null,
 ): Session {
   const engine = createEngine({ config: DEFAULT_BALANCE, initialState: state });
   const manager = createSaveManager({
@@ -92,7 +100,7 @@ function createSession(
     keepPreviousOnFirstWrite: saved.keepPrevious ?? false,
     now: () => new Date().toISOString(),
   });
-  return { id: Date.now(), engine, manager };
+  return { id: Date.now(), engine, manager, intro };
 }
 
 // Start gry: rola karty (SH-004 A5) → wczytanie zapisu (SAVE-03) → gra lub ekran wyjaśnienia.
@@ -124,10 +132,12 @@ export function GameRoot() {
       );
       return;
     }
-    const session = createSession(store, newState('prologue'), {
-      revision: null,
-      state: null,
-    });
+    const session = createSession(
+      store,
+      newState('prologue'),
+      { revision: null, state: null },
+      prologueIntro('prologue'),
+    );
     play(session);
     void session.manager.save();
   }, [store, play]);
@@ -141,11 +151,12 @@ export function GameRoot() {
         (saves) => saves.current,
         () => null,
       );
-      const session = createSession(store, newState(kind), {
-        revision: revisionOf(current),
-        state: null,
-        keepPrevious,
-      });
+      const session = createSession(
+        store,
+        newState(kind),
+        { revision: revisionOf(current), state: null, keepPrevious },
+        prologueIntro(kind),
+      );
       play(session);
       await session.manager.save();
     },
@@ -295,6 +306,7 @@ export function GameRoot() {
         <App
           key={view.session.id}
           engine={view.session.engine}
+          intro={view.session.intro}
           saveManager={view.session.manager}
           onNewGame={(kind) => void startNewMission(false, kind)}
           chapterActions={{
