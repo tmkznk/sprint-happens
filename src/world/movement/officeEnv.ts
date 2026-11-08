@@ -1,7 +1,7 @@
 import type { BalanceConfig } from '../../domain/config';
 import type { Furniture } from '../../domain/furniture';
 import type { GameState } from '../../domain/state';
-import { interactionCells } from '../geometry';
+import { interactionCells, standingCells } from '../geometry';
 import { officeLayoutOf, type OfficeLayout } from '../officeLayout';
 import { gridFromOffice } from './grid';
 import type { Destination, MovementEnv } from './movement';
@@ -33,10 +33,19 @@ export function movementEnvFor(
 }
 
 // MOVE-02 (Z): każdy punkt korzystania z mebla to osobne miejsce (np. dwa siedziska kanapy).
+// SH-052: miejsca stojące przy stole konferencyjnym — `<mebel>#stand-<indeks>`.
 export function destinationsOf(furniture: readonly Furniture[]): Destination[] {
-  return furniture.flatMap((item) =>
-    interactionCells(item).map((cell, index) => ({ id: destinationId(item.id, index), cell })),
-  );
+  return furniture.flatMap((item) => [
+    ...interactionCells(item).map((cell, index) => ({ id: destinationId(item.id, index), cell })),
+    ...standingCells(item).map((cell, index) => ({
+      id: standingDestinationId(item.id, index),
+      cell,
+    })),
+  ]);
+}
+
+export function standingDestinationId(furnitureId: string, index: number): string {
+  return `${furnitureId}#stand-${index}`;
 }
 
 export function destinationId(furnitureId: string, index: number): string {

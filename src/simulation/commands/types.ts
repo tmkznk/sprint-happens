@@ -109,6 +109,8 @@ export type RejectionCode =
   // SH-053: drugi Scrum Master; Scrum Master bez przydziału do projektu.
   | 'scrumMasterExists'
   | 'notAssignable'
+  // SH-052: mebel niedostępny w tym rozdziale.
+  | 'notAvailable'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

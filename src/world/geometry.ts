@@ -36,8 +36,17 @@ export function occupiedCells(furniture: Furniture): GridPoint[] {
 }
 
 export function interactionCells(furniture: Furniture): GridPoint[] {
+  return rotatedPoints(furniture, FURNITURE_CATALOG[furniture.type].interactionPoints);
+}
+
+// SH-052: miejsca stojące stołu konferencyjnego (obracane jak punkty korzystania).
+export function standingCells(furniture: Furniture): GridPoint[] {
+  return rotatedPoints(furniture, FURNITURE_CATALOG[furniture.type].standingPoints ?? []);
+}
+
+function rotatedPoints(furniture: Furniture, points: readonly GridPoint[]): GridPoint[] {
   const spec = FURNITURE_CATALOG[furniture.type];
-  return spec.interactionPoints.map((point) => {
+  return points.map((point) => {
     const offset = rotateOffset(point, spec.footprint, furniture.rotation);
     return { x: furniture.origin.x + offset.x, y: furniture.origin.y + offset.y };
   });

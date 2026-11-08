@@ -17,7 +17,13 @@ const SPRITES = meta as Record<string, FurnitureSpriteMeta>;
 
 // Część obrazka: typ mebla albo dodatkowa warstwa krzesła biurka — siedzisko z podstawą
 // (`deskChairSeat`) i oparcie (`deskChairBack`).
-export type FurnitureSpritePart = FurnitureType | 'deskChairSeat' | 'deskChairBack';
+export type FurnitureSpritePart =
+  | FurnitureType
+  | 'deskChairSeat'
+  | 'deskChairBack'
+  // SH-052: krzesło przy stole konferencyjnym (1×1) — siedzisko i oparcie.
+  | 'conferenceChairSeat'
+  | 'conferenceChairBack';
 
 export function furnitureSpriteKey(part: FurnitureSpritePart, rotation: Rotation): string {
   return `furniture-${part}-${rotation}`;

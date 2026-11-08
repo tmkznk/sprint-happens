@@ -175,7 +175,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     qualityPivot: 0.8,
   },
   furniture: {
-    prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800, plant: 300 },
+    prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800, plant: 300, conferenceTable: 4_000 },
     saleRefundRatio: 0.5,
   },
 };

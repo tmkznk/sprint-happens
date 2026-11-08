@@ -48,6 +48,7 @@ export const AGENT_STATUS_LABELS: Record<AgentStatus, string> = {
 };
 
 export const FURNITURE_NAMES: Record<FurnitureType, string> = {
+  conferenceTable: 'Stół konferencyjny',
   desk: 'Stanowisko pracy',
   sofa: 'Kanapa',
   coffeeMachine: 'Ekspres do kawy',

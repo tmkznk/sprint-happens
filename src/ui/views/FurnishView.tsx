@@ -1,9 +1,13 @@
-import { Armchair, CodeXml, Coffee, Sprout, type LucideIcon } from 'lucide-react';
+import { Armchair, CodeXml, Coffee, Presentation, Sprout, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import { useFurnitureEditStore } from '../../application/furnitureEditHooks';
 import { useClearSelection } from '../../application/selectionHooks';
-import { FURNITURE_CATALOG, type FurnitureType } from '../../domain/furniture';
+import {
+  CHAPTER_TWO_FURNITURE,
+  FURNITURE_CATALOG,
+  type FurnitureType,
+} from '../../domain/furniture';
 import { officeLayoutOf } from '../../world/officeLayout';
 import { FURNITURE_NAMES, money } from '../labels';
 import { useNavigation } from '../navigation';
@@ -12,13 +16,14 @@ import { spotlight, useGuide } from '../prologue/hooks';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
-const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine', 'plant'];
+const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine', 'plant', 'conferenceTable'];
 
 const ICONS: Record<FurnitureType, LucideIcon> = {
   desk: CodeXml,
   sofa: Armchair,
   coffeeMachine: Coffee,
   plant: Sprout,
+  conferenceTable: Presentation,
 };
 
 const DESCRIPTIONS: Record<FurnitureType, string> = {
@@ -26,6 +31,7 @@ const DESCRIPTIONS: Record<FurnitureType, string> = {
   sofa: 'Regeneracja dla najbardziej zmęczonych.',
   coffeeMachine: 'Szybki zastrzyk energii między taskami.',
   plant: 'Dekoracja. Biuro od razu wygląda na mniej korpo.',
+  conferenceTable: 'Daily, planowanie i retro. Osiem krzeseł — reszta zespołu postoi.',
 };
 
 function places(type: FurnitureType): string {
@@ -37,6 +43,7 @@ function places(type: FurnitureType): string {
 // w trybie edycji (OFF-07: pauza). Przesuwanie i sprzedaż — dotknięcie mebla w biurze.
 export function FurnishView() {
   const config = useBalanceConfig();
+  const chapter = useGameSelector((state) => state.mission.chapter);
   const isWorking = useGameSelector((state) => state.mission.phase === 'working');
   const speed = useGameSelector((state) => state.mission.speed);
   const { placementStart } = useGameSelector(officeLayoutOf);
@@ -81,30 +88,32 @@ export function FurnishView() {
         </>
       )}
       <ul className="shop-list">
-        {TYPES.map((type) => {
-          const Icon = ICONS[type];
-          const locked = prologueStep !== null && type !== 'desk';
-          return (
-            <li key={type}>
-              <span className="candidate-name">
-                <Icon size={16} aria-hidden="true" /> {FURNITURE_NAMES[type]}
-              </span>
-              <span>{DESCRIPTIONS[type]}</span>
-              <span>
-                {money.format(config.furniture.prices[type])} zł · {places(type)}
-              </span>
-              {locked && <span className="lock-text">{lockText}</span>}
-              <button
-                type="button"
-                className={spotlight('primary-button', deskGuided && type === 'desk')}
-                disabled={!isWorking || locked}
-                onClick={() => choose(type)}
-              >
-                Wybierz
-              </button>
-            </li>
-          );
-        })}
+        {TYPES.filter((type) => chapter === 2 || !CHAPTER_TWO_FURNITURE.includes(type)).map(
+          (type) => {
+            const Icon = ICONS[type];
+            const locked = prologueStep !== null && type !== 'desk';
+            return (
+              <li key={type}>
+                <span className="candidate-name">
+                  <Icon size={16} aria-hidden="true" /> {FURNITURE_NAMES[type]}
+                </span>
+                <span>{DESCRIPTIONS[type]}</span>
+                <span>
+                  {money.format(config.furniture.prices[type])} zł · {places(type)}
+                </span>
+                {locked && <span className="lock-text">{lockText}</span>}
+                <button
+                  type="button"
+                  className={spotlight('primary-button', deskGuided && type === 'desk')}
+                  disabled={!isWorking || locked}
+                  onClick={() => choose(type)}
+                >
+                  Wybierz
+                </button>
+              </li>
+            );
+          },
+        )}
       </ul>
     </>
   );

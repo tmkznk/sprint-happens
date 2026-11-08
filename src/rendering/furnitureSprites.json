@@ -7,14 +7,6 @@
     "heightPx": 138,
     "scale": 2
   },
-  "coffeeMachine-90": {
-    "width": 141,
-    "height": 194,
-    "anchorX": 71,
-    "anchorY": 124,
-    "heightPx": 138,
-    "scale": 2
-  },
   "coffeeMachine-180": {
     "width": 141,
     "height": 194,
@@ -31,19 +23,115 @@
     "heightPx": 138,
     "scale": 2
   },
+  "coffeeMachine-90": {
+    "width": 141,
+    "height": 194,
+    "anchorX": 71,
+    "anchorY": 124,
+    "heightPx": 138,
+    "scale": 2
+  },
+  "conferenceChairBack-0": {
+    "width": 141,
+    "height": 178,
+    "anchorX": 71,
+    "anchorY": 108,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairBack-180": {
+    "width": 141,
+    "height": 210,
+    "anchorX": 71,
+    "anchorY": 140,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairBack-270": {
+    "width": 141,
+    "height": 178,
+    "anchorX": 71,
+    "anchorY": 108,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairBack-90": {
+    "width": 141,
+    "height": 210,
+    "anchorX": 71,
+    "anchorY": 140,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairSeat-0": {
+    "width": 141,
+    "height": 178,
+    "anchorX": 71,
+    "anchorY": 108,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairSeat-180": {
+    "width": 141,
+    "height": 210,
+    "anchorX": 71,
+    "anchorY": 140,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairSeat-270": {
+    "width": 141,
+    "height": 178,
+    "anchorX": 71,
+    "anchorY": 108,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceChairSeat-90": {
+    "width": 141,
+    "height": 210,
+    "anchorX": 71,
+    "anchorY": 140,
+    "heightPx": 140,
+    "scale": 2
+  },
+  "conferenceTable-0": {
+    "width": 396,
+    "height": 307,
+    "anchorX": 135,
+    "anchorY": 109,
+    "heightPx": 103,
+    "scale": 2
+  },
+  "conferenceTable-180": {
+    "width": 396,
+    "height": 307,
+    "anchorX": 135,
+    "anchorY": 109,
+    "heightPx": 103,
+    "scale": 2
+  },
+  "conferenceTable-270": {
+    "width": 396,
+    "height": 307,
+    "anchorX": 263,
+    "anchorY": 109,
+    "heightPx": 103,
+    "scale": 2
+  },
+  "conferenceTable-90": {
+    "width": 396,
+    "height": 307,
+    "anchorX": 263,
+    "anchorY": 109,
+    "heightPx": 103,
+    "scale": 2
+  },
   "desk-0": {
     "width": 333,
     "height": 272,
     "anchorX": 135,
     "anchorY": 106,
-    "heightPx": 147,
-    "scale": 2
-  },
-  "desk-90": {
-    "width": 333,
-    "height": 232,
-    "anchorX": 199,
-    "anchorY": 66,
     "heightPx": 147,
     "scale": 2
   },
@@ -63,19 +151,19 @@
     "heightPx": 147,
     "scale": 2
   },
+  "desk-90": {
+    "width": 333,
+    "height": 232,
+    "anchorX": 199,
+    "anchorY": 66,
+    "heightPx": 147,
+    "scale": 2
+  },
   "deskChairBack-0": {
     "width": 333,
     "height": 182,
     "anchorX": 135,
     "anchorY": 16,
-    "heightPx": 104,
-    "scale": 2
-  },
-  "deskChairBack-90": {
-    "width": 333,
-    "height": 234,
-    "anchorX": 199,
-    "anchorY": 68,
     "heightPx": 104,
     "scale": 2
   },
@@ -95,19 +183,19 @@
     "heightPx": 104,
     "scale": 2
   },
+  "deskChairBack-90": {
+    "width": 333,
+    "height": 234,
+    "anchorX": 199,
+    "anchorY": 68,
+    "heightPx": 104,
+    "scale": 2
+  },
   "deskChairSeat-0": {
     "width": 333,
     "height": 182,
     "anchorX": 135,
     "anchorY": 16,
-    "heightPx": 104,
-    "scale": 2
-  },
-  "deskChairSeat-90": {
-    "width": 333,
-    "height": 234,
-    "anchorX": 199,
-    "anchorY": 68,
     "heightPx": 104,
     "scale": 2
   },
@@ -127,19 +215,19 @@
     "heightPx": 104,
     "scale": 2
   },
+  "deskChairSeat-90": {
+    "width": 333,
+    "height": 234,
+    "anchorX": 199,
+    "anchorY": 68,
+    "heightPx": 104,
+    "scale": 2
+  },
   "plant-0": {
     "width": 141,
     "height": 210,
     "anchorX": 71,
     "anchorY": 140,
-    "heightPx": 157,
-    "scale": 2
-  },
-  "plant-90": {
-    "width": 141,
-    "height": 205,
-    "anchorX": 71,
-    "anchorY": 135,
     "heightPx": 157,
     "scale": 2
   },
@@ -159,19 +247,19 @@
     "heightPx": 157,
     "scale": 2
   },
+  "plant-90": {
+    "width": 141,
+    "height": 205,
+    "anchorX": 71,
+    "anchorY": 135,
+    "heightPx": 157,
+    "scale": 2
+  },
   "sofa-0": {
     "width": 333,
     "height": 242,
     "anchorX": 135,
     "anchorY": 76,
-    "heightPx": 87,
-    "scale": 2
-  },
-  "sofa-90": {
-    "width": 333,
-    "height": 210,
-    "anchorX": 199,
-    "anchorY": 44,
     "heightPx": 87,
     "scale": 2
   },
@@ -188,6 +276,14 @@
     "height": 242,
     "anchorX": 199,
     "anchorY": 76,
+    "heightPx": 87,
+    "scale": 2
+  },
+  "sofa-90": {
+    "width": 333,
+    "height": 210,
+    "anchorX": 199,
+    "anchorY": 44,
     "heightPx": 87,
     "scale": 2
   }

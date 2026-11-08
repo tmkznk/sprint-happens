@@ -22,6 +22,7 @@ export const FURNITURE_STYLE: Record<FurnitureType, { color: number; height: num
   sofa: { color: 0x6a4fa3, height: FURNITURE_HEIGHTS.sofa },
   coffeeMachine: { color: 0x3d3d3d, height: FURNITURE_HEIGHTS.coffeeMachine },
   plant: { color: 0x4f8a3c, height: FURNITURE_HEIGHTS.plant },
+  conferenceTable: { color: 0xe8e8e8, height: FURNITURE_HEIGHTS.conferenceTable },
 };
 export const BACK_WALL_HEIGHT = 48;
 export const FRONT_WALL_HEIGHT = 12;

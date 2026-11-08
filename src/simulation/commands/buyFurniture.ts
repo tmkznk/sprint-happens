@@ -1,4 +1,4 @@
-import type { Furniture } from '../../domain/furniture';
+import { CHAPTER_TWO_FURNITURE, type Furniture } from '../../domain/furniture';
 import { allocateId } from '../../domain/ids';
 import { canPurchase, recordOperation } from '../finance';
 import { assignDeskToFirstDeskless, retargetEmployees, validateCandidate } from '../furniture';
@@ -11,6 +11,10 @@ export const buyFurniture: CommandHandler<BuyFurnitureCommand> = {
   category: 'workDay',
   execute(state, command, config) {
     if (state.mission.speed !== 0) return reject('notPaused');
+    // SH-052: stół konferencyjny tylko w rozdziale 2.
+    if (CHAPTER_TWO_FURNITURE.includes(command.furnitureType) && state.mission.chapter !== 2) {
+      return reject('notAvailable');
+    }
     const price = config.furniture.prices[command.furnitureType];
     const funds = canPurchase(state, price);
     if (funds) return reject(funds);

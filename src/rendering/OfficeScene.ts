@@ -23,7 +23,7 @@ import {
 } from '../world/officeLayout';
 import { rotatedSize } from '../world/geometry';
 import { FURNITURE_CATALOG, type Furniture } from '../domain/furniture';
-import { agentPose, deskChairDepth, type AgentPose } from './agentPose';
+import { agentPose, conferenceChairs, deskChairDepth, type AgentPose } from './agentPose';
 import {
   createCharacterSprite,
   placeCharacterSprite,
@@ -486,6 +486,25 @@ export class OfficeScene extends Phaser.Scene {
       // oparcie zasłania ją tylko wtedy, gdy jest od strony kamery (obroty 0° i 270°).
       const chair = deskChairDepth(furniture);
       images.push(image('deskChairSeat', chair - 0.005), image('deskChairBack', chair));
+    }
+    if (furniture.type === 'conferenceTable') {
+      // SH-052: krzesło na każdym polu miejsca siedzącego, z głębokością tego pola (jak krzesło
+      // biurka: siedzisko pod siedzącą postacią, oparcie przed nią albo za nią).
+      for (const chair of conferenceChairs(furniture)) {
+        const at = gridToScreen(chair.cell);
+        const part = (name: 'conferenceChairSeat' | 'conferenceChairBack', depth: number) => {
+          const sprite = furnitureSpriteMeta(name, chair.rotation);
+          return this.add
+            .image(at.x, at.y, furnitureSpriteKey(name, chair.rotation))
+            .setOrigin(sprite.anchorX / sprite.width, sprite.anchorY / sprite.height)
+            .setScale(1 / sprite.scale)
+            .setDepth(depth);
+        };
+        images.push(
+          part('conferenceChairSeat', chair.depth - 0.005),
+          part('conferenceChairBack', chair.depth),
+        );
+      }
     }
     return images;
   }

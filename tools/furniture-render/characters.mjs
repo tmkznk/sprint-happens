@@ -11,6 +11,8 @@ const SHIRTS = {
   qa: '#c8553d',
   designer: '#d0679b',
   pm: '#59606b',
+  // Rozdział 2 (SH-053): morski — inny niż zieleń DevOpsa i niebieski backendu.
+  scrumMaster: '#2a9d8f',
 };
 // Na tyle jasne, żeby splot dżinsu był widoczny.
 const PANTS = ['#3f5480', '#4a4f5c', '#5a5a80', '#3d4048', '#6e5c48', '#4c5f50'];

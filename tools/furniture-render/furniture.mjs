@@ -8,6 +8,8 @@ export const CHAIR = { x: -0.05, y: -0.33 };
 // Wysokość cięcia krzesła na siedzisko i oparcie (m nad podłogą): poduszka kończy się na 0,59 m,
 // słupek oparcia zaczyna się od 0,65 m.
 const CHAIR_CUT = 0.62;
+// Krzesło stołu konferencyjnego (Chair_2): cięcie tuż nad siedziskiem.
+const CONFERENCE_CHAIR_CUT = 0.68;
 const chairItems = [
   // Podstawa krzesła ma gwiazdę na wysokości 7 cm (bez kółek) — opuszczamy całe krzesło.
   { model: 'Chair_Base', at: [CHAIR.x, CHAIR.y, -0.07] },
@@ -71,6 +73,34 @@ export const FURNITURE = {
     footprint: { w: 1, h: 1 },
     metersPerTile: M,
     items: [{ model: 'Drawer_1', at: [0, 0.05, 0] }, espresso(0, 0.05, 0.92)],
+  },
+  // Stół konferencyjny (SH-052): blat 4×2 pola (3 × 1,5 m) z czterech stołów paczki zwężonych do
+  // 1,5 m; krzesła osobno (`conferenceChair*`) — po jednym na polu miejsca siedzącego.
+  conferenceTable: {
+    footprint: { w: 4, h: 2 },
+    metersPerTile: M,
+    items: [
+      { model: 'Table', at: [-0.75, -0.375, 0], scale: [0.81, 1, 1] },
+      { model: 'Table', at: [0.75, -0.375, 0], scale: [0.81, 1, 1] },
+      { model: 'Table', at: [-0.75, 0.375, 0], scale: [0.81, 1, 1] },
+      { model: 'Table', at: [0.75, 0.375, 0], scale: [0.81, 1, 1] },
+    ],
+  },
+  // Krzesło przy stole konferencyjnym, 1×1, obrót 0 — przodem do −y siatki (Chair_2 obrócone o 180°, jak
+  // krzesło biurka); obrót wybiera gra (src/rendering/agentPose.ts: CHAIR_ROTATION).
+  // Dwie warstwy jak przy biurku: siedzisko pod siedzącą postacią, oparcie przed nią albo za nią.
+  conferenceChairSeat: {
+    footprint: { w: 1, h: 1 },
+    metersPerTile: M,
+    clip: { keep: 'below', heightM: CONFERENCE_CHAIR_CUT },
+    items: [{ model: 'Chair_2', at: [0, 0, 0], rotZ: 180 }],
+  },
+  conferenceChairBack: {
+    footprint: { w: 1, h: 1 },
+    metersPerTile: M,
+    clip: { keep: 'above', heightM: CONFERENCE_CHAIR_CUT },
+    shadow: false,
+    items: [{ model: 'Chair_2', at: [0, 0, 0], rotZ: 180 }],
   },
   plant: {
     footprint: { w: 1, h: 1 },

@@ -79,6 +79,34 @@ function footprintDepth(furniture: Furniture): number {
   return depthOfFootprint(furniture.origin, size);
 }
 
+// SH-052: stół konferencyjny — krzesło na każdym polu miejsca siedzącego, przodem do stołu.
+// Obrazek krzesła przy obrocie 0° jest przodem do −y siatki (kompozycja w
+// tools/furniture-render/furniture.mjs: Chair_2 obrócone o 180°, model −y = siatka +y); obrót
+// mebla o 90° (render: rotation.y = −90°) obraca kierunek −y → +x.
+const CHAIR_ROTATION: Record<Facing, Rotation> = { ny: 0, px: 90, py: 180, nx: 270 };
+
+function tableCenter(table: Furniture): GridPoint {
+  const { width, height } = FURNITURE_CATALOG[table.type].footprint;
+  const turned = table.rotation === 90 || table.rotation === 270;
+  return {
+    x: table.origin.x + (turned ? height : width) / 2,
+    y: table.origin.y + (turned ? width : height) / 2,
+  };
+}
+
+const cellCenter = (cell: GridPoint): GridPoint => ({ x: cell.x + 0.5, y: cell.y + 0.5 });
+
+export type ConferenceChair = { cell: GridPoint; rotation: Rotation; depth: number };
+
+export function conferenceChairs(table: Furniture): ConferenceChair[] {
+  const center = tableCenter(table);
+  return interactionCells(table).map((cell) => ({
+    cell,
+    rotation: CHAIR_ROTATION[facingOf(cellCenter(cell), center)],
+    depth: depthOfPoint(cellCenter(cell)),
+  }));
+}
+
 // Przód zwrócony do kamery (+x albo +y) — postać siedzi przed oparciem i rysuje się nad meblem.
 function facesCamera(facing: Facing): boolean {
   return facing === 'px' || facing === 'py';
@@ -194,6 +222,31 @@ function basePose(
       const facing = frontOf(furniture);
       const bias = facesCamera(facing) ? SEAT_DEPTH_BIAS : -SEAT_DEPTH_BIAS;
       return { kind: 'sitSofa', facing, position: seat, depth: footprintDepth(furniture) + bias };
+    }
+    if (furniture?.type === 'conferenceTable') {
+      const center = tableCenter(furniture);
+      // Miejsce stojące: postać stoi przy stole, zwrócona do niego.
+      if (index?.startsWith('stand-')) {
+        return {
+          kind: 'idle',
+          facing: facingOf(position, center),
+          position,
+          depth: depthOfPoint(position),
+        };
+      }
+      const cell = interactionCells(furniture)[Number(index)];
+      if (cell) {
+        const seat = cellCenter(cell);
+        const chairDepth = depthOfPoint(seat);
+        const towardTable =
+          footprintDepth(furniture) > chairDepth ? SEAT_DEPTH_BIAS : -SEAT_DEPTH_BIAS;
+        return {
+          kind: 'sitChair',
+          facing: facingOf(seat, center),
+          position: seat,
+          depth: chairDepth + towardTable,
+        };
+      }
     }
     if (furniture?.type === 'coffeeMachine') {
       return {

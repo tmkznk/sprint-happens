@@ -217,3 +217,59 @@ describe('poza postaci (prezentacja)', () => {
     expect(wallVisibility({ x: -0.5, y: 14.7 }, WALL)).toEqual({ alpha: 1, clip: null });
   });
 });
+
+describe('stół konferencyjny (SH-052)', () => {
+  const TABLE = 'furniture-9' as FurnitureId;
+  function withTable(rotation: Furniture['rotation']): GameState {
+    const state = testState();
+    const table: Furniture = {
+      id: TABLE,
+      type: 'conferenceTable',
+      origin: { x: 8, y: 9 },
+      rotation,
+    };
+    return {
+      ...state,
+      world: { ...state.world, furniture: { ...state.world.furniture, [TABLE]: table } },
+    };
+  }
+  const center = (rotation: Furniture['rotation']) =>
+    rotation === 90 || rotation === 270 ? { x: 9, y: 11 } : { x: 10, y: 10 };
+
+  it.each(ROTATIONS)(
+    'obrót %i: na miejscu siedzącym postać siedzi na krześle przodem do stołu',
+    (rotation) => {
+      const state = withTable(rotation);
+      const table = state.world.furniture[TABLE];
+      if (!table) throw new Error('setup');
+      interactionCells(table).forEach((cell, index) => {
+        const pose = at(state, {
+          ...createAgent('a', cell),
+          status: 'using',
+          reservedDestination: `${TABLE}#${index}`,
+        });
+        expect(pose.kind).toBe('sitChair');
+        const c = center(rotation);
+        const toward =
+          Math.abs(c.x - (cell.x + 0.5)) >= Math.abs(c.y - (cell.y + 0.5))
+            ? c.x > cell.x + 0.5
+              ? 'px'
+              : 'nx'
+            : c.y > cell.y + 0.5
+              ? 'py'
+              : 'ny';
+        expect(pose.facing, `${index}`).toBe(toward);
+      });
+    },
+  );
+
+  it('na miejscu stojącym postać stoi zwrócona do stołu', () => {
+    const state = withTable(0);
+    const pose = at(state, {
+      ...createAgent('a', { x: 7, y: 9 }),
+      status: 'using',
+      reservedDestination: `${TABLE}#stand-0`,
+    });
+    expect(pose).toMatchObject({ kind: 'idle', facing: 'px' });
+  });
+});
