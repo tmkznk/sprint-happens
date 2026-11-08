@@ -9,6 +9,7 @@ import saveV1 from './fixtures/save-v1.json?raw';
 import saveV4 from './fixtures/save-v4.json?raw';
 import saveV5 from './fixtures/save-v5.json?raw';
 import saveV6 from './fixtures/save-v6.json?raw';
+import saveV7 from './fixtures/save-v7.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -284,5 +285,15 @@ describe('v6 → v7: Scrum', () => {
     const result = parseSnapshot(saveV5, context);
     if (!result.ok) throw new Error(result.error.issues.join('\n'));
     expect(result.envelope.state.scrum).toBeNull();
+  });
+});
+
+describe('v7 → v8: znacznik ceremonii', () => {
+  it('zapis z trwającym sprintem z wersji 7 wczytuje się bez ostatniej ceremonii', () => {
+    const result = parseSnapshot(saveV7, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+    expect(result.migratedFrom).toBe(7);
+    expect(result.envelope.state.scrum?.sprint?.number).toBe(1);
+    expect(result.envelope.state.scrum?.lastCeremony).toBeNull();
   });
 });

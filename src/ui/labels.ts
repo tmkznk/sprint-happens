@@ -70,6 +70,7 @@ export const ACTIVITY_LABELS: Record<Activity, string> = {
   idle: 'Bez zajęcia',
   away: 'Poza biurem',
   walking: 'W drodze',
+  inMeeting: 'Na spotkaniu',
   working: 'Pracuje',
   waitingForRest: 'Czeka na wolne miejsce odpoczynku',
   onCoffee: 'Pije kawę',

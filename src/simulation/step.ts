@@ -3,6 +3,7 @@ import type { GameState } from '../domain/state';
 import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { advanceArriving, advanceLeaving, beginLeaving } from './commute';
+import { advanceScrum } from './meetings';
 import { scrumDecisionPending } from './scrum';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
@@ -25,7 +26,8 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
 
   // Decyzja SH-004 B4: ruch → czynności i potrzeby → praca → testy → naprawy → design. Zadania
   // developerów są planowane raz na początku fazy pracy — nikt nie pracuje podwójnie.
-  const rested = updateNeeds(moveCharacters(current, config), config);
+  // SH-055: spotkania Scruma po ruchu i potrzebach, przed pracą (uczestnicy nie są przy biurkach).
+  const rested = advanceScrum(updateNeeds(moveCharacters(current, config), config), config);
   const plan = planWork(rested, config);
   const worked = doTesting(doWork(rested, config, plan), config);
   // SH-004 B4: po pracy — zadowolenie i odejścia (zdarzenia — SH-031).

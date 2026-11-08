@@ -1111,11 +1111,41 @@ describe('Scrum w zapisie (SH-054)', () => {
           pendingGoal: false,
           pendingRetro: null,
           meeting: null,
+          lastCeremony: null,
           dailyBonus: null,
           cards: [],
         };
       }),
       'Stan Scruma tylko w rozdziale 2',
     );
+  });
+});
+
+describe('spotkanie Scruma w zapisie (SH-055)', () => {
+  it('zapis w połowie planowania: spotkanie kończy się w tym samym kroku', () => {
+    const player = createPlayer(DEFAULT_BALANCE, 1, readyChapterTwo().getState());
+    player.finishDay();
+    const engine = createEngine({ config: DEFAULT_BALANCE, initialState: player.state() });
+    const project = Object.values(engine.getState().contracts.projects).find(
+      (p) => p.status === 'active',
+    );
+    engine.dispatch({ type: 'ChooseSprintGoal', projectId: project?.id ?? null });
+    engine.dispatch({ type: 'SetSpeed', speed: 4 });
+    for (let i = 0; i < 20_000 && engine.getState().scrum?.meeting?.untilMs == null; i++)
+      engine.step();
+    for (let i = 0; i < 50; i++) engine.step();
+    const middle = engine.getState();
+    expect(middle.scrum?.meeting).not.toBeNull();
+    const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(middle) });
+    const steps = (run: typeof engine) => {
+      let n = 0;
+      while (run.getState().scrum?.meeting) {
+        run.step();
+        n++;
+      }
+      return n;
+    };
+    expect(steps(restored)).toBe(steps(engine));
+    expect(restored.getState()).toEqual(engine.getState());
   });
 });

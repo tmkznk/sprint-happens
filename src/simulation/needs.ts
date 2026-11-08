@@ -26,6 +26,8 @@ export type Activity =
   | 'onSofa'
   // Pali na tarasie (w drodze i przy czekaniu na miejsce: `walking`).
   | 'onSmoke'
+  // SH-055: przy stole konferencyjnym na spotkaniu Scruma (w drodze: `walking`).
+  | 'inMeeting'
   // NEED-01, NEED-02: energia 0 i brak jakiegokolwiek miejsca odpoczynku.
   | 'exhausted';
 
@@ -73,6 +75,12 @@ function restKindOf(state: GameState, destination: string | null): RestKind | nu
   const furnitureId = destination.split('#')[0] as FurnitureId;
   const type = state.world.furniture[furnitureId]?.type;
   return type === 'coffeeMachine' ? 'coffee' : type === 'sofa' ? 'sofa' : null;
+}
+
+function isConferenceDestination(state: GameState, destination: string | null): boolean {
+  if (!destination) return false;
+  const furnitureId = destination.split('#')[0] as FurnitureId;
+  return state.world.furniture[furnitureId]?.type === 'conferenceTable';
 }
 
 function isRestTask(state: GameState, agent: ReadonlyAgent): boolean {
@@ -256,6 +264,9 @@ export function activityOf(state: GameState, employee: Employee, working: boolea
   if (!agent) return 'away';
   if (working) return 'working';
   if (isSmokeTask(agent)) return agent.status === 'using' ? 'onSmoke' : 'walking';
+  if (agent.status === 'using' && isConferenceDestination(state, agent.reservedDestination)) {
+    return 'inMeeting';
+  }
   if (agent.status === 'using') {
     return restKindOf(state, agent.reservedDestination) === 'sofa' ? 'onSofa' : 'onCoffee';
   }

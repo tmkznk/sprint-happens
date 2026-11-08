@@ -34,6 +34,8 @@ export type ScrumState = {
   pendingGoal: boolean;
   pendingRetro: { offered: RetroCardId[] } | null;
   meeting: Meeting | null;
+  // Ostatnia odbyta ceremonia (dzień i rodzaj) — dzisiejsze daily/planowanie i retro tylko raz.
+  lastCeremony: { day: number; ceremony: Ceremony } | null;
   // Dzień, w którym uczestnicy daily mają premię (do końca dnia), i ich lista.
   dailyBonus: { day: number; employees: EmployeeId[] } | null;
   cards: RetroCardId[];
@@ -46,6 +48,7 @@ export function emptyScrum(): ScrumState {
     pendingGoal: false,
     pendingRetro: null,
     meeting: null,
+    lastCeremony: null,
     dailyBonus: null,
     cards: [],
   };

@@ -7,7 +7,7 @@ import { gameStateSchema, type ValidationContext } from './schema';
 // Wersja 2: stan prologu (`prologue`). Wersja 3: przyjście i wyjście (`mission.transitSteps`,
 // `staff.entryQueue`). Wersja 4: rozkazy dla postaci (`breakHold`, `orderedRest` pracownika).
 // Wersja 5: palenie (`cigarettesHandled` pracownika).
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
@@ -77,6 +77,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
             cards: [],
           }
         : null;
+    return state;
+  },
+  // 7 → 8: znacznik ostatniej ceremonii (spotkania Scruma, SH-055).
+  7: (input) => {
+    const state = input as { scrum: Record<string, unknown> | null };
+    if (state.scrum) state.scrum.lastCeremony = null;
     return state;
   },
 };

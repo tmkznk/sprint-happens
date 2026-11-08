@@ -1,3 +1,4 @@
+import type { Chapter } from '../domain/chapter';
 import type { BalanceConfig } from '../domain/config';
 import {
   EVENT_TEMPLATES,
@@ -82,6 +83,7 @@ export function triggerEvent(state: GameState, config: BalanceConfig): GameState
 
   const { day } = state.mission;
   const eligible = EVENT_TEMPLATES.flatMap((template) => {
+    if (!eventAvailableInChapter(template, state.mission.chapter)) return [];
     const last = state.events.lastSeenDay[template.id];
     if (last !== undefined && day - last < config.events.cooldownDays) return [];
     const targets = conditionTargets(state, template.condition);
@@ -256,4 +258,9 @@ export function isInMeeting(state: GameState): boolean {
 
 export function isCoffeeBroken(state: GameState): boolean {
   return state.events.coffeeBrokenDay === state.mission.day;
+}
+
+// Zdarzenie ograniczone do rozdziałów (np. „daily” z rozdziału 1 nie występuje w rozdziale 2).
+export function eventAvailableInChapter(template: GameEventTemplate, chapter: Chapter): boolean {
+  return !template.chapters || template.chapters.includes(chapter);
 }

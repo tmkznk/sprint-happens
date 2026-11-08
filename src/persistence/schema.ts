@@ -299,6 +299,9 @@ const scrumSchema = z
         participants: z.array(employeeId),
       })
       .nullable(),
+    lastCeremony: z
+      .strictObject({ day: z.int().min(1), ceremony: z.enum(['planning', 'daily', 'retro']) })
+      .nullable(),
     dailyBonus: z.strictObject({ day: z.int().min(1), employees: z.array(employeeId) }).nullable(),
     cards: z.array(retroCardId),
   })

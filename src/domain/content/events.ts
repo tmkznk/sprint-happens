@@ -1,3 +1,4 @@
+import type { Chapter } from '../chapter';
 import type { TechSpecialization } from '../contracts';
 
 // Pula zdarzeń decyzyjnych i scenek (EVT-01–03, decyzja SH-032 A7) — dane treściowe.
@@ -38,6 +39,8 @@ export type GameEventTemplate = {
   description: string;
   condition: EventCondition;
   options: readonly EventOption[];
+  // Rozdziały, w których zdarzenie może wystąpić; brak — wszystkie.
+  chapters?: readonly Chapter[];
 };
 
 export const EVENT_TEMPLATES: readonly GameEventTemplate[] = [
@@ -103,6 +106,8 @@ export const EVENT_TEMPLATES: readonly GameEventTemplate[] = [
   },
   {
     id: 'daily-meeting',
+    // Rozdział 2 ma prawdziwe daily (SH-055).
+    chapters: [1],
     title: '„Daily, które mogło być mailem”',
     description: 'Ktoś zaprosił wszystkich na „szybkie 15 minut”. Agenda: „ustalimy na miejscu”.',
     condition: { kind: 'minEmployees', count: 3 },
