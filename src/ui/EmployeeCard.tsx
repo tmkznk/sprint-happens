@@ -12,6 +12,9 @@ import { isUnhappy } from '../simulation/satisfaction';
 import { isWorking } from '../simulation/work';
 import { Avatar } from './Avatar';
 import { energyPercent, satisfactionPercent, smokingLabel } from './employeeDisplay';
+import { isInScrumMeeting } from '../simulation/meetings';
+import { isScrumMaster } from '../simulation/scrum';
+import { ceremonyLabel } from './sprintDisplay';
 import {
   ACTIVITY_LABELS,
   money,
@@ -122,6 +125,11 @@ function employeeStatus(
   if (isUnhappy(employee, config))
     return { text: 'Chce odejść! Popraw warunki pracy.', tone: 'danger' };
   if (!employee.deskId) return { text: WORK_STATUS_LABELS.noDesk, tone: 'warn' };
+  // SH-058: spotkanie Scruma (w drodze do stołu albo przy nim).
+  const ceremony = state.scrum?.meeting?.ceremony;
+  if (ceremony && isInScrumMeeting(state, employee.id))
+    return { text: ceremonyLabel(ceremony), tone: 'ok' };
+  if (isScrumMaster(employee)) return { text: 'Prowadzi ceremonie zespołu', tone: 'ok' };
   if (!employee.projectId) return { text: 'Czeka na projekt', tone: 'ok' };
   const work = workStatus(state, employee, config);
   if (work !== 'ready') return { text: WORK_STATUS_LABELS[work], tone: 'warn' };

@@ -2658,3 +2658,16 @@ progress::-moz-progress-bar {
     overflow-x: visible;
   }
 }
+
+/* SH-058: sprint w panelu celów — aktywne usprawnienia z retro. */
+.sprint-cards {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.sprint-cards li + li {
+  margin-top: 4px;
+}

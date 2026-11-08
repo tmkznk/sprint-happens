@@ -16,6 +16,8 @@ import { CHAPTER_TWO_ENABLED } from '../application/features';
 import type { InterludeId } from '../domain/content/interludes';
 import { DayReportDialog, type ChapterActions } from './DayReportDialog';
 import { InterludeCard } from './InterludeCard';
+import { RetroDialog } from './RetroDialog';
+import { SprintGoalDialog } from './SprintGoalDialog';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
 import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
@@ -198,6 +200,8 @@ export function App({
                 />
               )}
               <EventDialog />
+              <SprintGoalDialog />
+              <RetroDialog />
               {interlude === null && (
                 <PrologueFinale
                   onFinish={() =>
