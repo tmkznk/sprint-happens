@@ -1,4 +1,9 @@
-import { OFFICE_LAYOUT, PROLOGUE_LAYOUT, type OfficeLayout } from '../world/officeLayout';
+import {
+  CHAPTER_TWO_LAYOUT,
+  OFFICE_LAYOUT,
+  PROLOGUE_LAYOUT,
+  type OfficeLayout,
+} from '../world/officeLayout';
 import type { Bounds } from './cameraMath';
 import meta from './roomSprites.json';
 
@@ -54,6 +59,7 @@ const SPRITES = meta as Record<string, RoomSpriteMeta>;
 const ROOM_OF_LAYOUT = new Map<OfficeLayout, string>([
   [PROLOGUE_LAYOUT, 'prologue'],
   [OFFICE_LAYOUT, 'office'],
+  [CHAPTER_TWO_LAYOUT, 'chapterTwo'],
 ]);
 
 export const ROOM_TEXTURES = Object.entries(
@@ -63,6 +69,15 @@ export const ROOM_TEXTURES = Object.entries(
     import: 'default',
   }),
 ).map(([path, url]) => [`room-${path.replace(/^.*\/(.+)\.png$/, '$1')}`, url] as const);
+
+// Tekstury pomieszczenia danego układu — scena ładuje tylko bieżące biuro (pamięć GPU; układ jest
+// stały w czasie sesji, zmiana rozdziału to nowa sesja i nowa instancja Phaser).
+export function roomTexturesFor(layout: OfficeLayout): (readonly [string, string])[] {
+  const id = ROOM_OF_LAYOUT.get(layout);
+  if (!id) return [];
+  const prefix = `room-${id}-`;
+  return ROOM_TEXTURES.filter(([key]) => key.startsWith(prefix));
+}
 
 export function roomSprite(layout: OfficeLayout): { id: string; meta: RoomSpriteMeta } | null {
   const id = ROOM_OF_LAYOUT.get(layout);

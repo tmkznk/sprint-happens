@@ -4,7 +4,7 @@ import type { GridPoint, Size } from '../domain/grid';
 
 export type Rect = GridPoint & Size;
 
-export type RoomId = 'main' | 'small' | 'social';
+export type RoomId = 'main' | 'small' | 'social' | 'conference';
 
 export type Room = { id: RoomId; bounds: Rect };
 
@@ -73,9 +73,37 @@ export const PROLOGUE_LAYOUT: OfficeLayout = {
 };
 
 // Układ biura misji: w prologu małe biuro, we właściwej misji — pełne.
-// Rozdział 2: większe biuro z salką konferencyjną. Tymczasowo obecne biuro — zastąpi je układ
-// z SH-051 (biuro rozdziału 2 musi być większe od biura rozdziału 1).
-export const CHAPTER_TWO_LAYOUT: OfficeLayout = OFFICE_LAYOUT;
+// Rozdział 2 (SH-051, wariant A — decyzja właściciela 2026-11-08): większe biuro. Z tyłu, pod
+// wysokimi ścianami, gabinet szefa (5×5), salka konferencyjna (8×5) i relaks (4×5); z przodu
+// open space 19×8 (dziesięć biurek). Siatka 21×16, ściany działowe na y = 6, x = 6 i x = 15.
+// Wejście w wysokiej lewej ścianie (0,11); dojście i taras jak w biurze rozdziału 1, rząd niżej.
+// Musi odpowiadać `chapterTwo` w tools/furniture-render/rooms.mjs.
+export const CHAPTER_TWO_LAYOUT: OfficeLayout = {
+  size: { width: 21, height: 16 },
+  rooms: [
+    { id: 'main', bounds: { x: 1, y: 7, width: 19, height: 8 } },
+    { id: 'small', bounds: { x: 1, y: 1, width: 5, height: 5 } },
+    { id: 'conference', bounds: { x: 7, y: 1, width: 8, height: 5 } },
+    { id: 'social', bounds: { x: 16, y: 1, width: 4, height: 5 } },
+  ],
+  doors: [
+    { position: { x: 0, y: 11 }, isEntrance: true },
+    { position: { x: 3, y: 6 }, isEntrance: false },
+    { position: { x: 11, y: 6 }, isEntrance: false },
+    { position: { x: 17, y: 6 }, isEntrance: false },
+  ],
+  windows: [],
+  // Dojście (x −2…−1, y 11…15) i taras (x −2…7, y 16…18); popielnica na (7,18).
+  outdoor: [
+    { x: -2, y: 11, width: 2, height: 5 },
+    { x: -2, y: 16, width: 10, height: 3 },
+  ],
+  smokingSpots: [
+    ...Array.from({ length: 9 }, (_, i) => ({ x: -1 + i, y: 17 })),
+    ...Array.from({ length: 8 }, (_, i) => ({ x: -1 + i, y: 18 })),
+  ],
+  placementStart: { origin: { x: 9, y: 9 }, rotation: 0 },
+};
 
 export function officeLayoutOf(state: {
   readonly prologue: object | null;

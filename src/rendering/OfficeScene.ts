@@ -30,7 +30,7 @@ import {
   type CharacterSprite,
 } from './characterSprites';
 import {
-  ROOM_TEXTURES,
+  roomTexturesFor,
   roomBounds,
   roomFitBounds,
   roomSprite,
@@ -145,13 +145,20 @@ export class OfficeScene extends Phaser.Scene {
     this.options = options;
   }
 
+  // Tylko pomieszczenie bieżącego układu (pamięć GPU) — układ jest stały w czasie sesji.
+  private roomTextures(): (readonly [string, string])[] {
+    return roomTexturesFor(officeLayoutOf(this.engine.getState()));
+  }
+
   preload(): void {
-    for (const [key, url] of [...FURNITURE_TEXTURES, ...ROOM_TEXTURES]) this.load.image(key, url);
+    for (const [key, url] of [...FURNITURE_TEXTURES, ...this.roomTextures()]) {
+      this.load.image(key, url);
+    }
   }
 
   create(): void {
     // Gra ma pixelArt (filtr najbliższego sąsiada); pre-render 3D skalujemy płynnie.
-    for (const [key] of [...FURNITURE_TEXTURES, ...ROOM_TEXTURES]) {
+    for (const [key] of [...FURNITURE_TEXTURES, ...this.roomTextures()]) {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
     // Podłoga i ściany się nie zmieniają — wyrenderowane pomieszczenie albo bryły rysowane raz

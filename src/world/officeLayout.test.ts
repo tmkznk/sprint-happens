@@ -14,6 +14,8 @@ import {
 } from './officeLayout';
 import { createAgent, createMovementState, stepMovement } from './movement/movement';
 import { movementEnvFor, isSmokingSpotId, smokingSpotIds } from './movement/officeEnv';
+import { validateAccess } from './movement/access';
+import type { Furniture, FurnitureId, FurnitureType, Rotation } from '../domain/furniture';
 
 const layout = OFFICE_LAYOUT;
 const key = (point: GridPoint) => `${point.x},${point.y}`;
@@ -181,5 +183,79 @@ describe('officeLayoutOf', () => {
     expect(officeLayoutOf({ ...base, mission: { ...base.mission, chapter: 2 } })).toBe(
       CHAPTER_TWO_LAYOUT,
     );
+  });
+});
+
+describe('CHAPTER_TWO_LAYOUT (SH-051, wariant A)', () => {
+  const two = CHAPTER_TWO_LAYOUT;
+
+  it('jest większe od biura rozdziału 1 i ma salkę konferencyjną', () => {
+    expect(two.size).toEqual({ width: 21, height: 16 });
+    const sizes = Object.fromEntries(
+      two.rooms.map((room) => [room.id, [room.bounds.width, room.bounds.height]]),
+    );
+    expect(sizes).toEqual({ main: [19, 8], small: [5, 5], conference: [8, 5], social: [4, 5] });
+    const area = (l: typeof two) =>
+      l.rooms.reduce((sum, r) => sum + r.bounds.width * r.bounds.height, 0);
+    expect(area(two)).toBeGreaterThan(area(OFFICE_LAYOUT));
+  });
+
+  it('jest otoczone zamkniętą ramą ścian z jednym wejściem', () => {
+    const { width, height } = two.size;
+    const border: GridPoint[] = [];
+    for (let x = 0; x < width; x++) border.push({ x, y: 0 }, { x, y: height - 1 });
+    for (let y = 1; y < height - 1; y++) border.push({ x: 0, y }, { x: width - 1, y });
+    const openings = border.filter((point) => cellKindAt(two, point) !== 'wall');
+    expect(openings).toEqual([{ x: 0, y: 11 }]);
+  });
+
+  it('z open space’u jest przejście do każdego pokoju z tyłu', () => {
+    const passages = two.doors.filter((door) => !door.isEntrance);
+    for (const room of ['small', 'conference', 'social'] as const) {
+      expect(
+        passages.some(
+          (door) =>
+            roomAt(two, { x: door.position.x, y: door.position.y - 1 })?.id === room &&
+            roomAt(two, { x: door.position.x, y: door.position.y + 1 })?.id === 'main',
+        ),
+        room,
+      ).toBe(true);
+    }
+  });
+
+  // Korytarz y = 7 pod ścianką działową łączy przejścia do pokoi; rzędy biurek y = 8 i y = 12.
+  it('mieści 10 biurek w open space, biurko w gabinecie, kanapę i ekspres — wszystko dostępne', () => {
+    let n = 0;
+    const item = (
+      type: FurnitureType,
+      x: number,
+      y: number,
+      rotation: Rotation = 0,
+    ): Furniture => ({
+      id: `furniture-${++n}` as FurnitureId,
+      type,
+      origin: { x, y },
+      rotation,
+    });
+    const furniture = [
+      ...[0, 1].flatMap((r) => [0, 1, 2, 3, 4].map((c) => item('desk', 1 + c * 4, 8 + r * 4))),
+      item('desk', 2, 2),
+      item('sofa', 16, 1),
+      item('coffeeMachine', 19, 4, 90),
+    ];
+    for (const f of furniture) {
+      for (const cell of occupiedCells(f))
+        expect(cellKindAt(two, cell), `${f.id} ${key(cell)}`).toBe('floor');
+    }
+    expect(validateAccess(two, furniture)).toEqual([]);
+  });
+
+  it('dojście i taras jak w biurze rozdziału 1, przesunięte o rząd w dół', () => {
+    expect(cellKindAt(two, { x: -1, y: 11 })).toBe('outdoor');
+    expect(cellKindAt(two, { x: 7, y: 18 })).toBe('outdoor');
+    expect(entryCell(two)).toEqual({ x: 1, y: 11 });
+    expect(two.smokingSpots).toHaveLength(17);
+    expect(two.smokingSpots).not.toContainEqual({ x: 7, y: 18 });
+    for (const spot of two.smokingSpots) expect(cellKindAt(two, spot)).toBe('outdoor');
   });
 });

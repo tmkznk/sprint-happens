@@ -8,6 +8,7 @@ export const FLOOR_COLORS: Record<RoomId, number> = {
   main: 0x8a7a5c,
   small: 0x7c8a5c,
   social: 0x5c7a8a,
+  conference: 0x6a7f94,
 };
 export const DOOR_COLOR = 0x6b5a3e;
 export const WALL_COLOR = 0xc9c3b6;

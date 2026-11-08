@@ -1039,7 +1039,8 @@ describe('rozdziały i magazyn mebli (rozdział 2)', () => {
       ...base,
       mission: { ...base.mission, chapter: 2 },
       contracts: { ...base.contracts, deliveredCount: 0, chapterDeliveredCount: 0 },
-      world: { ...base.world, storage: { desk: 2, sofa: 1 } },
+      // Rozdział 2 zaczyna z pustym biurem (meble w magazynie) — inny układ niż rozdział 1.
+      world: { ...base.world, furniture: {}, storage: { desk: 2, sofa: 1 } },
     };
     expect(roundTrip(state)).toEqual(state);
   });

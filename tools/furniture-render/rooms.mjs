@@ -11,6 +11,7 @@ const FACE = 0.5 + WALL / 2 + T(0.03);
 const MUSTARD = 0xe0a640;
 const GREEN = 0x9db58f;
 const BURGUNDY = 0x8e4f5f;
+const BLUE = 0x7f9fb8;
 // Wysokie ściany i drzwi: postacie w stylu „cute” mają do ~1,96 m, a przechodząc przez grubość
 // ściany muszą zmieścić się pod przednią krawędzią nadproża (widok z góry) — drzwi powiększone
 // w pionie do ~2,3 m w świetle, ściany podniesione, by nad drzwiami został pas ściany (decyzja
@@ -210,6 +211,137 @@ export const ROOMS = {
       // Relaks i open space — kratki wentylacyjne.
       onBack('Vent', 12.4, 2.05, { scale: 0.6 }),
       onLeft('Vent', 7.4, 2.05, { scale: 0.6 }),
+    ],
+  },
+  // Rozdział 2: CHAPTER_TWO_LAYOUT — siatka 21×16 (wariant A, decyzja właściciela 2026-11-08).
+  // Z tyłu gabinet szefa (1,1)–(5,5), salka konferencyjna (7,1)–(14,5) i relaks (16,1)–(19,5),
+  // z przodu open space (1,7)–(19,14); ściany działowe y = 6, x = 6 i x = 15, przejścia z open
+  // space'u (3,6), (11,6), (17,6); wejście (0,11). Kolory: open space — zieleń, gabinet — bordo,
+  // salka — niebieski, relaks — musztarda.
+  chapterTwo: {
+    metersPerTile: M,
+    wallThickness: WALL,
+    floor: {
+      x0: 0.5,
+      z0: 0.5,
+      x1: 20.5,
+      z1: 15.5,
+      tiles: [
+        { x0: 1, z0: 1, x1: 6, z1: 6 },
+        { x0: 7, z0: 1, x1: 15, z1: 6 },
+        { x0: 16, z0: 1, x1: 20, z1: 6 },
+        { x0: 1, z0: 7, x1: 20, z1: 15 },
+      ],
+      ...FLOOR,
+    },
+    // Dojście x = -2…-1, y = 11…15 i taras x = -2…7, y = 16…18, popielnica na (7,18).
+    // Musi odpowiadać `outdoor` w src/world/officeLayout.ts.
+    outdoor: {
+      tiles: [
+        { x0: -2, z0: 11, x1: 0, z1: 16 },
+        { x0: -2, z0: 16, x1: 8, z1: 19 },
+      ],
+      strips: [
+        { x0: 0, z0: 11, x1: 0.5, z1: 15.5 },
+        { x0: 0, z0: 15.5, x1: 8, z1: 16 },
+      ],
+      plinths: [
+        { x0: 0, z0: 15.39, x1: 20.61, z1: 15.61 },
+        { x0: 20.39, z0: 0.39, x1: 20.61, z1: 15.61 },
+      ],
+      colors: [0xa4a79e, 0x9b9e95],
+      border: 0x8f9289,
+      grout: 0x6f726a,
+      ashtray: { x: 7.5, z: 18.5 },
+    },
+    walls: [
+      { axis: 'x', at: 0.5, from: 0.39, to: 6.5, height: TALL, color: BURGUNDY },
+      { axis: 'x', at: 0.5, from: 6.5, to: 15.5, height: TALL, color: BLUE },
+      { axis: 'x', at: 0.5, from: 15.5, to: 20.61, height: TALL, color: MUSTARD },
+      { axis: 'z', at: 0.5, from: 0.61, to: 6.5, height: TALL, color: BURGUNDY },
+      {
+        axis: 'z',
+        at: 0.5,
+        from: 6.5,
+        to: 15.61,
+        height: TALL,
+        color: GREEN,
+        openings: [[11.5 - OPENING, 11.5 + OPENING]],
+        lintel: DOOR_LINTEL,
+      },
+      { axis: 'x', at: 15.5, from: 0.61, to: 20.61, height: LOW, color: GREEN, front: true },
+      { axis: 'z', at: 20.5, from: 0.61, to: 6.5, height: LOW, color: MUSTARD, front: true },
+      { axis: 'z', at: 20.5, from: 6.5, to: 15.39, height: LOW, color: GREEN, front: true },
+      {
+        axis: 'x',
+        at: 6.5,
+        from: 0.61,
+        to: 6.5,
+        height: LOW,
+        sides: [BURGUNDY, GREEN],
+        openings: [[3.5 - OPENING, 3.5 + OPENING]],
+        partition: true,
+      },
+      {
+        axis: 'x',
+        at: 6.5,
+        from: 6.5,
+        to: 15.5,
+        height: LOW,
+        sides: [BLUE, GREEN],
+        openings: [[11.5 - OPENING, 11.5 + OPENING]],
+        partition: true,
+      },
+      {
+        axis: 'x',
+        at: 6.5,
+        from: 15.5,
+        to: 20.39,
+        height: LOW,
+        sides: [MUSTARD, GREEN],
+        openings: [[17.5 - OPENING, 17.5 + OPENING]],
+        partition: true,
+      },
+      {
+        axis: 'z',
+        at: 6.5,
+        from: 0.61,
+        to: 6.39,
+        height: LOW,
+        sides: [BURGUNDY, BLUE],
+        partition: true,
+      },
+      {
+        axis: 'z',
+        at: 15.5,
+        from: 0.61,
+        to: 6.39,
+        height: LOW,
+        sides: [BLUE, MUSTARD],
+        partition: true,
+      },
+    ],
+    doors: [
+      {
+        axis: 'z',
+        at: 0.5,
+        center: 11.5,
+        leaf: 'Door_2',
+        handle: 'Door_Handle_1',
+        hinge: 'right',
+        scaleY: DOOR_SCALE_Y,
+      },
+    ],
+    decor: [
+      // Gabinet szefa.
+      onBack('Painting', 3.5, 1.75),
+      onLeft('Painting_Photo', 2.0, 1.75),
+      onLeft('Painting_Small', 3.8, 1.7),
+      // Salka konferencyjna.
+      onBack('Painting_Small', 9.3, 1.75),
+      onBack('Painting', 12.4, 1.7),
+      // Relaks.
+      onBack('Vent', 18.2, 2.05, { scale: 0.6 }),
     ],
   },
 };
