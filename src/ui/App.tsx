@@ -12,6 +12,7 @@ import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import type { Engine } from '../simulation/engine';
+import { CHAPTER_TWO_ENABLED } from '../application/features';
 import type { InterludeId } from '../domain/content/interludes';
 import { DayReportDialog, type ChapterActions } from './DayReportDialog';
 import { InterludeCard } from './InterludeCard';
@@ -196,7 +197,11 @@ export function App({
               )}
               <EventDialog />
               {interlude === null && (
-                <PrologueFinale onFinish={() => setInterlude('afterPrologue')} />
+                <PrologueFinale
+                  onFinish={() =>
+                    CHAPTER_TWO_ENABLED ? setInterlude('afterPrologue') : onNewGame('mission')
+                  }
+                />
               )}
               {interlude !== null && (
                 <InterludeCard

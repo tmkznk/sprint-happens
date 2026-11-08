@@ -16,6 +16,7 @@ import { DEFAULT_BALANCE } from '../domain/config';
 import { createInitialState, type GameState } from '../domain/state';
 import { loadChapterStart, prepareChapterTwo } from '../application/chapterFlow';
 import { CHAPTER_TWO_ENABLED } from '../application/features';
+import { createFlightGuard, watchConflict } from '../application/sessionGuards';
 import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persistence/saveStore';
 import type { ValidationContext } from '../persistence/schema';
 import { createEngine, type Engine } from '../simulation/engine';
@@ -186,6 +187,9 @@ export function GameRoot() {
     play(session);
   }, [store, play]);
 
+  // Drugie dotknięcie w trakcie przejścia lub ponowienia nic nie robi (dwie sesje = konflikt zapisu).
+  const [chapterGuard] = useState(createFlightGuard);
+
   // Kopia startu rozdziału 2 — sprawdzana raz na sesję rozdziału 2 (przycisk „Ponów”).
   const [canRetryChapter, setCanRetryChapter] = useState(false);
   const playingChapter =
@@ -252,12 +256,10 @@ export function GameRoot() {
   // Konflikt rewizji: inna karta zapisała grę — ta przestaje grać i zapisywać.
   useEffect(() => {
     if (view.kind !== 'playing') return;
-    const { manager } = view.session;
-    return manager.subscribe(() => {
-      if (manager.getStatus().kind === 'conflict') {
-        sessionRef.current = null;
-        setView({ kind: 'yielded' });
-      }
+    // Także konflikt sprzed subskrypcji (sesja zapisana przed pokazaniem gry).
+    return watchConflict(view.session.manager, () => {
+      sessionRef.current = null;
+      setView({ kind: 'yielded' });
     });
   }, [view]);
 
@@ -296,8 +298,8 @@ export function GameRoot() {
           saveManager={view.session.manager}
           onNewGame={(kind) => void startNewMission(false, kind)}
           chapterActions={{
-            onContinue: () => void continueToChapterTwo(),
-            onRetry: () => void retryChapter(),
+            onContinue: () => void chapterGuard.run(continueToChapterTwo),
+            onRetry: () => void chapterGuard.run(retryChapter),
             canRetry: canRetryChapter,
           }}
         />
