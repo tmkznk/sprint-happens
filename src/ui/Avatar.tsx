@@ -23,6 +23,7 @@ const ROLE_COLORS: Record<Specialization, { background: string; color: string }>
   qa: { background: '#f3dfd9', color: '#7a3a2c' },
   designer: { background: '#f2e0ea', color: '#6b2c4f' },
   pm: { background: '#e8e6dc', color: '#4a4636' },
+  scrumMaster: { background: '#dde6ee', color: '#2f4a5e' },
 };
 
 function initials(name: string): string {

@@ -1,3 +1,4 @@
+import type { Chapter } from './chapter';
 import { PEOPLE, type PersonId } from './content/people';
 import type { ProjectId } from './contracts';
 import type { FurnitureId } from './furniture';
@@ -13,6 +14,8 @@ export const SPECIALIZATIONS = [
   'qa',
   'designer',
   'pm',
+  // Rozdział 2 (SH-053): prowadzi ceremonie Scruma; bez przydziału do projektu.
+  'scrumMaster',
 ] as const;
 export type Specialization = (typeof SPECIALIZATIONS)[number];
 
@@ -88,15 +91,21 @@ export type WageTable = Readonly<Record<Seniority, number>>;
 // kolejności. Puste miejsca zajmuje losowa (z ziarnem — TIME-T04) osoba z listy postaci, która
 // nie jest już wystawiona ani niedostępna (zatrudniona albo po odejściu z firmy — zwolnieni
 // i ci, którzy odeszli sami, nie wracają). Miejsce zostaje puste, gdy pula pary się wyczerpie.
+// SH-053: Scrum Master na rynku tylko w rozdziale 2.
+export function marketSpecializations(chapter: Chapter): readonly Specialization[] {
+  return chapter === 2 ? SPECIALIZATIONS : SPECIALIZATIONS.filter((s) => s !== 'scrumMaster');
+}
+
 export function fillMarket(
   market: { candidates: readonly Candidate[]; ids: IdSequence; rng: RngState },
   unavailable: readonly { personId: PersonId }[],
   wages: WageTable,
+  chapter: Chapter,
 ): { candidates: Candidate[]; ids: IdSequence; rng: RngState } {
   const taken = new Set([...market.candidates, ...unavailable].map((p) => p.personId));
   const candidates: Candidate[] = [];
   let { ids, rng } = market;
-  for (const specialization of SPECIALIZATIONS) {
+  for (const specialization of marketSpecializations(chapter)) {
     for (const seniority of SENIORITIES) {
       const offered = market.candidates.find(
         (c) => c.specialization === specialization && c.seniority === seniority,

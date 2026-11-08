@@ -5,6 +5,7 @@ import { PEOPLE, personById } from '../domain/content/people';
 import type { BalanceConfig } from '../domain/config';
 import {
   SENIORITIES,
+  marketSpecializations,
   MAX_ENERGY,
   MAX_SATISFACTION,
   SPECIALIZATIONS,
@@ -640,8 +641,17 @@ function staffIssues(state: GameState): Issue[] {
   }
   candidates.forEach((candidate, index) => checkPerson(['staff', 'candidates', index], candidate));
   // EMP-03: po jednym kandydacie na parę; puste miejsce tylko przy wyczerpanej puli postaci.
-  // Prolog ma własny, stały rynek (jeden kandydat).
-  for (const specialization of state.prologue ? [] : SPECIALIZATIONS) {
+  // Prolog ma własny, stały rynek (jeden kandydat). SH-053: Scrum Master tylko w rozdziale 2.
+  const offered = marketSpecializations(state.mission.chapter);
+  candidates.forEach((candidate, index) => {
+    if (!offered.includes(candidate.specialization)) {
+      issues.push({
+        path: ['staff', 'candidates', index],
+        message: `Specjalizacja ${candidate.specialization} niedostępna w tym rozdziale`,
+      });
+    }
+  });
+  for (const specialization of state.prologue ? [] : offered) {
     for (const seniority of SENIORITIES) {
       const slot = `${specialization}/${seniority}`;
       const count = candidates.filter(

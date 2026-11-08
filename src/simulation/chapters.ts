@@ -37,6 +37,7 @@ export function beginChapterTwo(state: GameState, config: BalanceConfig): Chapte
     { candidates: [], ids: state.ids, rng: state.rng },
     Object.values(employees),
     config.staff.dailyWage,
+    2,
   );
 
   const moved: GameState = {

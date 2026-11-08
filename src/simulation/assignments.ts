@@ -63,6 +63,9 @@ function hasRoleInProject(employee: Employee, project: ReadonlyProject): boolean
     case 'pm':
       // PROJ-03, PROJ-04, PROJ-11: QA testuje wykonaną pracę, PM wspiera cały zespół.
       return true;
+    // SH-053: Scrum Master nie ma przydziału do projektu.
+    case 'scrumMaster':
+      return false;
   }
 }
 

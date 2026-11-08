@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { SENIORITIES, SPECIALIZATIONS } from '../employees';
+import { marketSpecializations, SENIORITIES } from '../employees';
 import { PEOPLE, PROLOGUE_OWNER, personById } from './people';
 
 describe('lista postaci', () => {
+  // Rozdział 1: po trzy osoby na parę; Scrum Master (rozdział 2, SH-053) — jeden na seniority.
+  const CHAPTER_ONE = PEOPLE.filter((p) => p.specialization !== 'scrumMaster');
+
+  it('Scrum Master: po jednej osobie na każde seniority', () => {
+    for (const seniority of SENIORITIES) {
+      const pool = PEOPLE.filter(
+        (p) => p.specialization === 'scrumMaster' && p.seniority === seniority,
+      );
+      expect(pool, seniority).toHaveLength(1);
+    }
+  });
+
   it('po trzy osoby na każdą parę specjalizacja × seniority', () => {
-    for (const specialization of SPECIALIZATIONS) {
+    for (const specialization of marketSpecializations(1)) {
       for (const seniority of SENIORITIES) {
         const pool = PEOPLE.filter(
           (p) => p.specialization === specialization && p.seniority === seniority,
@@ -24,9 +36,10 @@ describe('lista postaci', () => {
     }
   });
 
-  it('pali dokładnie 16 z 63 postaci rynku, po 2–8 papierosów', () => {
+  it('pali dokładnie 16 z 63 postaci rynku rozdziału 1, po 2–8 papierosów; Scrum Masterzy nie palą', () => {
     const smokers = PEOPLE.filter((p) => p.cigarettesPerDay > 0);
-    expect(PEOPLE).toHaveLength(63);
+    expect(CHAPTER_ONE).toHaveLength(63);
+    expect(smokers.every((p) => p.specialization !== 'scrumMaster')).toBe(true);
     expect(smokers).toHaveLength(16);
     for (const p of smokers) expect(p.cigarettesPerDay).toBeGreaterThanOrEqual(2);
     for (const p of smokers) expect(p.cigarettesPerDay).toBeLessThanOrEqual(8);
@@ -35,7 +48,7 @@ describe('lista postaci', () => {
 
   it('palacze rozłożeni równo: każda specjalizacja ma 2–3, każde seniority 5–6', () => {
     const smokers = PEOPLE.filter((p) => p.cigarettesPerDay > 0);
-    for (const specialization of SPECIALIZATIONS) {
+    for (const specialization of marketSpecializations(1)) {
       const n = smokers.filter((p) => p.specialization === specialization).length;
       expect(n, specialization).toBeGreaterThanOrEqual(2);
       expect(n, specialization).toBeLessThanOrEqual(3);

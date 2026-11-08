@@ -601,6 +601,34 @@ export const PEOPLE: readonly Person[] = [
     appearance: { skin: '#f1c7a5', hair: '#1c1410', hairStyle: 'long', glasses: false },
     bio: 'Prowadziła już tyle retrospektyw, że zna wnioski przed spotkaniem. Zapisuje je w kopercie i otwiera na końcu.',
   },
+  // Rozdział 2 (SH-053): Scrum Masterzy — na rynku tylko w rozdziale 2.
+  {
+    id: 'kasia-retrospektywa',
+    name: 'Kasia Retrospektywa',
+    specialization: 'scrumMaster',
+    seniority: 'junior',
+    cigarettesPerDay: 0,
+    appearance: { skin: '#f1c9a5', hair: '#b5532a', hairStyle: 'ponytail', glasses: false },
+    bio: 'Świeżo po dwudniowym certyfikacie. Ma karteczki w pięciu kolorach i plan, żeby daily trwało tyle, ile trzeba. Na razie trzeba długo.',
+  },
+  {
+    id: 'tomek-velocity',
+    name: 'Tomek Velocity',
+    specialization: 'scrumMaster',
+    seniority: 'mid',
+    cigarettesPerDay: 0,
+    appearance: { skin: '#d9a07a', hair: '#3b2a1e', hairStyle: 'short', glasses: true },
+    bio: 'Przeprowadził trzy transformacje agile. Dwie firmy nadal istnieją. Pyta „co cię blokuje?” tak, że nikt nie ma odwagi powiedzieć, że on.',
+  },
+  {
+    id: 'grazyna-timebox',
+    name: 'Grażyna Timebox',
+    specialization: 'scrumMaster',
+    seniority: 'senior',
+    cigarettesPerDay: 0,
+    appearance: { skin: '#f5d3b8', hair: '#9a9a9a', hairStyle: 'bun', glasses: true },
+    bio: 'Daily w piętnaście minut, retro bez łez, planowanie bez obietnic bez pokrycia. Klepsydrę nosi w torebce i nie zawaha się jej użyć.',
+  },
 ];
 
 // Prolog: Janusz jest w zespole od początku i nie trafia na rynek pracy (poza listą PEOPLE).

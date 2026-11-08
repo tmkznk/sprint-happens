@@ -106,6 +106,9 @@ export type RejectionCode =
   | 'prologueLocked'
   // Magazyn: brak mebla danego typu.
   | 'notInStorage'
+  // SH-053: drugi Scrum Master; Scrum Master bez przydziału do projektu.
+  | 'scrumMasterExists'
+  | 'notAssignable'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

@@ -4,6 +4,7 @@ import type { GameState } from '../../domain/state';
 import { canHire, registerWageDue } from '../finance';
 import { markCigarettesHandled } from '../smoking';
 import { addEmployeeAgent, firstFreeDesk } from '../staff';
+import { isScrumMaster, scrumMasterOf } from '../scrum';
 import { reject, type CommandHandler, type HireCandidateCommand } from './types';
 
 // EMP-03, EMP-04, FIN-03, FIN-08 (Z): natychmiastowe zatrudnienie wybranego kandydata.
@@ -16,6 +17,8 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
     if (financial) return reject(financial);
     const candidate = state.staff.candidates.find((c) => c.id === command.candidateId);
     if (!candidate) return reject('unknownCandidate');
+    // SH-053: jeden Scrum Master na firmę.
+    if (isScrumMaster(candidate) && scrumMasterOf(state)) return reject('scrumMasterExists');
 
     const allocated = allocateId(state.ids, 'employee');
     const newcomer: Employee = {
@@ -54,6 +57,7 @@ export const hireCandidate: CommandHandler<HireCandidateCommand> = {
       },
       [...Object.values(employees), ...state.staff.departures],
       config.staff.dailyWage,
+      state.mission.chapter,
     );
     const hired = registerWageDue(
       {

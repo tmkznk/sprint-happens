@@ -26,6 +26,8 @@ export const REJECTION_MESSAGES: Record<RejectionCode, string> = {
   notPaused: 'Edycja biura wymaga pauzy.',
   prologueLocked: 'Dostępne na dalszym etapie prologu.',
   notInStorage: 'Tego mebla nie ma już w magazynie.',
+  scrumMasterExists: 'Firma ma już Scrum Mastera. Jeden wystarczy — dwóch zrobiłoby retro z retro.',
+  notAssignable: 'Scrum Master nie pracuje nad projektem — prowadzi ceremonie całego zespołu.',
   invalidRotation: 'Nieprawidłowy obrót.',
   outOfFloor: 'Mebel musi stać w całości na podłodze pokoju.',
   collision: 'Mebel koliduje z innym wyposażeniem.',

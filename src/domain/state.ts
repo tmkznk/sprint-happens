@@ -134,6 +134,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
     { candidates: [], ids, rng: seedRng(seed) },
     [],
     config.staff.dailyWage,
+    1,
   );
   const board = fillBoard({ offers: [], ids: market.ids, rng: market.rng }, 0, config, {
     guaranteeStarter: true,

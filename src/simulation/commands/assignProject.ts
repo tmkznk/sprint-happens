@@ -1,4 +1,5 @@
 import { projectTeam } from '../assignments';
+import { isScrumMaster } from '../scrum';
 import { reject, type AssignProjectCommand, type CommandHandler } from './types';
 
 // EMP-05, EMP-06, PROJ-11 (Z): jeden aktywny przydział na osobę; kilku specjalistów tej samej
@@ -9,6 +10,8 @@ export const assignProject: CommandHandler<AssignProjectCommand> = {
   execute(state, command) {
     const employee = state.staff.employees[command.employeeId];
     if (!employee) return reject('unknownEmployee');
+    // SH-053: Scrum Master prowadzi ceremonie, nie pracuje nad projektem.
+    if (isScrumMaster(employee) && command.projectId !== null) return reject('notAssignable');
     if (employee.projectId === command.projectId) return { ok: true, state };
     if (command.projectId !== null) {
       const project = state.contracts.projects[command.projectId];

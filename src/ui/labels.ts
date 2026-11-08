@@ -13,6 +13,7 @@ export const SPECIALIZATION_LABELS: Record<Specialization, string> = {
   qa: 'Tester / QA',
   designer: 'Designer',
   pm: 'Project Manager',
+  scrumMaster: 'Scrum Master',
 };
 
 // Krótkie nazwy stanowisk (filtry, pastylki).
@@ -24,6 +25,7 @@ export const SPECIALIZATION_SHORT_LABELS: Record<Specialization, string> = {
   qa: 'QA',
   designer: 'Designer',
   pm: 'PM',
+  scrumMaster: 'SM',
 };
 
 export const SENIORITY_LABELS: Record<Seniority, string> = {

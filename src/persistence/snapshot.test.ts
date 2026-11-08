@@ -1034,14 +1034,11 @@ describe('prolog w zapisie', () => {
 
 describe('rozdziały i magazyn mebli (rozdział 2)', () => {
   it('rozdział 2 z magazynem przetrwa zapis', () => {
-    const base = createInitialState(DEFAULT_BALANCE, 3);
-    const state: GameState = {
-      ...base,
-      mission: { ...base.mission, chapter: 2 },
-      contracts: { ...base.contracts, deliveredCount: 0, chapterDeliveredCount: 0 },
-      // Rozdział 2 zaczyna z pustym biurem (meble w magazynie) — inny układ niż rozdział 1.
-      world: { ...base.world, furniture: {}, storage: { desk: 2, sofa: 1 } },
-    };
+    // Rozdział 2 zaczyna z pustym biurem (meble w magazynie) — inny układ niż rozdział 1.
+    const transition = beginChapterTwo(wonChapterOne(), DEFAULT_BALANCE);
+    if (!transition.ok) throw new Error(transition.code);
+    const base = transition.state;
+    const state: GameState = { ...base, world: { ...base.world, storage: { desk: 2, sofa: 1 } } };
     expect(roundTrip(state)).toEqual(state);
   });
 
@@ -1079,5 +1076,17 @@ describe('przejście do rozdziału 2 w zapisie (SH-049)', () => {
     const result = beginChapterTwo(wonChapterOne(), DEFAULT_BALANCE);
     if (!result.ok) throw new Error(result.code);
     expect(roundTrip(result.state)).toEqual(result.state);
+  });
+});
+
+describe('Scrum Master w zapisie (SH-053)', () => {
+  it('kandydat Scrum Master w rozdziale 1 jest odrzucany', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        const candidate = s.staff.candidates[0];
+        candidate.specialization = 'scrumMaster';
+      }),
+      'staff.candidates',
+    );
   });
 });

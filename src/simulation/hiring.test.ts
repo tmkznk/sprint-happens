@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
 import { personById } from '../domain/content/people';
-import { SENIORITIES, SPECIALIZATIONS, type CandidateId } from '../domain/employees';
+import { marketSpecializations, SENIORITIES, type CandidateId } from '../domain/employees';
 import type { GridPoint } from '../domain/grid';
 import { createInitialState, type GameState } from '../domain/state';
 import { deepFreeze } from '../test/deepFreeze';
@@ -34,8 +34,8 @@ describe('rynek kandydatów (EMP-03)', () => {
   it('oferuje każdą specjalizację w każdym seniority, z pensją zależną od seniority', () => {
     const { candidates } = createInitialState(DEFAULT_BALANCE, 1).staff;
 
-    expect(candidates).toHaveLength(SPECIALIZATIONS.length * SENIORITIES.length);
-    for (const specialization of SPECIALIZATIONS) {
+    expect(candidates).toHaveLength(marketSpecializations(1).length * SENIORITIES.length);
+    for (const specialization of marketSpecializations(1)) {
       for (const seniority of SENIORITIES) {
         const match = candidates.find(
           (c) => c.specialization === specialization && c.seniority === seniority,
@@ -94,7 +94,7 @@ describe('HireCandidate (EMP-03, EMP-04, FIN-03, FIN-08, OFF-04)', () => {
     const { candidate } = hireFirst(engine);
     const { candidates } = engine.getState().staff;
 
-    expect(candidates).toHaveLength(SPECIALIZATIONS.length * SENIORITIES.length);
+    expect(candidates).toHaveLength(marketSpecializations(1).length * SENIORITIES.length);
     expect(candidates.some((c) => c.id === candidate.id)).toBe(false);
     expect(candidates[0]).toMatchObject({
       specialization: candidate.specialization,
@@ -254,7 +254,7 @@ describe('rynek z listy postaci', () => {
     expect(new Set(hired.map((c) => c.personId)).size).toBe(3);
     expect(slot(engine.getState())).toHaveLength(0);
     expect(engine.getState().staff.candidates).toHaveLength(
-      SPECIALIZATIONS.length * SENIORITIES.length - 1,
+      marketSpecializations(1).length * SENIORITIES.length - 1,
     );
   });
 
