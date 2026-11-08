@@ -50,6 +50,17 @@ export function createPlayer(
 
   // EVT-02: decyzja trzyma pauzę — scenariusze wybierają pierwszą odpowiedź.
   const resolvePending = () => {
+    // SH-056: retro — pierwsza karta z oferty; przy pełnym limicie zastępuje najstarszą.
+    const retro = state().scrum?.pendingRetro;
+    if (retro) {
+      const cards = state().scrum?.cards ?? [];
+      const full = cards.length >= config.scrum.cardLimit;
+      must({
+        type: 'ChooseRetroCard',
+        cardId: retro.offered[0] ?? null,
+        replace: full ? (cards[0] ?? null) : null,
+      });
+    }
     // SH-054: cel sprintu — pierwszy aktywny projekt.
     if (state().scrum?.pendingGoal) {
       const goal = Object.values(state().contracts.projects).find((p) => p.status === 'active');

@@ -3,6 +3,7 @@ import type { OfferId, ProjectId } from '../../domain/contracts';
 import type { CandidateId, EmployeeId } from '../../domain/employees';
 import type { FurnitureId, FurnitureType, Rotation } from '../../domain/furniture';
 import type { GridPoint } from '../../domain/grid';
+import type { RetroCardId } from '../../domain/scrum';
 import type { GameState, Speed } from '../../domain/state';
 import type { FinanceRejection } from '../finance';
 import type { PlacementRejection } from '../furniture';
@@ -51,6 +52,12 @@ export type PlaceFromStorageCommand = {
 export type SellFromStorageCommand = { type: 'SellFromStorage'; furnitureType: FurnitureType };
 // SH-054: wybór celu sprintu (null — bez celu).
 export type ChooseSprintGoalCommand = { type: 'ChooseSprintGoal'; projectId: ProjectId | null };
+// SH-056: wybór karty z retro (null — „Pomiń”); `replace` — aktywna karta do zastąpienia.
+export type ChooseRetroCardCommand = {
+  type: 'ChooseRetroCard';
+  cardId: RetroCardId | null;
+  replace: RetroCardId | null;
+};
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -75,7 +82,8 @@ export type Command =
   | FireEmployeeCommand
   | ResolveEventCommand
   | OrderEmployeeCommand
-  | ChooseSprintGoalCommand;
+  | ChooseSprintGoalCommand
+  | ChooseRetroCardCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -117,6 +125,11 @@ export type RejectionCode =
   // SH-054: decyzja Scruma czeka; brak oczekującego wyboru celu.
   | 'sprintGoalPending'
   | 'noPendingGoal'
+  // SH-056: retro.
+  | 'retroPending'
+  | 'noPendingRetro'
+  | 'unknownCard'
+  | 'cardLimit'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

@@ -13,6 +13,10 @@ export const setSpeed: CommandHandler<SetSpeedCommand> = {
     if (state.scrum?.pendingGoal && state.mission.phase === 'working' && command.speed !== 0) {
       return reject('sprintGoalPending');
     }
+    // SH-056: wybór karty z retro trzyma pauzę.
+    if (state.scrum?.pendingRetro && state.mission.phase === 'working' && command.speed !== 0) {
+      return reject('retroPending');
+    }
     if (state.mission.speed === command.speed) return { ok: true, state };
     return { ok: true, state: { ...state, mission: { ...state.mission, speed: command.speed } } };
   },

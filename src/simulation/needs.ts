@@ -250,8 +250,14 @@ export function updateNeeds(state: GameState, config: BalanceConfig): GameState 
 }
 
 // NEED-01 (Z): energia maleje podczas pracy (wywoływane przez system pracy dla pracujących).
-export function drainEnergy(employee: Employee, config: BalanceConfig): Employee {
-  return { ...employee, energy: Math.max(0, employee.energy - energyRates(config).drainPerStep) };
+// SH-056: karty retro zmieniają zużycie (‰).
+export function drainEnergy(
+  employee: Employee,
+  config: BalanceConfig,
+  drainPermille = 0,
+): Employee {
+  const drain = Math.floor((energyRates(config).drainPerStep * (1000 + drainPermille)) / 1000);
+  return { ...employee, energy: Math.max(0, employee.energy - drain) };
 }
 
 // SH-032 B2: wydajność × (0,5 + 0,5 × energia); przy zerowej energii praca stoi (NEED-01).

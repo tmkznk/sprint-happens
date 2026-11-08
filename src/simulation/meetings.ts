@@ -8,6 +8,7 @@ import { interactionCells, standingCells } from '../world/geometry';
 import { destinationId, standingDestinationId } from '../world/movement/officeEnv';
 import { dropFurnitureDestinations, interruptFurnitureUse } from './furniture';
 import { OPEN_ENDED_USE } from './needs';
+import { activeEffect, openRetro } from './retro';
 import { scrumMasterOf, scrumReady } from './scrum';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -23,11 +24,14 @@ export function ceremonyMs(
   ceremony: Ceremony,
   sm: Pick<Employee, 'seniority'>,
   config: BalanceConfig,
+  state?: GameState,
 ): number {
   const { scrum, simulation } = config;
   const factor =
     ceremony === 'planning' ? scrum.planningFactor : ceremony === 'retro' ? scrum.retroFactor : 1;
-  const ms = scrum.dailySeconds[sm.seniority] * 1000 * factor;
+  // SH-056: karty retro zmieniają długość ceremonii.
+  const cards = state ? (1000 + activeEffect(state).ceremonyPermille) / 1000 : 1;
+  const ms = scrum.dailySeconds[sm.seniority] * 1000 * factor * cards;
   return Math.round(ms / simulation.stepMs) * simulation.stepMs;
 }
 
@@ -115,7 +119,8 @@ function startMeeting(state: GameState, ceremony: Ceremony, config: BalanceConfi
   const meeting: Meeting = {
     ceremony,
     untilMs: null,
-    deadlineMs: now + ceremonyMs(ceremony, sm, config) + config.simulation.maxTransitSeconds * 1000,
+    deadlineMs:
+      now + ceremonyMs(ceremony, sm, config, state) + config.simulation.maxTransitSeconds * 1000,
     participants,
   };
   let next: GameState = { ...state, scrum: { ...state.scrum, meeting } };
@@ -128,7 +133,7 @@ function startMeeting(state: GameState, ceremony: Ceremony, config: BalanceConfi
 
 // Koniec spotkania: uczestnicy wracają do biurek; daily i planowanie dają premię dnia tym, którzy
 // doszli do stołu (siedzą albo stoją przy nim w chwili zakończenia).
-function endMeeting(state: GameState, bonus: boolean): GameState {
+function endMeeting(state: GameState, config: BalanceConfig, bonus: boolean): GameState {
   const scrum = state.scrum;
   const meeting = scrum?.meeting;
   if (!scrum || !meeting) return state;
@@ -149,7 +154,7 @@ function endMeeting(state: GameState, bonus: boolean): GameState {
     : state;
   const day = state.mission.day;
   const morning = meeting.ceremony !== 'retro';
-  return {
+  const ended: GameState = {
     ...released,
     scrum: {
       ...scrum,
@@ -158,6 +163,8 @@ function endMeeting(state: GameState, bonus: boolean): GameState {
       dailyBonus: bonus && morning ? { day, employees: attendees } : scrum.dailyBonus,
     },
   };
+  // SH-056: po retro oferta kart i pauza.
+  return bonus && !morning ? openRetro(ended, config) : ended;
 }
 
 // Która ceremonia powinna się teraz zacząć (albo null).
@@ -185,7 +192,7 @@ export function advanceScrum(state: GameState, config: BalanceConfig): GameState
 
   // Utrata Scrum Mastera albo stołu: koniec spotkania (bez premii) i sprintu, bez rozliczenia celu.
   if (!scrumReady(state)) {
-    const ended = endMeeting(state, false);
+    const ended = endMeeting(state, config, false);
     return {
       ...ended,
       scrum: ended.scrum && { ...ended.scrum, sprint: null, pendingRetro: null, meeting: null },
@@ -219,10 +226,10 @@ export function advanceScrum(state: GameState, config: BalanceConfig): GameState
     );
     // Od końca tego kroku (zegar dnia rośnie po systemach kroku).
     if (arrived)
-      untilMs = now + config.simulation.stepMs + ceremonyMs(meeting.ceremony, sm, config);
+      untilMs = now + config.simulation.stepMs + ceremonyMs(meeting.ceremony, sm, config, next);
   }
   if ((untilMs !== null && now >= untilMs) || now >= meeting.deadlineMs)
-    return endMeeting(next, true);
+    return endMeeting(next, config, true);
   if (untilMs === meeting.untilMs) return next;
   return { ...next, scrum: next.scrum && { ...next.scrum, meeting: { ...meeting, untilMs } } };
 }

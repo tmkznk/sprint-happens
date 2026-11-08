@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CHAPTERS } from '../domain/chapter';
 import { EVENT_TEMPLATES } from '../domain/content/events';
+import { RETRO_CARDS } from '../domain/content/retroCards';
 import { PEOPLE, personById } from '../domain/content/people';
 import type { BalanceConfig } from '../domain/config';
 import {
@@ -472,6 +473,13 @@ function scrumIssues(state: GameState): Issue[] {
     if (sprint.goalProjectId !== null && !state.contracts.projects[sprint.goalProjectId]) {
       issues.push({ path: ['scrum', 'sprint', 'goalProjectId'], message: 'Nieznany projekt-cel' });
     }
+  }
+  const known = (id: string) => RETRO_CARDS.some((c) => c.id === id);
+  if (scrum.cards.some((id) => !known(id)) || new Set(scrum.cards).size !== scrum.cards.length) {
+    issues.push({ path: ['scrum', 'cards'], message: 'Nieznana lub powtórzona karta retro' });
+  }
+  if (scrum.pendingRetro?.offered.some((id) => !known(id))) {
+    issues.push({ path: ['scrum', 'pendingRetro'], message: 'Nieznana karta w ofercie retro' });
   }
   if (scrum.pendingGoal && !sprint) {
     issues.push({ path: ['scrum', 'pendingGoal'], message: 'Wybór celu bez sprintu' });

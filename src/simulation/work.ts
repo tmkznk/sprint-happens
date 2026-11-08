@@ -12,6 +12,7 @@ import { interactionCells } from '../world/geometry';
 import { addWork, openBugs, repairSize, riskPermille } from './bugs';
 import { isInMeeting } from './events';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
+import { activeEffect } from './retro';
 import { goalBonusPermille } from './scrum';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
@@ -102,15 +103,20 @@ export function scrumBonusPermille(
 }
 
 // Premia do wydajności osoby w projekcie: PM-a (PROJ-11) i Scruma (rozdział 2).
+// SH-056: karty retro — tempo pracy (`work`) albo testów (`test`).
 export function bonusPermilleFor(
   state: GameState,
   employee: Pick<Employee, 'id'>,
   projectId: ProjectId,
   config: BalanceConfig,
+  kind: 'work' | 'test' = 'work',
 ): number {
+  const effect = state.scrum ? activeEffect(state) : null;
+  const cards = effect ? (kind === 'test' ? effect.testPermille : effect.workPermille) : 0;
   return (
     pmBonusPermille(state, projectId, config) +
-    scrumBonusPermille(state, employee.id, projectId, config)
+    scrumBonusPermille(state, employee.id, projectId, config) +
+    cards
   );
 }
 
@@ -192,6 +198,9 @@ export function doWork(state: GameState, config: BalanceConfig, plan: WorkPlan):
   // Suma wydajności i ryzyka ważonego wydajnością dla każdej pary projekt × specjalizacja.
   const contributions = new Map<string, { amount: number; weightedRisk: number }>();
   const employees = { ...state.staff.employees };
+  // SH-056: karty retro — ryzyko błędu i zużycie energii.
+  const cards = state.scrum ? activeEffect(state) : null;
+  const riskFactor = (1000 + (cards?.bugRiskPermille ?? 0)) / 1000;
   for (const employee of Object.values(state.staff.employees)) {
     if (plan.get(employee.id)?.kind !== 'feature') continue;
     const { specialization, projectId } = employee;
@@ -205,10 +214,11 @@ export function doWork(state: GameState, config: BalanceConfig, plan: WorkPlan):
     const current = contributions.get(key) ?? { amount: 0, weightedRisk: 0 };
     contributions.set(key, {
       amount: current.amount + amount,
-      weightedRisk: current.weightedRisk + amount * riskPermille(employee, config),
+      weightedRisk:
+        current.weightedRisk + amount * Math.round(riskPermille(employee, config) * riskFactor),
     });
     // NEED-01: energia maleje wyłącznie podczas faktycznej pracy.
-    employees[employee.id] = drainEnergy(employee, config);
+    employees[employee.id] = drainEnergy(employee, config, cardDrain(state));
   }
   if (contributions.size === 0) return state;
 
@@ -288,7 +298,7 @@ export function doRepairs(state: GameState, config: BalanceConfig, plan: WorkPla
     });
     projects = { ...projects, [projectId]: { ...project, fragments } };
     // NEED-01: naprawa to praca — zużywa energię.
-    employees = { ...employees, [employee.id]: drainEnergy(employee, config) };
+    employees = { ...employees, [employee.id]: drainEnergy(employee, config, cardDrain(state)) };
   }
 
   if (repairers.length === 0) return state;
@@ -322,7 +332,7 @@ export function doDesign(state: GameState, config: BalanceConfig, plan: WorkPlan
       const designProgress = project.designProgress + Math.min(amount, remainingDesign(project));
       projects = { ...projects, [projectId]: { ...project, designProgress } };
     }
-    employees = { ...employees, [employee.id]: drainEnergy(employee, config) };
+    employees = { ...employees, [employee.id]: drainEnergy(employee, config, cardDrain(state)) };
     changed = true;
   }
   if (!changed) return state;
@@ -362,4 +372,9 @@ export function progressPercent(
 export function designPercent(project: ReadonlyProject): number {
   if (project.designScope === 0) return 0;
   return Math.floor((project.designProgress * 100) / (project.designScope * POINT_SCALE));
+}
+
+// SH-056: zmiana zużycia energii z kart retro (‰).
+function cardDrain(state: GameState): number {
+  return state.scrum ? activeEffect(state).drainPermille : 0;
 }

@@ -19,6 +19,11 @@ function nextDay(state: GameState): GameState {
     const pending = engine.getState().events.pending;
     const option = EVENT_TEMPLATES.find((t) => t.id === pending?.templateId)?.options[0];
     if (option) engine.dispatch({ type: 'ResolveEvent', optionId: option.id });
+    // Retro (ostatni dzień sprintu) pomijamy — te testy sprawdzają cel sprintu.
+    if (engine.getState().scrum?.pendingRetro) {
+      engine.dispatch({ type: 'ChooseRetroCard', cardId: null, replace: null });
+    }
+    if (engine.getState().mission.speed === 0) engine.dispatch({ type: 'SetSpeed', speed: 4 });
     engine.step();
   }
   expect(engine.dispatch({ type: 'SettleDay' })).toEqual({ ok: true });

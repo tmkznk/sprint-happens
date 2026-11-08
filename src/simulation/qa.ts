@@ -77,7 +77,11 @@ export function doTesting(state: GameState, config: BalanceConfig): GameState {
     // Tester k zaczyna od k-tego fragmentu kolejki; kolejne wolne fragmenty — od `nextFree`.
     let nextFree = testers.length;
     testers.forEach((tester, k) => {
-      let amount = testPerStep(tester, config, bonusPermilleFor(state, tester, projectId, config));
+      let amount = testPerStep(
+        tester,
+        config,
+        bonusPermilleFor(state, tester, projectId, config, 'test'),
+      );
       let index: number | undefined = queue[k];
       while (amount > 0 && index !== undefined) {
         const taken = Math.min(amount, size - (progress[index] ?? 0));

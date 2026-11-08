@@ -3,6 +3,7 @@ import type { ProjectId } from '../domain/contracts';
 import { MAX_SATISFACTION, SATISFACTION_SCALE, type Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { applyReputation } from './quality';
+import { activeEffect } from './retro';
 
 // Rozdział 2 — Scrum (SH-053–SH-056).
 
@@ -31,7 +32,11 @@ export function beginScrumDay(state: GameState, config: BalanceConfig): GameStat
   const { scrum } = state;
   if (!scrum) return state;
   const day = state.mission.day;
-  let next: GameState = { ...state, scrum: { ...scrum, meeting: null, pendingGoal: false } };
+  let next: GameState = {
+    ...state,
+    staff: { ...state.staff, employees: withDailySatisfaction(state) },
+    scrum: { ...scrum, meeting: null, pendingGoal: false },
+  };
   const sprint = scrum.sprint;
   if (sprint && day > sprint.endDay) {
     next = settleSprintGoal(next, config, false);
@@ -110,4 +115,22 @@ export function goalBonusPermille(
 // Decyzja gracza zatrzymuje grę: o 9:00 (koniec przyjścia) przy oczekującym celu albo retro.
 export function scrumDecisionPending(state: GameState): boolean {
   return !!state.scrum && (state.scrum.pendingGoal || state.scrum.pendingRetro !== null);
+}
+
+// SH-056: karty retro — zmiana zadowolenia zespołu na początku każdego dnia.
+function withDailySatisfaction(state: GameState): GameState['staff']['employees'] {
+  const points = activeEffect(state).satisfactionPerDay;
+  if (points === 0) return state.staff.employees;
+  return Object.fromEntries(
+    Object.entries(state.staff.employees).map(([id, employee]) => [
+      id,
+      {
+        ...employee,
+        satisfaction: Math.min(
+          MAX_SATISFACTION,
+          Math.max(0, employee.satisfaction + points * SATISFACTION_SCALE),
+        ),
+      },
+    ]),
+  ) as GameState['staff']['employees'];
 }
