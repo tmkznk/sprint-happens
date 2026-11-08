@@ -16,6 +16,7 @@ export function InterludeCard({ id, onDone }: { id: InterludeId; onDone(): void 
         >
           <p className="kicker">{interlude.kicker}</p>
           <h2 id="interlude-title">{interlude.title}</h2>
+          <p className="interlude-subtitle">{interlude.subtitle}</p>
           {interlude.paragraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}

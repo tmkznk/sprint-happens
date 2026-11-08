@@ -2640,3 +2640,10 @@ progress::-moz-progress-bar {
     transform: translateX(-50%);
   }
 }
+
+/* Przerywnik fabularny (SH-048): podtytuł rozdziału pod nazwą. */
+.interlude-subtitle {
+  margin-top: -4px;
+  font-weight: 600;
+  color: var(--muted, inherit);
+}
