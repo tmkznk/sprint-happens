@@ -49,6 +49,8 @@ export type PlaceFromStorageCommand = {
   rotation: Rotation;
 };
 export type SellFromStorageCommand = { type: 'SellFromStorage'; furnitureType: FurnitureType };
+// SH-054: wybór celu sprintu (null — bez celu).
+export type ChooseSprintGoalCommand = { type: 'ChooseSprintGoal'; projectId: ProjectId | null };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -72,7 +74,8 @@ export type Command =
   | DeliverProjectCommand
   | FireEmployeeCommand
   | ResolveEventCommand
-  | OrderEmployeeCommand;
+  | OrderEmployeeCommand
+  | ChooseSprintGoalCommand;
 export type CommandType = Command['type'];
 
 // Odmowa niesie kod, nie tekst — komunikat dla gracza dobiera UI.
@@ -111,6 +114,9 @@ export type RejectionCode =
   | 'notAssignable'
   // SH-052: mebel niedostępny w tym rozdziale.
   | 'notAvailable'
+  // SH-054: decyzja Scruma czeka; brak oczekującego wyboru celu.
+  | 'sprintGoalPending'
+  | 'noPendingGoal'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

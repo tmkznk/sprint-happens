@@ -1,6 +1,7 @@
 import { isReadyForDelivery, paymentPreview } from '../delivery';
 import { recordOperation } from '../finance';
 import { applyReputation, rateProject } from '../quality';
+import { settleSprintGoal } from '../scrum';
 import { reject, type CommandHandler, type DeliverProjectCommand } from './types';
 
 // PROJ-06, PROJ-07, FIN-04, BUG-04 (Z): ręczne oddanie projektu — jedno rozliczenie pieniędzy,
@@ -35,36 +36,36 @@ export const deliverProject: CommandHandler<DeliverProjectCommand> = {
       ]),
     );
 
-    return {
-      ok: true,
-      state: {
-        ...paid.state,
-        mission: { ...paid.state.mission, reputation },
-        staff: { ...paid.state.staff, employees },
-        contracts: {
-          ...paid.state.contracts,
-          deliveredCount: paid.state.contracts.deliveredCount + 1,
-          chapterDeliveredCount: paid.state.contracts.chapterDeliveredCount + 1,
-          projects: {
-            ...paid.state.contracts.projects,
-            [project.id]: {
-              ...project,
-              status: 'delivered',
-              delivery: {
-                day,
-                daysLate: money.daysLate,
-                penalty: money.penalty,
-                payment: money.payment,
-                remainingBugs: rating.remainingBugs,
-                qualityPermille: rating.qualityPermille,
-                designPermille: rating.designPermille,
-                reputation: rating.reputation,
-                reputationAfter: reputation,
-              },
+    const delivered: typeof state = {
+      ...paid.state,
+      mission: { ...paid.state.mission, reputation },
+      staff: { ...paid.state.staff, employees },
+      contracts: {
+        ...paid.state.contracts,
+        deliveredCount: paid.state.contracts.deliveredCount + 1,
+        chapterDeliveredCount: paid.state.contracts.chapterDeliveredCount + 1,
+        projects: {
+          ...paid.state.contracts.projects,
+          [project.id]: {
+            ...project,
+            status: 'delivered',
+            delivery: {
+              day,
+              daysLate: money.daysLate,
+              penalty: money.penalty,
+              payment: money.payment,
+              remainingBugs: rating.remainingBugs,
+              qualityPermille: rating.qualityPermille,
+              designPermille: rating.designPermille,
+              reputation: rating.reputation,
+              reputationAfter: reputation,
             },
           },
         },
       },
     };
+    // SH-054: oddany cel sprintu — premia reputacji i zadowolenia (dokładnie raz).
+    const goal = delivered.scrum?.sprint?.goalProjectId === project.id;
+    return { ok: true, state: goal ? settleSprintGoal(delivered, config, true) : delivered };
   },
 };

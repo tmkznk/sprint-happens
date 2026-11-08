@@ -2,6 +2,7 @@ import { fillBoard } from '../../domain/contractBoard';
 import { MAX_ENERGY } from '../../domain/employees';
 import { beginArriving } from '../commute';
 import { scheduleDay } from '../events';
+import { beginScrumDay } from '../scrum';
 import type { CommandHandler, StartNextDayCommand } from './types';
 
 // TIME-04, TIME-08 (Z): „Następny dzień” po raporcie — tylko jeśli misja trwa (bramka silnika).
@@ -49,6 +50,7 @@ export const startNextDay: CommandHandler<StartNextDayCommand> = {
     };
     // TIME-04: dzień zaczyna się przyjściem do biura; praca od 9:00, gdy wszyscy dojdą.
     // EVT-03: o zdarzeniu dnia (i jego chwili, liczonej od 9:00) rozstrzyga się na początku dnia.
-    return { ok: true, state: scheduleDay(beginArriving(next), config) };
+    // SH-054: sprint — koniec, przerwanie albo start (rozdział 2).
+    return { ok: true, state: scheduleDay(beginArriving(beginScrumDay(next, config)), config) };
   },
 };

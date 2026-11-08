@@ -2,6 +2,7 @@ import type { BalanceConfig } from '../domain/config';
 import { fillMarket, type Employee } from '../domain/employees';
 import type { FurnitureType } from '../domain/furniture';
 import { createMovementState } from '../domain/movement';
+import { emptyScrum } from '../domain/scrum';
 import type { GameState } from '../domain/state';
 import { startNextDay } from './commands/startNextDay';
 import { maxTransitSteps } from './commute';
@@ -43,6 +44,8 @@ export function beginChapterTwo(state: GameState, config: BalanceConfig): Chapte
   const moved: GameState = {
     ...state,
     mission: { ...state.mission, status: 'active', chapter: 2 },
+    // SH-054: Scrum zaczyna się, gdy firma ma Scrum Mastera i stół konferencyjny.
+    scrum: emptyScrum(),
     contracts: { ...state.contracts, offers: [], chapterDeliveredCount: 0 },
     staff: { ...state.staff, employees, candidates: market.candidates, entryQueue: [] },
     world: { furniture: {}, movement: createMovementState([]), storage },

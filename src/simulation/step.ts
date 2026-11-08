@@ -3,6 +3,7 @@ import type { GameState } from '../domain/state';
 import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { advanceArriving, advanceLeaving, beginLeaving } from './commute';
+import { scrumDecisionPending } from './scrum';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
 import { triggerEvent } from './events';
@@ -18,7 +19,7 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
   if (mission.status !== 'active' || mission.speed === 0) return current;
   // TIME-04: przed 9:00 biegnie tylko przyjście do biura; TIME-08: po 17:00 — tylko wyjście
   // (w obu zegar dnia stoi, bez pracy, potrzeb i zdarzeń).
-  if (mission.phase === 'arriving') return advanceArriving(current, config);
+  if (mission.phase === 'arriving') return pauseForScrumDecision(advanceArriving(current, config));
   if (mission.phase === 'leaving') return advanceLeaving(current, config);
   if (mission.phase !== 'working') return current;
 
@@ -47,4 +48,10 @@ function moveCharacters(state: GameState, config: BalanceConfig): GameState {
   if (movement.agents.length === 0) return state;
   const next = stepMovement(movement, movementEnvFor(state, config));
   return { ...state, world: { ...state.world, movement: next } };
+}
+
+// SH-054: o 9:00 (koniec przyjścia) gra staje, gdy czeka decyzja Scruma (wybór celu sprintu).
+function pauseForScrumDecision(state: GameState): GameState {
+  if (state.mission.phase !== 'working' || !scrumDecisionPending(state)) return state;
+  return state.mission.speed === 0 ? state : { ...state, mission: { ...state.mission, speed: 0 } };
 }

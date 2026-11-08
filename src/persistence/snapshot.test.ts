@@ -11,6 +11,7 @@ import { createEngine } from '../simulation/engine';
 import { beginChapterTwo } from '../simulation/chapters';
 import { createPrologueState } from '../simulation/prologue';
 import { wonChapterOne } from '../test/chapterFixture';
+import { readyChapterTwo } from '../test/scrumFixture';
 import { runUntilPhase } from '../test/engineFixture';
 import { createPlayer } from '../test/player';
 import { DAY_LENGTH_MS } from '../simulation/time';
@@ -1087,6 +1088,34 @@ describe('Scrum Master w zapisie (SH-053)', () => {
         candidate.specialization = 'scrumMaster';
       }),
       'staff.candidates',
+    );
+  });
+});
+
+describe('Scrum w zapisie (SH-054)', () => {
+  it('trwający sprint z oczekującym wyborem celu przetrwa zapis', () => {
+    const engine = readyChapterTwo();
+    const player = createPlayer(DEFAULT_BALANCE, 1, engine.getState());
+    player.finishDay();
+    const state = player.state();
+    expect(state.scrum?.sprint).not.toBeNull();
+    expect(roundTrip(state)).toEqual(state);
+  });
+
+  it('stan Scruma w rozdziale 1 jest odrzucany', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.scrum = {
+          sprint: null,
+          sprintsStarted: 0,
+          pendingGoal: false,
+          pendingRetro: null,
+          meeting: null,
+          dailyBonus: null,
+          cards: [],
+        };
+      }),
+      'Stan Scruma tylko w rozdziale 2',
     );
   });
 });

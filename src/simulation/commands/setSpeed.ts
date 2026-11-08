@@ -9,6 +9,10 @@ export const setSpeed: CommandHandler<SetSpeedCommand> = {
     if (!(SPEEDS as readonly number[]).includes(command.speed)) return reject('invalidSpeed');
     // EVT-02: zdarzenie decyzyjne trzyma grę na pauzie do wyboru odpowiedzi.
     if (state.events.pending && command.speed !== 0) return reject('eventPending');
+    // SH-054: wybór celu sprintu trzyma pauzę w dniu pracy (przyjście biegnie normalnie).
+    if (state.scrum?.pendingGoal && state.mission.phase === 'working' && command.speed !== 0) {
+      return reject('sprintGoalPending');
+    }
     if (state.mission.speed === command.speed) return { ok: true, state };
     return { ok: true, state: { ...state, mission: { ...state.mission, speed: command.speed } } };
   },

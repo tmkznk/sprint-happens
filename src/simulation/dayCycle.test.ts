@@ -189,6 +189,7 @@ describe('polityka faz poleceń (TIME-08)', () => {
       FireEmployee: 'workDay',
       ResolveEvent: 'workDay',
       OrderEmployee: 'workDay',
+      ChooseSprintGoal: 'speed',
     };
     const actual = Object.fromEntries(
       Object.entries(commandHandlers).map(([type, handler]) => [type, handler.category]),

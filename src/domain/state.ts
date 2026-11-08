@@ -15,6 +15,7 @@ import { allocateId, type IdSequence } from './ids';
 import { STARTING_FURNITURE } from './missionStart';
 import { createMovementState, type MovementState } from './movement';
 import type { PrologueState } from './prologue';
+import type { ScrumState } from './scrum';
 import { seedRng, type RngState } from './random';
 import type { DeepReadonly } from './readonly';
 
@@ -115,6 +116,8 @@ export type GameState = DeepReadonly<{
   events: EventsState;
   // Prolog (samouczek): bieżący krok albo null — właściwa misja.
   prologue: PrologueState | null;
+  // Rozdział 2 — Scrum (SH-054); w rozdziale 1 i w prologu null.
+  scrum: ScrumState | null;
   ids: IdSequence;
   rng: RngState;
 }>;
@@ -170,6 +173,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       coffeeBrokenDay: null,
     },
     prologue: null,
+    scrum: null,
     ids: board.ids,
     rng: board.rng,
   };

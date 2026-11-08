@@ -99,6 +99,24 @@ export type BalanceConfig = DeepReadonly<{
     qualityWeight: number;
     qualityPivot: number;
   };
+  // Rozdział 2 — Scrum (SH-054–SH-056, B): sprint, ceremonie i premie.
+  scrum: {
+    sprintDays: number;
+    // Godzina daily i planowania (ms od 9:00; decyzja właściciela: 10:00).
+    ceremonyAtMs: number;
+    // Długość daily w sekundach czasu gry według seniority Scrum Mastera; planowanie i retro — krotność.
+    dailySeconds: WageTable;
+    planningFactor: number;
+    retroFactor: number;
+    // Retro w ostatnim dniu sprintu od tej części dnia.
+    retroWindowStart: number;
+    dailyBonusPermille: number;
+    goalBonusPermille: number;
+    goalSuccess: { reputation: number; satisfaction: number };
+    goalFailure: { reputation: number; satisfaction: number };
+    cardLimit: number;
+    retroCardsOffered: number;
+  };
   furniture: {
     // FIN-02 (B): cena zakupu wyposażenia (SH-032).
     prices: Record<FurnitureType, number>;
@@ -173,6 +191,20 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     bugsPer100ForZero: 5,
     qualityWeight: 20,
     qualityPivot: 0.8,
+  },
+  scrum: {
+    sprintDays: 5,
+    ceremonyAtMs: 75_000,
+    dailySeconds: { junior: 56, mid: 38, senior: 19 },
+    planningFactor: 2,
+    retroFactor: 2,
+    retroWindowStart: 0.85,
+    dailyBonusPermille: 100,
+    goalBonusPermille: 150,
+    goalSuccess: { reputation: 3, satisfaction: 5 },
+    goalFailure: { reputation: -2, satisfaction: -3 },
+    cardLimit: 3,
+    retroCardsOffered: 3,
   },
   furniture: {
     prices: { desk: 2_000, sofa: 1_500, coffeeMachine: 800, plant: 300, conferenceTable: 4_000 },

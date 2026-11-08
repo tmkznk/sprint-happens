@@ -50,6 +50,11 @@ export function createPlayer(
 
   // EVT-02: decyzja trzyma pauzę — scenariusze wybierają pierwszą odpowiedź.
   const resolvePending = () => {
+    // SH-054: cel sprintu — pierwszy aktywny projekt.
+    if (state().scrum?.pendingGoal) {
+      const goal = Object.values(state().contracts.projects).find((p) => p.status === 'active');
+      must({ type: 'ChooseSprintGoal', projectId: goal?.id ?? null });
+    }
     const pending = state().events.pending;
     if (!pending) return;
     const option = EVENT_TEMPLATES.find((t) => t.id === pending.templateId)?.options[0];

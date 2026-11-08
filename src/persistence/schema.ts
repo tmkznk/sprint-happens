@@ -21,6 +21,7 @@ import {
 } from '../domain/contracts';
 import { OPERATION_KINDS } from '../domain/finance';
 import { PROLOGUE_STEPS } from '../domain/prologue';
+import type { RetroCardId } from '../domain/scrum';
 import { FURNITURE_TYPES, ROTATIONS, type FurnitureId } from '../domain/furniture';
 import type { GridPoint } from '../domain/grid';
 import { SPEEDS, type GameState } from '../domain/state';
@@ -271,6 +272,38 @@ const eventsSchema = z.strictObject({
 // Prolog (samouczek): bieżący krok; null — właściwa misja.
 const prologueSchema = z.strictObject({ step: z.enum(PROLOGUE_STEPS) }).nullable();
 
+// Rozdział 2 — Scrum (SH-054–SH-056); w rozdziale 1 i w prologu null.
+const retroCardId = z.custom<RetroCardId>(
+  (value) => typeof value === 'string' && /^[a-z][a-zA-Z]*$/.test(value),
+  'Niepoprawne ID karty',
+);
+const scrumSchema = z
+  .strictObject({
+    sprint: z
+      .strictObject({
+        number: z.int().min(1),
+        startDay: z.int().min(1),
+        endDay: z.int().min(1),
+        goalProjectId: projectId.nullable(),
+        goalSettled: z.boolean(),
+      })
+      .nullable(),
+    sprintsStarted: z.int().min(0),
+    pendingGoal: z.boolean(),
+    pendingRetro: z.strictObject({ offered: z.array(retroCardId) }).nullable(),
+    meeting: z
+      .strictObject({
+        ceremony: z.enum(['planning', 'daily', 'retro']),
+        untilMs: z.int().min(0).nullable(),
+        deadlineMs: z.int().min(0),
+        participants: z.array(employeeId),
+      })
+      .nullable(),
+    dailyBonus: z.strictObject({ day: z.int().min(1), employees: z.array(employeeId) }).nullable(),
+    cards: z.array(retroCardId),
+  })
+  .nullable();
+
 export const gameStateShape = z.strictObject({
   mission: missionSchema,
   finance: financeSchema,
@@ -279,6 +312,7 @@ export const gameStateShape = z.strictObject({
   world: worldSchema,
   events: eventsSchema,
   prologue: prologueSchema,
+  scrum: scrumSchema,
   ids: idsSchema,
   // TIME-T04: stan generatora losowego jest zapisywany, aby wczytanie nie przelosowało wyników.
   rng: z.uint32(),
@@ -296,6 +330,7 @@ export function consistencyIssues(state: GameState, context: ValidationContext):
     ...staffIssues(state),
     ...contractIssues(state, context),
     ...eventIssues(state),
+    ...scrumIssues(state),
     // Ruch sprawdzamy tylko na poprawnym układzie mebli — inaczej mapa przejść jest niewiarygodna.
     ...(furniture.length === 0 ? movementIssues(state, context) : []),
   ];
@@ -409,6 +444,34 @@ function eventIssues(state: GameState): Issue[] {
   }
   if (pending && scheduledAtMs !== null) {
     issues.push({ path: ['events'], message: 'Zaplanowane i oczekujące zdarzenie naraz' });
+  }
+  return issues;
+}
+
+// SH-054: Scrum tylko w rozdziale 2; sprint i cel spójne z dniem i projektami.
+function scrumIssues(state: GameState): Issue[] {
+  const issues: Issue[] = [];
+  const { scrum } = state;
+  const chapterTwo = state.mission.chapter === 2 && !state.prologue;
+  if (chapterTwo !== (scrum !== null)) {
+    issues.push({ path: ['scrum'], message: 'Stan Scruma tylko w rozdziale 2' });
+    return issues;
+  }
+  if (!scrum) return issues;
+  const { sprint } = scrum;
+  if (sprint) {
+    if (sprint.number > scrum.sprintsStarted || sprint.endDay < sprint.startDay) {
+      issues.push({ path: ['scrum', 'sprint'], message: 'Niespójny numer lub dni sprintu' });
+    }
+    if (sprint.startDay > state.mission.day) {
+      issues.push({ path: ['scrum', 'sprint'], message: 'Sprint z przyszłości' });
+    }
+    if (sprint.goalProjectId !== null && !state.contracts.projects[sprint.goalProjectId]) {
+      issues.push({ path: ['scrum', 'sprint', 'goalProjectId'], message: 'Nieznany projekt-cel' });
+    }
+  }
+  if (scrum.pendingGoal && !sprint) {
+    issues.push({ path: ['scrum', 'pendingGoal'], message: 'Wybór celu bez sprintu' });
   }
   return issues;
 }

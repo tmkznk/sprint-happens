@@ -7,7 +7,7 @@ import { gameStateSchema, type ValidationContext } from './schema';
 // Wersja 2: stan prologu (`prologue`). Wersja 3: przyjście i wyjście (`mission.transitSteps`,
 // `staff.entryQueue`). Wersja 4: rozkazy dla postaci (`breakHold`, `orderedRest` pracownika).
 // Wersja 5: palenie (`cigarettesHandled` pracownika).
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
@@ -60,6 +60,23 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     state.mission.chapter = 1;
     state.contracts.chapterDeliveredCount = state.contracts.deliveredCount;
     state.world.storage = {};
+    return state;
+  },
+  // 6 → 7: Scrum (rozdział 2) — w rozdziale 1 brak stanu, w rozdziale 2 przed pierwszym sprintem.
+  6: (input) => {
+    const state = input as { mission: { chapter: number }; prologue: unknown; scrum?: unknown };
+    state.scrum =
+      state.mission.chapter === 2 && !state.prologue
+        ? {
+            sprint: null,
+            sprintsStarted: 0,
+            pendingGoal: false,
+            pendingRetro: null,
+            meeting: null,
+            dailyBonus: null,
+            cards: [],
+          }
+        : null;
     return state;
   },
 };

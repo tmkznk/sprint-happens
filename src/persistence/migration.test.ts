@@ -8,6 +8,7 @@ import fixture from './fixtures/save-older-format.json?raw';
 import saveV1 from './fixtures/save-v1.json?raw';
 import saveV4 from './fixtures/save-v4.json?raw';
 import saveV5 from './fixtures/save-v5.json?raw';
+import saveV6 from './fixtures/save-v6.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -35,6 +36,7 @@ const toV2: Migration = (input) => {
   state.mission.chapter = 1;
   state.contracts.chapterDeliveredCount = state.contracts.deliveredCount;
   state.world.storage = {};
+  state.scrum = null;
   state.events = {
     scheduledAtMs: null,
     pending: null,
@@ -262,5 +264,25 @@ describe('v5 → v6: rozdziały kampanii', () => {
     expect(state.world.storage).toEqual({});
     expect(Object.keys(state.staff.employees)).toHaveLength(2);
     expect(saveV5).toBe(original);
+  });
+});
+
+describe('v6 → v7: Scrum', () => {
+  it('zapis rozdziału 2 z wersji 6 dostaje pusty stan Scruma', () => {
+    const result = parseSnapshot(saveV6, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+    expect(result.migratedFrom).toBe(6);
+    expect(result.envelope.state.mission.chapter).toBe(2);
+    expect(result.envelope.state.scrum).toMatchObject({
+      sprint: null,
+      cards: [],
+      pendingGoal: false,
+    });
+  });
+
+  it('zapis rozdziału 1 (wersja 5 → 7) nie ma stanu Scruma', () => {
+    const result = parseSnapshot(saveV5, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+    expect(result.envelope.state.scrum).toBeNull();
   });
 });

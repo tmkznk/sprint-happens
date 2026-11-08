@@ -27,6 +27,8 @@ export const REJECTION_MESSAGES: Record<RejectionCode, string> = {
   prologueLocked: 'Dostępne na dalszym etapie prologu.',
   notInStorage: 'Tego mebla nie ma już w magazynie.',
   scrumMasterExists: 'Firma ma już Scrum Mastera. Jeden wystarczy — dwóch zrobiłoby retro z retro.',
+  sprintGoalPending: 'Najpierw wybierz cel sprintu.',
+  noPendingGoal: 'Cel sprintu jest już wybrany.',
   notAvailable: 'Ten mebel będzie dostępny w większym biurze.',
   notAssignable: 'Scrum Master nie pracuje nad projektem — prowadzi ceremonie całego zespołu.',
   invalidRotation: 'Nieprawidłowy obrót.',

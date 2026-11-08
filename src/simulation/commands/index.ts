@@ -2,6 +2,7 @@ import { acceptOffer } from './acceptOffer';
 import { assignDesk } from './assignDesk';
 import { assignProject } from './assignProject';
 import { buyFurniture } from './buyFurniture';
+import { chooseSprintGoal } from './chooseSprintGoal';
 import { deliverProject } from './deliverProject';
 import { fireEmployee } from './fireEmployee';
 import { hireCandidate } from './hireCandidate';
@@ -37,4 +38,5 @@ export const commandHandlers: HandlerRegistry = {
   FireEmployee: fireEmployee,
   ResolveEvent: resolveEvent,
   OrderEmployee: orderEmployee,
+  ChooseSprintGoal: chooseSprintGoal,
 };
