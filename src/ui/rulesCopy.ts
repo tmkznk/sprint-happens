@@ -229,3 +229,55 @@ export const RULES: RulesSection[] = [
     ],
   },
 ];
+
+// SH-059: rozdział 2 (Scrum) — teksty zaakceptowane przez właściciela 2026-11-08. Widoczne razem
+// z rozdziałem 2 (flaga wydania).
+export const CHAPTER_TWO_RULES: RulesSection = {
+  title: 'Rozdział 2: Scrum',
+  questions: [
+    {
+      question: 'Co się zmienia w rozdziale 2?',
+      answer: [
+        'Firma wyrasta z biura i przenosi się do większego — z salką konferencyjną. Zespół, pieniądze, reputacja i rozpoczęte projekty jadą z Tobą, meble w kartonach: ustawiasz je z magazynu za darmo w trybie „Urządź”. Cele są nowe i wyższe — na szczęście nikt nie każe zaczynać od garażu.',
+      ],
+    },
+    {
+      question: 'Kim jest Scrum Master?',
+      answer: [
+        'Osoba, która prowadzi ceremonie: planowanie, daily i retrospektywę. Nie pisze kodu i nie bierze projektów — jej projektem jest zespół. Potrzebuje biurka.',
+        'Senior zamyka daily w kwadrans, junior ma do przekazania jeszcze kilka ważnych myśli. Jeden Scrum Master na firmę w zupełności wystarczy.',
+      ],
+    },
+    {
+      question: 'Po co stół konferencyjny?',
+      answer: [
+        'Przy nim odbywają się wszystkie ceremonie. Krzeseł jest osiem, reszta zespołu stoi wokół — tak też jest zwinnie. Bez stołu i bez Scrum Mastera nie ma sprintów, a firma pracuje po staremu.',
+      ],
+    },
+    {
+      question: 'Jak działa sprint?',
+      answer: [
+        'Sprint trwa kilka dni. Pierwszego dnia rano gra się zatrzymuje i wybierasz cel sprintu — projekt, na którym zespół się skupi. Praca nad nim idzie szybciej.',
+        'Oddasz go przed końcem sprintu — reputacja i humory w górę. Nie zdążysz — klient też to zauważy. Możesz też wybrać sprint bez celu: spokojniej, ale bez premii.',
+      ],
+    },
+    {
+      question: 'Co daje daily?',
+      answer: [
+        'Codziennie o 10:00 zespół idzie do salki. Przez chwilę nikt nie koduje, ale potem wszyscy wiedzą, co robią, i pracują szybciej do końca dnia. Premię dostają ci, którzy przyszli.',
+        'Kto akurat pali, dołączy, jeśli zdąży. Jeśli wydasz komuś rozkaz w trakcie spotkania, wyjdzie z daily — i premię straci.',
+      ],
+    },
+    {
+      question: 'Czym jest retrospektywa?',
+      answer: [
+        'Ostatniego dnia sprintu, pod koniec pracy, zespół siada do retro i zgłasza trzy pomysły na usprawnienia. Wybierasz jeden — obowiązuje do odwołania.',
+        'Każde usprawnienie ma plus i minus: pair programming ogranicza błędy, ale spowalnia; piłkarzyki poprawiają humor, ale nie skupienie. Naraz działają najwyżej trzy. Możesz też grzecznie podziękować za pomysły. Bez Scrum Mastera usprawnienia przestają działać — nikt ich nie pilnuje.',
+      ],
+    },
+  ],
+};
+
+export function rulesSections(chapterTwo: boolean): RulesSection[] {
+  return chapterTwo ? [...RULES, CHAPTER_TWO_RULES] : RULES;
+}
