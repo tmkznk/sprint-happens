@@ -16,8 +16,19 @@ const NO_EFFECT: Required<RetroCardEffect> = {
   ceremonyPermille: 0,
 };
 
+// SH-056, spec §5.1: bez Scrum Mastera albo bez stołu — brak efektów Scruma (karty nie działają).
+export function scrumActive(state: GameState): boolean {
+  return (
+    state.mission.chapter === 2 &&
+    !!state.scrum &&
+    Object.values(state.staff.employees).some((e) => e.specialization === 'scrumMaster') &&
+    Object.values(state.world.furniture).some((f) => f.type === 'conferenceTable')
+  );
+}
+
 export function activeEffect(state: GameState): Required<RetroCardEffect> {
   const total = { ...NO_EFFECT };
+  if (!scrumActive(state)) return total;
   for (const id of state.scrum?.cards ?? []) {
     const effect = retroCardById(id)?.effect ?? {};
     for (const key of Object.keys(total) as (keyof RetroCardEffect)[]) {

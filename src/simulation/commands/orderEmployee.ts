@@ -96,10 +96,24 @@ function ordered(
   orderedRest: boolean,
 ): HandlerOutcome {
   const current = state.staff.employees[employee.id] ?? employee;
+  // SH-055: rozkaz wyłącza osobę z trwającego spotkania Scruma (bez premii dnia) — gracz
+  // zachowuje kontrolę, a postać nie wraca do stołu.
+  const meeting = state.scrum?.meeting;
+  const scrum =
+    state.scrum && meeting?.participants.includes(employee.id)
+      ? {
+          ...state.scrum,
+          meeting: {
+            ...meeting,
+            participants: meeting.participants.filter((id) => id !== employee.id),
+          },
+        }
+      : state.scrum;
   return {
     ok: true,
     state: {
       ...state,
+      scrum,
       staff: {
         ...state.staff,
         employees: {

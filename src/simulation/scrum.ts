@@ -3,7 +3,7 @@ import type { ProjectId } from '../domain/contracts';
 import { MAX_SATISFACTION, SATISFACTION_SCALE, type Employee } from '../domain/employees';
 import type { GameState } from '../domain/state';
 import { applyReputation } from './quality';
-import { activeEffect } from './retro';
+import { activeEffect, scrumActive } from './retro';
 
 // Rozdział 2 — Scrum (SH-053–SH-056).
 
@@ -41,7 +41,7 @@ export function beginScrumDay(state: GameState, config: BalanceConfig): GameStat
   if (sprint && day > sprint.endDay) {
     next = settleSprintGoal(next, config, false);
     next = { ...next, scrum: next.scrum && { ...next.scrum, sprint: null } };
-  } else if (sprint && !scrumReady(next)) {
+  } else if (sprint && !scrumActive(next)) {
     // Utrata Scrum Mastera albo stołu przerywa sprint — bez retro i bez rozliczenia celu.
     next = { ...next, scrum: next.scrum && { ...next.scrum, sprint: null, pendingRetro: null } };
   }

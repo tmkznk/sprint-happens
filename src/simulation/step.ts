@@ -3,7 +3,7 @@ import type { GameState } from '../domain/state';
 import { stepMovement } from '../world/movement/movement';
 import { movementEnvFor } from '../world/movement/officeEnv';
 import { advanceArriving, advanceLeaving, beginLeaving } from './commute';
-import { advanceScrum } from './meetings';
+import { advanceScrum, endMeetingAtDayEnd } from './meetings';
 import { scrumDecisionPending } from './scrum';
 import { DAY_LENGTH_MS } from './time';
 import { updateNeeds } from './needs';
@@ -38,7 +38,9 @@ export function advanceStep(current: GameState, config: BalanceConfig): GameStat
   // TIME-08 (Z): o 17:00 praca się kończy i wszyscy wychodzą; symulacja zatrzymuje się (koniec
   // pracy, rozliczenie — SH-008), gdy biuro jest puste.
   if (timeInDayMs >= DAY_LENGTH_MS) {
-    return beginLeaving({ ...state, mission: { ...state.mission, timeInDayMs: DAY_LENGTH_MS } });
+    // SH-055: spotkanie trwające o 17:00 kończy się przed wyjściem.
+    const closed = endMeetingAtDayEnd(state, config);
+    return beginLeaving({ ...closed, mission: { ...closed.mission, timeInDayMs: DAY_LENGTH_MS } });
   }
   // EVT-02, SH-004 B4: zdarzenie w zaplanowanej chwili dnia — po pozostałych systemach kroku.
   return triggerEvent({ ...state, mission: { ...state.mission, timeInDayMs } }, config);

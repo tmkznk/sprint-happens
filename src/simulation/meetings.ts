@@ -4,12 +4,13 @@ import type { Furniture } from '../domain/furniture';
 import type { ReadonlyAgent as Agent } from '../domain/movement';
 import type { Ceremony, Meeting } from '../domain/scrum';
 import type { GameState } from '../domain/state';
-import { interactionCells, standingCells } from '../world/geometry';
+import { interactionCells, occupiedCells, standingCells } from '../world/geometry';
+import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
 import { destinationId, standingDestinationId } from '../world/movement/officeEnv';
 import { dropFurnitureDestinations, interruptFurnitureUse } from './furniture';
 import { OPEN_ENDED_USE } from './needs';
-import { activeEffect, openRetro } from './retro';
-import { scrumMasterOf, scrumReady } from './scrum';
+import { activeEffect, openRetro, scrumActive } from './retro';
+import { scrumMasterOf } from './scrum';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
 
@@ -56,8 +57,28 @@ function conferenceTable(state: GameState): Furniture | null {
 
 const seatIds = (table: Furniture) =>
   interactionCells(table).map((_, i) => destinationId(table.id, i));
-const standIds = (table: Furniture) =>
-  standingCells(table).map((_, i) => standingDestinationId(table.id, i));
+// Miejsca stojące tylko na wolnej podłodze: nie ściana ani poza biurem, nie pod meblem i nie
+// punkt korzystania z innego mebla (stół można postawić przy ścianie albo obok biurek).
+export function standingSpots(
+  state: GameState,
+  table: Furniture,
+): { id: string; cell: { x: number; y: number } }[] {
+  const layout = officeLayoutOf(state);
+  const others = Object.values(state.world.furniture).filter((item) => item.id !== table.id);
+  const blocked = new Set(
+    others
+      .flatMap((item) => [...occupiedCells(item), ...interactionCells(item)])
+      .map((c) => `${c.x},${c.y}`),
+  );
+  return standingCells(table)
+    .map((cell, i) => ({ id: standingDestinationId(table.id, i), cell }))
+    .filter(
+      ({ cell }) => cellKindAt(layout, cell) === 'floor' && !blocked.has(`${cell.x},${cell.y}`),
+    );
+}
+
+const standIds = (state: GameState, table: Furniture) =>
+  standingSpots(state, table).map((spot) => spot.id);
 
 function isMeetingTask(agent: Agent, table: Furniture): boolean {
   const task = agent.tasks[0];
@@ -100,7 +121,12 @@ function sendToTable(state: GameState, table: Furniture, agentId: string): GameS
     return task?.kind === 'use' && task.destinationIds.includes(destinationId(table.id, 0));
   }).length;
   const seats = seatIds(table);
-  return withMeetingTask(state, agentId, seatsTaken < seats.length ? seats : standIds(table));
+  const standing = standIds(state, table);
+  return withMeetingTask(
+    state,
+    agentId,
+    seatsTaken < seats.length || standing.length === 0 ? seats : standing,
+  );
 }
 
 function startMeeting(state: GameState, ceremony: Ceremony, config: BalanceConfig): GameState {
@@ -111,7 +137,11 @@ function startMeeting(state: GameState, ceremony: Ceremony, config: BalanceConfi
   const candidates = Object.values(state.staff.employees)
     .filter((e) => (e.id === sm.id || e.projectId !== null) && present.has(e.id))
     .sort((a, b) => compareIds(a.id, b.id));
-  const seating = meetingSeating(candidates.length, seatIds(table).length, standIds(table).length);
+  const seating = meetingSeating(
+    candidates.length,
+    seatIds(table).length,
+    standIds(state, table).length,
+  );
   const participants: EmployeeId[] = candidates
     .slice(0, seating.seated + seating.standing)
     .map((e) => e.id);
@@ -178,7 +208,15 @@ function ceremonyDue(state: GameState, config: BalanceConfig): Ceremony | null {
   if (!heldToday && timeInDayMs >= config.scrum.ceremonyAtMs) {
     return day === sprint.startDay ? 'planning' : 'daily';
   }
-  const retroAt = config.scrum.retroWindowStart * DAY_LENGTH_MS;
+  // Retro od okna B, ale na tyle wcześnie, by z dojściem zmieściło się przed 17:00 (junior
+  // prowadzi dłużej — zaczyna wcześniej).
+  const sm = scrumMasterOf(state);
+  const latest = sm
+    ? DAY_LENGTH_MS -
+      ceremonyMs('retro', sm, config, state) -
+      config.simulation.maxTransitSeconds * 1000
+    : DAY_LENGTH_MS;
+  const retroAt = Math.min(config.scrum.retroWindowStart * DAY_LENGTH_MS, latest);
   if (day === sprint.endDay && heldToday && last.ceremony !== 'retro' && timeInDayMs >= retroAt) {
     return 'retro';
   }
@@ -191,7 +229,8 @@ export function advanceScrum(state: GameState, config: BalanceConfig): GameState
   if (state.mission.chapter !== 2 || !scrum?.sprint) return state;
 
   // Utrata Scrum Mastera albo stołu: koniec spotkania (bez premii) i sprintu, bez rozliczenia celu.
-  if (!scrumReady(state)) {
+  // Sam brak biurka Scrum Mastera w trakcie sprintu go nie przerywa (biurko jest warunkiem startu).
+  if (!scrumActive(state)) {
     const ended = endMeeting(state, config, false);
     return {
       ...ended,
@@ -241,4 +280,10 @@ export function isInScrumMeeting(state: GameState, employeeId: EmployeeId): bool
   const table = conferenceTable(state);
   const agent = state.world.movement.agents.find((a) => a.id === employeeId);
   return !!table && !!agent && isMeetingTask(agent, table);
+}
+
+// O 17:00 trwające spotkanie kończy się normalnie (z premią; retro — z ofertą kart), zanim
+// wszyscy wyjdą z biura.
+export function endMeetingAtDayEnd(state: GameState, config: BalanceConfig): GameState {
+  return state.scrum?.meeting ? endMeeting(state, config, true) : state;
 }

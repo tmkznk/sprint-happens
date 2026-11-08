@@ -14,7 +14,9 @@ import { wonChapterOne } from './chapterFixture';
 
 // Rozdział 2 gotowy do Scruma (SH-054): biurka z magazynu i jedno dokupione, Scrum Master
 // (senior) z biurkiem, stół konferencyjny w salce. Dzień trwa (9:00, pauza).
-export function readyChapterTwo(options: { scrumMaster?: boolean; table?: boolean } = {}): Engine {
+export function readyChapterTwo(
+  options: { scrumMaster?: boolean; table?: boolean; seniority?: 'junior' | 'mid' | 'senior' } = {},
+): Engine {
   const start = beginChapterTwo(wonChapterOne(), DEFAULT_BALANCE);
   if (!start.ok) throw new Error(start.code);
   // Zapas gotówki — scenariusze Scruma nie zależą od finansów (bez ryzyka bankructwa).
@@ -34,7 +36,10 @@ export function readyChapterTwo(options: { scrumMaster?: boolean; table?: boolea
     must({ type: 'BuyFurniture', furnitureType: 'desk', origin: { x: 13, y: 8 }, rotation: 0 });
     const sm = engine
       .getState()
-      .staff.candidates.find((c) => c.specialization === 'scrumMaster' && c.seniority === 'senior');
+      .staff.candidates.find(
+        (c) =>
+          c.specialization === 'scrumMaster' && c.seniority === (options.seniority ?? 'senior'),
+      );
     if (!sm) throw new Error('brak kandydata SM');
     must({ type: 'HireCandidate', candidateId: sm.id });
   }
