@@ -7,7 +7,7 @@ import { isInMeeting } from './events';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
-import { applyBonus, isAtOwnDesk, pmBonusPermille } from './work';
+import { applyBonus, bonusPermilleFor, isAtOwnDesk } from './work';
 
 // BUG-03, BUG-05, PROJ-04 (Z), decyzje SH-004 B2 i SH-032 B6: QA testuje wykonaną pracę.
 // Kolejka projektu to fragmenty w kolejności ukończenia (bez względu na specjalizację).
@@ -73,12 +73,11 @@ export function doTesting(state: GameState, config: BalanceConfig): GameState {
     if (testers.length === 0) continue;
 
     const progress = project.fragments.map((f) => f.testProgress);
-    // PROJ-11: premia PM-a obejmuje także QA.
-    const bonus = pmBonusPermille(state, projectId, config);
+    // PROJ-11: premia PM-a obejmuje także QA; premie Scruma — osobno dla każdego testera.
     // Tester k zaczyna od k-tego fragmentu kolejki; kolejne wolne fragmenty — od `nextFree`.
     let nextFree = testers.length;
     testers.forEach((tester, k) => {
-      let amount = testPerStep(tester, config, bonus);
+      let amount = testPerStep(tester, config, bonusPermilleFor(state, tester, projectId, config));
       let index: number | undefined = queue[k];
       while (amount > 0 && index !== undefined) {
         const taken = Math.min(amount, size - (progress[index] ?? 0));

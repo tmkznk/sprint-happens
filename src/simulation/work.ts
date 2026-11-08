@@ -12,6 +12,7 @@ import { interactionCells } from '../world/geometry';
 import { addWork, openBugs, repairSize, riskPermille } from './bugs';
 import { isInMeeting } from './events';
 import { drainEnergy, energyFactor, isOnBreak } from './needs';
+import { goalBonusPermille } from './scrum';
 import { compareIds } from './staff';
 import { DAY_LENGTH_MS } from './time';
 
@@ -80,6 +81,37 @@ export function pmBonusPermille(
     best = Math.max(best, Math.round(config.contracts.pmBonus[employee.seniority] * 1000));
   }
   return best;
+}
+
+// SH-054, SH-055: premie Scruma (‰) — cel sprintu dla projektu-celu i premia dnia po daily dla
+// jego uczestników. Poza rozdziałem 2 — zero.
+export function scrumBonusPermille(
+  state: GameState,
+  employeeId: EmployeeId,
+  projectId: ProjectId,
+  config: BalanceConfig,
+): number {
+  const scrum = state.scrum;
+  if (!scrum) return 0;
+  const bonus = scrum.dailyBonus;
+  const daily =
+    bonus && bonus.day === state.mission.day && bonus.employees.includes(employeeId)
+      ? config.scrum.dailyBonusPermille
+      : 0;
+  return goalBonusPermille(state, projectId, config) + daily;
+}
+
+// Premia do wydajności osoby w projekcie: PM-a (PROJ-11) i Scruma (rozdział 2).
+export function bonusPermilleFor(
+  state: GameState,
+  employee: Pick<Employee, 'id'>,
+  projectId: ProjectId,
+  config: BalanceConfig,
+): number {
+  return (
+    pmBonusPermille(state, projectId, config) +
+    scrumBonusPermille(state, employee.id, projectId, config)
+  );
 }
 
 // PROJ-10 (Z): pozostały zakres designu projektu.
@@ -168,7 +200,7 @@ export function doWork(state: GameState, config: BalanceConfig, plan: WorkPlan):
     const amount = effectiveWorkPerStep(
       employee,
       config,
-      pmBonusPermille(state, projectId, config),
+      bonusPermilleFor(state, employee, projectId, config),
     );
     const current = contributions.get(key) ?? { amount: 0, weightedRisk: 0 };
     contributions.set(key, {
@@ -232,7 +264,11 @@ export function doRepairs(state: GameState, config: BalanceConfig, plan: WorkPla
     if (task?.kind !== 'repair' || !projectId || !project) continue;
     const specialization = employee.specialization as TechSpecialization;
     const progress = project.fragments.map((f) => f.repairProgress);
-    let amount = effectiveWorkPerStep(employee, config, pmBonusPermille(state, projectId, config));
+    let amount = effectiveWorkPerStep(
+      employee,
+      config,
+      bonusPermilleFor(state, employee, projectId, config),
+    );
     let index: number | undefined = task.fragment;
     while (amount > 0 && index !== undefined) {
       const taken = Math.min(amount, cost - (progress[index] ?? 0));
@@ -281,7 +317,7 @@ export function doDesign(state: GameState, config: BalanceConfig, plan: WorkPlan
       const amount = effectiveWorkPerStep(
         employee,
         config,
-        pmBonusPermille(state, projectId, config),
+        bonusPermilleFor(state, employee, projectId, config),
       );
       const designProgress = project.designProgress + Math.min(amount, remainingDesign(project));
       projects = { ...projects, [projectId]: { ...project, designProgress } };
