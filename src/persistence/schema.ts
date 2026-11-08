@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CHAPTERS } from '../domain/chapter';
 import { EVENT_TEMPLATES } from '../domain/content/events';
 import { PEOPLE, personById } from '../domain/content/people';
 import type { BalanceConfig } from '../domain/config';
@@ -123,6 +124,7 @@ const contractsSchema = z.strictObject({
     }),
   ),
   deliveredCount: z.int().min(0),
+  chapterDeliveredCount: z.int().min(0),
 });
 
 const staffSchema = z.strictObject({
@@ -158,6 +160,7 @@ const staffSchema = z.strictObject({
 
 const missionSchema = z.strictObject({
   status: z.enum(['active', 'won', 'bankrupt']),
+  chapter: z.literal(CHAPTERS),
   day: z.int().min(1),
   phase: z.enum(['arriving', 'working', 'leaving', 'workEnded', 'settled']),
   speed: z.literal(SPEEDS),
@@ -243,6 +246,7 @@ const movementSchema = z.strictObject({
 const worldSchema = z.strictObject({
   furniture: z.record(furnitureId, furnitureSchema),
   movement: movementSchema,
+  storage: z.partialRecord(z.enum(FURNITURE_TYPES), z.int().min(1)),
 });
 
 const idsSchema = z.record(z.string().regex(/^[a-z][a-zA-Z]*$/), z.int().min(0));
@@ -493,6 +497,18 @@ function contractIssues(state: GameState, { config }: ValidationContext): Issue[
   const delivered = Object.values(projects).filter((p) => p.status === 'delivered').length;
   if (delivered !== deliveredCount) {
     issues.push({ path: ['contracts', 'deliveredCount'], message: 'Liczba oddanych niezgodna' });
+  }
+  // MIS-03: oddane w rozdziale to część oddanych w kampanii; w rozdziale 1 — wszystkie.
+  const { chapterDeliveredCount } = state.contracts;
+  const chapterMismatch =
+    state.mission.chapter === 1
+      ? chapterDeliveredCount !== deliveredCount
+      : chapterDeliveredCount > deliveredCount;
+  if (chapterMismatch) {
+    issues.push({
+      path: ['contracts', 'chapterDeliveredCount'],
+      message: 'Liczba oddanych w rozdziale niezgodna',
+    });
   }
   return issues;
 }

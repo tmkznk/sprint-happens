@@ -7,8 +7,9 @@ import { projectsCount } from './plural';
 // obowiązują naraz, więc każdy niespełniony jest bieżący. Zwycięstwo rozstrzyga silnik
 // w rozliczeniu dnia (simulation/mission.ts). Selektory zwracają wartości proste.
 export function MissionGoals() {
-  const { victory } = useBalanceConfig().mission;
-  const delivered = useGameSelector((state) => state.contracts.deliveredCount);
+  const chapter = useGameSelector((state) => state.mission.chapter);
+  const victory = useBalanceConfig().mission.victory[chapter];
+  const delivered = useGameSelector((state) => state.contracts.chapterDeliveredCount);
   const cash = useGameSelector((state) => state.finance.cash);
   const reputation = useGameSelector((state) => state.mission.reputation);
   const goals = [

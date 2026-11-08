@@ -176,7 +176,10 @@ describe('koniec misji i zdarzenia (SH-042 kryterium 3)', () => {
     ...DEFAULT_BALANCE,
     mission: {
       ...DEFAULT_BALANCE.mission,
-      victory: { deliveredProjects: 1, cash: 17_000, reputation: 50 },
+      victory: {
+        ...DEFAULT_BALANCE.mission.victory,
+        1: { deliveredProjects: 1, cash: 17_000, reputation: 50 },
+      },
     },
   };
 

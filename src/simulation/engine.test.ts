@@ -15,6 +15,7 @@ describe('createInitialState', () => {
 
     expect(state.mission).toEqual({
       status: 'active',
+      chapter: 1,
       day: 1,
       phase: 'working',
       speed: 0,

@@ -6,7 +6,7 @@ import { testState } from '../test/engineFixture';
 import { createEngine } from './engine';
 import { isVictory, victoryGoals } from './mission';
 
-const { victory } = DEFAULT_BALANCE.mission;
+const victory = DEFAULT_BALANCE.mission.victory[1];
 const UPKEEP = DEFAULT_BALANCE.finance.officeUpkeepPerDay;
 
 // Stan po pracy dnia `day` z podanym saldem, liczbą oddanych projektów i reputacją.
@@ -29,7 +29,7 @@ function endOfDay(
       cash,
       rescueDeadlineDay: patch.rescueDeadlineDay ?? null,
     },
-    contracts: { ...state.contracts, deliveredCount: delivered },
+    contracts: { ...state.contracts, deliveredCount: delivered, chapterDeliveredCount: delivered },
   });
 }
 
@@ -91,7 +91,13 @@ describe('zwycięstwo (MIS-03)', () => {
     // Konfiguracja, w której oba warunki zachodzą jednocześnie.
     const config = {
       ...DEFAULT_BALANCE,
-      mission: { ...DEFAULT_BALANCE.mission, victory: { ...victory, cash: -1_000_000 } },
+      mission: {
+        ...DEFAULT_BALANCE.mission,
+        victory: {
+          ...DEFAULT_BALANCE.mission.victory,
+          1: { ...victory, cash: -1_000_000 },
+        },
+      },
     };
     const state = endOfDay(-500, victory.deliveredProjects, victory.reputation, {
       day: 8,
@@ -113,5 +119,20 @@ describe('zwycięstwo (MIS-03)', () => {
       cash: { current: 1234, target: victory.cash },
       reputation: { current: 55, target: victory.reputation },
     });
+  });
+});
+
+describe('cele według rozdziału', () => {
+  it('rozdział 2: progi rozdziału 2 i oddane liczone od początku rozdziału', () => {
+    const base = testState({ phase: 'workEnded', day: 30, reputation: 70 });
+    const state: GameState = {
+      ...base,
+      mission: { ...base.mission, chapter: 2 },
+      contracts: { ...base.contracts, deliveredCount: 8, chapterDeliveredCount: 3 },
+    };
+    const goals = victoryGoals(state, DEFAULT_BALANCE);
+    expect(goals.delivered).toEqual({ current: 3, target: 10 });
+    expect(goals.cash.target).toBe(120_000);
+    expect(goals.reputation).toEqual({ current: 70, target: 75 });
   });
 });

@@ -7,6 +7,7 @@ import { OFFICE_LAYOUT } from '../world/officeLayout';
 import fixture from './fixtures/save-older-format.json?raw';
 import saveV1 from './fixtures/save-v1.json?raw';
 import saveV4 from './fixtures/save-v4.json?raw';
+import saveV5 from './fixtures/save-v5.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -25,12 +26,15 @@ type Loose = Record<string, any>;
 // Mechanizm migracji: fixture to zapis deweloperski w wersji 1 sprzed zdarzeń (SH-031)
 // i zadowolenia (SH-019), a test udaje format 2. Migracja testowa 1 → 2:
 // dodaje stan zdarzeń, historię odejść, zadowolenie, postacie z listy (imiona dawniej losowane)
-// i pusty stan prologu oraz licznik przejścia i kolejkę do wejścia (bieżący kształt stanu). Celowo modyfikuje wejście — sprawdzamy,
+// i pusty stan prologu, licznik przejścia, kolejkę do wejścia oraz rozdział i magazyn (bieżący kształt stanu). Celowo modyfikuje wejście — sprawdzamy,
 // że dostaje kopię, a nie oryginał.
 const toV2: Migration = (input) => {
   const state = input as Loose;
   state.prologue = null;
   state.mission.transitSteps = 0;
+  state.mission.chapter = 1;
+  state.contracts.chapterDeliveredCount = state.contracts.deliveredCount;
+  state.world.storage = {};
   state.events = {
     scheduledAtMs: null,
     pending: null,
@@ -240,5 +244,23 @@ describe('migracje zapisu (SH-039, T:SAVE-T05)', () => {
     expect(saveV4).toBe(original);
     const first = Object.values(before.state.staff.employees)[0] as Loose;
     expect(first.cigarettesHandled).toBeUndefined();
+  });
+});
+
+describe('v5 → v6: rozdziały kampanii', () => {
+  it('zapis z wersji 5 wczytuje się jako rozdział 1 z pustym magazynem', () => {
+    const original = saveV5;
+    const before = JSON.parse(saveV5) as Loose;
+    expect(before.schemaVersion).toBe(5);
+    const result = parseSnapshot(saveV5, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+
+    expect(result.migratedFrom).toBe(5);
+    const { state } = result.envelope;
+    expect(state.mission.chapter).toBe(1);
+    expect(state.contracts.chapterDeliveredCount).toBe(state.contracts.deliveredCount);
+    expect(state.world.storage).toEqual({});
+    expect(Object.keys(state.staff.employees)).toHaveLength(2);
+    expect(saveV5).toBe(original);
   });
 });

@@ -11,7 +11,7 @@ export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
   const report = useGameSelector((state) => state.mission.report);
   const status = useGameSelector((state) => state.mission.status);
   const dispatch = useDispatch();
-  const delivered = useGameSelector((state) => state.contracts.deliveredCount);
+  const delivered = useGameSelector((state) => state.contracts.chapterDeliveredCount);
   const reputation = useGameSelector((state) => state.mission.reputation);
   const nextDay = useGuide()?.kind === 'nextDay';
 

@@ -1,3 +1,4 @@
+import type { Chapter } from './chapter';
 import type { WageTable } from './employees';
 import type { FurnitureType } from './furniture';
 import { DEFAULT_MOVEMENT_CONFIG, type MovementConfig } from './movement';
@@ -17,8 +18,9 @@ export type BalanceConfig = DeepReadonly<{
   mission: {
     // MIS-02 (B): kilka dni utrzymania małego zespołu — roboczo ustalone w SH-032.
     startingCash: number;
-    // MIS-03 (Z/B), decyzja SH-032 A2: trzy progi zwycięstwa spełnione jednocześnie.
-    victory: { deliveredProjects: number; cash: number; reputation: number };
+    // MIS-03 (Z/B), decyzja SH-032 A2: trzy progi zwycięstwa spełnione jednocześnie — osobne
+    // dla każdego rozdziału (rozdział 2: stałe progi, nie przyrost).
+    victory: Record<Chapter, { deliveredProjects: number; cash: number; reputation: number }>;
   };
   finance: {
     // FIN-02 (B): stałe koszty biura za dzień (SH-032).
@@ -113,7 +115,10 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {
     startingCash: 15_000,
-    victory: { deliveredProjects: 6, cash: 50_000, reputation: 65 },
+    victory: {
+      1: { deliveredProjects: 6, cash: 50_000, reputation: 65 },
+      2: { deliveredProjects: 10, cash: 120_000, reputation: 75 },
+    },
   },
   finance: {
     officeUpkeepPerDay: 1_000,

@@ -10,9 +10,12 @@ export type VictoryGoals = {
 };
 
 export function victoryGoals(state: GameState, config: BalanceConfig): VictoryGoals {
-  const { victory } = config.mission;
+  const victory = config.mission.victory[state.mission.chapter];
   return {
-    delivered: { current: state.contracts.deliveredCount, target: victory.deliveredProjects },
+    delivered: {
+      current: state.contracts.chapterDeliveredCount,
+      target: victory.deliveredProjects,
+    },
     cash: { current: state.finance.cash, target: victory.cash },
     reputation: { current: state.mission.reputation, target: victory.reputation },
   };

@@ -35,6 +35,7 @@ describe('cykl dnia (TIME-08)', () => {
     // TIME-04: nowy dzień zaczyna się przyjściem do biura o 9:00, na pauzie.
     expect(engine.getState().mission).toEqual({
       status: 'active',
+      chapter: 1,
       day: 2,
       phase: 'arriving',
       speed: 0,
@@ -49,6 +50,7 @@ describe('cykl dnia (TIME-08)', () => {
     runUntilPhase(engine, 'working');
     expect(engine.getState().mission).toEqual({
       status: 'active',
+      chapter: 1,
       day: 2,
       phase: 'working',
       speed: 1,

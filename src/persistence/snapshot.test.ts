@@ -1029,3 +1029,44 @@ describe('prolog w zapisie', () => {
     });
   });
 });
+
+describe('rozdziały i magazyn mebli (rozdział 2)', () => {
+  it('rozdział 2 z magazynem przetrwa zapis', () => {
+    const base = createInitialState(DEFAULT_BALANCE, 3);
+    const state: GameState = {
+      ...base,
+      mission: { ...base.mission, chapter: 2 },
+      contracts: { ...base.contracts, deliveredCount: 0, chapterDeliveredCount: 0 },
+      world: { ...base.world, storage: { desk: 2, sofa: 1 } },
+    };
+    expect(roundTrip(state)).toEqual(state);
+  });
+
+  it('oddane w rozdziale ponad oddane w kampanii są odrzucane', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.mission.chapter = 2;
+        s.contracts.chapterDeliveredCount = 1;
+      }),
+      'chapterDeliveredCount',
+    );
+  });
+
+  it('w rozdziale 1 licznik rozdziału równy licznikowi kampanii', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.contracts.chapterDeliveredCount = 1;
+      }),
+      'chapterDeliveredCount',
+    );
+  });
+
+  it('zerowa liczba w magazynie jest odrzucana', () => {
+    expectInvalidState(
+      withJsonEdit((s) => {
+        s.world.storage = { desk: 0 };
+      }),
+      'world.storage',
+    );
+  });
+});

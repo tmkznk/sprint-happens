@@ -1,3 +1,4 @@
+import type { Chapter } from './chapter';
 import type { BalanceConfig } from './config';
 import { fillBoard } from './contractBoard';
 import type { Offer, Project, ProjectId } from './contracts';
@@ -9,7 +10,7 @@ import {
   type EmployeeId,
 } from './employees';
 import type { Finance } from './finance';
-import type { Furniture, FurnitureId } from './furniture';
+import type { Furniture, FurnitureId, FurnitureType } from './furniture';
 import { allocateId, type IdSequence } from './ids';
 import { STARTING_FURNITURE } from './missionStart';
 import { createMovementState, type MovementState } from './movement';
@@ -70,6 +71,8 @@ export type EventsState = {
 export type GameState = DeepReadonly<{
   mission: {
     status: MissionStatus;
+    // Rozdział kampanii — wyznacza progi zwycięstwa i układ biura.
+    chapter: Chapter;
     day: number;
     phase: DayPhase;
     speed: Speed;
@@ -89,6 +92,9 @@ export type GameState = DeepReadonly<{
     projects: Record<ProjectId, Project>;
     // SH-032 A3b: liczba oddanych projektów wyznacza poziom ofert.
     deliveredCount: number;
+    // MIS-03: oddane w bieżącym rozdziale — liczą się do celu rozdziału (w rozdziale 1 równe
+    // `deliveredCount`).
+    chapterDeliveredCount: number;
   };
   staff: {
     employees: Record<EmployeeId, Employee>;
@@ -103,6 +109,8 @@ export type GameState = DeepReadonly<{
     furniture: Record<FurnitureId, Furniture>;
     // T:MOVE-03–09: pozycje, przejścia, trasy, kolejki i rezerwacje postaci (SAVE-T02).
     movement: MovementState;
+    // Magazyn: meble poza biurem (po przeprowadzce) według typu; brak klucza — zero sztuk.
+    storage: Partial<Record<FurnitureType, number>>;
   };
   events: EventsState;
   // Prolog (samouczek): bieżący krok albo null — właściwa misja.
@@ -134,6 +142,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
   return {
     mission: {
       status: 'active',
+      chapter: 1,
       day: 1,
       phase: 'working',
       speed: 0,
@@ -149,9 +158,9 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       wagesDueToday: {},
       rescueDeadlineDay: null,
     },
-    contracts: { offers: board.offers, projects: {}, deliveredCount: 0 },
+    contracts: { offers: board.offers, projects: {}, deliveredCount: 0, chapterDeliveredCount: 0 },
     staff: { employees: {}, candidates: market.candidates, departures: [], entryQueue: [] },
-    world: { furniture, movement: createMovementState([]) },
+    world: { furniture, movement: createMovementState([]), storage: {} },
     events: {
       scheduledAtMs: null,
       pending: null,

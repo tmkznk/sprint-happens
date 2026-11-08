@@ -44,6 +44,7 @@ export const deliverProject: CommandHandler<DeliverProjectCommand> = {
         contracts: {
           ...paid.state.contracts,
           deliveredCount: paid.state.contracts.deliveredCount + 1,
+          chapterDeliveredCount: paid.state.contracts.chapterDeliveredCount + 1,
           projects: {
             ...paid.state.contracts.projects,
             [project.id]: {
