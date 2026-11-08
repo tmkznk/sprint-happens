@@ -1,10 +1,10 @@
 # Sprint Happens!
 
-Mobilna gra przeglądarkowa (PWA) o prowadzeniu software house'u. Zatrudniasz zespół, przyjmujesz kontrakty, pilnujesz terminów, błędów i budżetu — a wszystko z przymrużeniem oka wobec branży IT. Inspiracja: Theme Hospital. Widok biura w izometrycznym pixel arcie, projektowany przede wszystkim na telefon.
+Mobilna gra przeglądarkowa (PWA) o prowadzeniu software house'u. Zatrudniasz zespół, przyjmujesz kontrakty, pilnujesz terminów, błędów i budżetu — a wszystko z przymrużeniem oka wobec branży IT. Inspiracja: Theme Hospital. Izometryczny widok biura (sprite'y pre-renderowane z modeli 3D low poly), projektowany przede wszystkim na telefon w pionie; działa też na desktopie.
 
 **Zagraj:** https://sprint-happens.fun/ — działa w przeglądarce, można zainstalować jako aplikację i grać offline.
 
-> **Status:** MVP w budowie. Pełna pętla rozgrywki działa (zlecenia, zespół, błędy i testy, oddania, reputacja, zdarzenia, zwycięstwo/bankructwo); grafika biura jest jeszcze zastępcza.
+> **Status:** wersja 1.0.0 — MVP: jedna misja w jednym biurze z samouczkiem, pełna pętla rozgrywki (zlecenia, zespół, błędy i testy, oddania, reputacja, zdarzenia, zwycięstwo/bankructwo). Interfejs po polsku, bez dźwięku. Zapis lokalny w przeglądarce, bez kont.
 
 ## Wymagania
 
