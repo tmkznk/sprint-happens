@@ -20,6 +20,10 @@ export type SaveStore = {
     expectedRevision: number | null,
     options?: { keepPrevious?: boolean },
   ): Promise<WriteResult>;
+  // Rozdział 2: kopia stanu ze startu rozdziału — do ponowienia po bankructwie. Osobny wpis,
+  // bez kontroli rewizji; nie zmienia bieżącego zapisu ani kopii awaryjnej.
+  readChapterStart(): Promise<string | null>;
+  writeChapterStart(json: string): Promise<WriteResult>;
 };
 
 // Rewizja bez pełnej walidacji — wystarczy do kontroli konfliktu zapisu.
@@ -37,6 +41,7 @@ const DB_NAME = 'sprint-happens';
 const STORE_NAME = 'saves';
 const CURRENT = 'current';
 const PREVIOUS = 'previous';
+const CHAPTER_START = 'chapterStart';
 
 export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveStore {
   let database: Promise<IDBDatabase> | null = null;
@@ -131,6 +136,31 @@ export function createIndexedDbSaveStore(factory: IDBFactory = indexedDB): SaveS
         transaction.onabort = () => resolve(conflict ?? storageError(transaction.error));
       });
     },
+
+    async readChapterStart() {
+      const transaction = await begin('readonly');
+      return new Promise<string | null>((resolve, reject) => {
+        const request = transaction.objectStore(STORE_NAME).get(CHAPTER_START);
+        transaction.oncomplete = () => resolve(asText(request.result));
+        transaction.onerror = () => reject(transaction.error ?? new Error('Błąd odczytu zapisu'));
+        transaction.onabort = () =>
+          reject(transaction.error ?? new Error('Przerwany odczyt zapisu'));
+      });
+    },
+
+    async writeChapterStart(json) {
+      let transaction: IDBTransaction;
+      try {
+        transaction = await begin('readwrite');
+      } catch (error) {
+        return storageError(error);
+      }
+      return new Promise<WriteResult>((resolve) => {
+        transaction.objectStore(STORE_NAME).put(json, CHAPTER_START);
+        transaction.oncomplete = () => resolve({ ok: true });
+        transaction.onabort = () => resolve(storageError(transaction.error));
+      });
+    },
   };
 }
 
@@ -141,6 +171,7 @@ function isClosedConnection(error: unknown): boolean {
 // Magazyn w pamięci — testy i wstrzykiwanie błędów zapisu.
 export function createMemorySaveStore(initial: StoredSaves = { current: null, previous: null }) {
   const saves: StoredSaves = { ...initial };
+  let chapterStart: string | null = null;
   let failNext: string | null = null;
   const store: SaveStore = {
     read: () => Promise.resolve({ ...saves }),
@@ -160,6 +191,11 @@ export function createMemorySaveStore(initial: StoredSaves = { current: null, pr
       }
       if (!options?.keepPrevious) saves.previous = saves.current;
       saves.current = json;
+      return Promise.resolve({ ok: true });
+    },
+    readChapterStart: () => Promise.resolve(chapterStart),
+    writeChapterStart(json) {
+      chapterStart = json;
       return Promise.resolve({ ok: true });
     },
   };

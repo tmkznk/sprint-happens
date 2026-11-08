@@ -199,6 +199,9 @@ describe('niedostępna pamięć przeglądarki (SH-043)', () => {
       read: () => Promise.reject(new Error('SecurityError')),
       write: () =>
         Promise.resolve({ ok: false as const, reason: 'storageError' as const, message: 'x' }),
+      readChapterStart: () => Promise.reject(new Error('SecurityError')),
+      writeChapterStart: () =>
+        Promise.resolve({ ok: false as const, reason: 'storageError' as const, message: 'x' }),
     };
     const result = await loadGame(store, context);
     expect(result).toMatchObject({

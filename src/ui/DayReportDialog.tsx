@@ -1,3 +1,4 @@
+import { CHAPTER_TWO_ENABLED } from '../application/features';
 import { ModalLayer } from './ModalLayer';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
@@ -7,7 +8,22 @@ import { spotlight, useGuide } from './prologue/hooks';
 // TIME-03, TIME-08 (Z): raport po rozliczeniu i przejście do następnego dnia.
 // FIN-05 (Z): ujemne saldo uruchamia ostrzeżenie z terminem odzyskania płynności; brak poprawy
 // kończy misję bankructwem. Okno modalne przechwytuje dotyk (T:VIEW-03).
-export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
+// Rozdział 2 (SH-049): przejście po zwycięstwie w rozdziale 1 i ponowienie po bankructwie.
+export type ChapterActions = {
+  onContinue(): void;
+  onRetry(): void;
+  // Kopia startu rozdziału 2 istnieje (sprawdzane przez aplikację).
+  canRetry: boolean;
+};
+
+export function DayReportDialog({
+  onNewGame,
+  chapterActions,
+}: {
+  onNewGame(): void;
+  chapterActions: ChapterActions;
+}) {
+  const chapter = useGameSelector((state) => state.mission.chapter);
   const report = useGameSelector((state) => state.mission.report);
   const status = useGameSelector((state) => state.mission.status);
   const dispatch = useDispatch();
@@ -76,7 +92,23 @@ export function DayReportDialog({ onNewGame }: { onNewGame(): void }) {
                 <dt>Reputacja</dt>
                 <dd>{reputation}/100</dd>
               </dl>
-              <NewGameButton onConfirm={onNewGame} />
+              <div className="panel-actions">
+                <NewGameButton onConfirm={onNewGame} />
+                {CHAPTER_TWO_ENABLED && won && chapter === 1 && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={chapterActions.onContinue}
+                  >
+                    Dalej: rozdział 2
+                  </button>
+                )}
+                {CHAPTER_TWO_ENABLED && bankrupt && chapter === 2 && chapterActions.canRetry && (
+                  <button type="button" className="primary-button" onClick={chapterActions.onRetry}>
+                    Ponów rozdział 2
+                  </button>
+                )}
+              </div>
             </>
           )}
           {status === 'active' && (

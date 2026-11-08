@@ -4,4 +4,6 @@ declare const __APP_VERSION__: string;
 interface ImportMetaEnv {
   // Kod witryny GoatCounter; brak wyłącza statystyki.
   readonly VITE_GOATCOUNTER_CODE?: string;
+  // Flaga wydania rozdziału 2 („true” — dostępny w produkcji).
+  readonly VITE_CHAPTER_TWO?: string;
 }

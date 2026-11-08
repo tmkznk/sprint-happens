@@ -8,6 +8,18 @@ describe.each([
   ['IndexedDB', () => createIndexedDbSaveStore(new IDBFactory())],
   ['pamięć', () => createMemorySaveStore().store],
 ])('magazyn zapisu: %s', (_, create) => {
+  it('kopia startu rozdziału: zapis i odczyt, bez wpływu na bieżący zapis i kopię awaryjną', async () => {
+    const store = create();
+    expect(await store.readChapterStart()).toBeNull();
+    await store.write(JSON.stringify({ revision: 1 }), null);
+    expect(await store.writeChapterStart('{"chapter":2}')).toEqual({ ok: true });
+    expect(await store.readChapterStart()).toBe('{"chapter":2}');
+    expect(await store.read()).toEqual({
+      current: JSON.stringify({ revision: 1 }),
+      previous: null,
+    });
+  });
+
   it('pusty magazyn nie ma zapisów', async () => {
     expect(await create().read()).toEqual({ current: null, previous: null });
   });

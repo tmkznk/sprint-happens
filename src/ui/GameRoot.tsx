@@ -14,6 +14,8 @@ import {
 } from '../application/tabCoordinator';
 import { DEFAULT_BALANCE } from '../domain/config';
 import { createInitialState, type GameState } from '../domain/state';
+import { loadChapterStart, prepareChapterTwo } from '../application/chapterFlow';
+import { CHAPTER_TWO_ENABLED } from '../application/features';
 import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persistence/saveStore';
 import type { ValidationContext } from '../persistence/schema';
 import { createEngine, type Engine } from '../simulation/engine';
@@ -149,6 +151,56 @@ export function GameRoot() {
     [store, play],
   );
 
+  // Rozdział 2 (SH-049): nowy stan i kopia startu rozdziału. Bieżący zapis rozdziału 2 powstaje
+  // przed pokazaniem gry — zamknięcie zaraz po przejściu nie wraca do wygranego rozdziału 1.
+  const continueToChapterTwo = useCallback(async () => {
+    const current = sessionRef.current;
+    if (!current) return;
+    const prepared = prepareChapterTwo(
+      current.engine.getState(),
+      CONTEXT,
+      __APP_VERSION__,
+      new Date().toISOString(),
+    );
+    if (!prepared.ok) return;
+    await store.writeChapterStart(prepared.chapterStartJson);
+    const saves = await store.read().catch(() => ({ current: null }));
+    const session = createSession(store, prepared.state, {
+      revision: revisionOf(saves.current),
+      state: null,
+    });
+    await session.manager.save();
+    play(session);
+  }, [store, play]);
+
+  // Ponowienie rozdziału 2 po bankructwie: stan z kopii startu rozdziału zastępuje zapis.
+  const retryChapter = useCallback(async () => {
+    const start = await loadChapterStart(store, CONTEXT);
+    if (!start) return;
+    const saves = await store.read().catch(() => ({ current: null }));
+    const session = createSession(store, start, {
+      revision: revisionOf(saves.current),
+      state: null,
+    });
+    await session.manager.save();
+    play(session);
+  }, [store, play]);
+
+  // Kopia startu rozdziału 2 — sprawdzana raz na sesję rozdziału 2 (przycisk „Ponów”).
+  const [canRetryChapter, setCanRetryChapter] = useState(false);
+  const playingChapter =
+    view.kind === 'playing' ? view.session.engine.getState().mission.chapter : null;
+  useEffect(() => {
+    if (!CHAPTER_TWO_ENABLED || playingChapter !== 2) return;
+    let active = true;
+    void loadChapterStart(store, CONTEXT).then((start) => {
+      if (active) setCanRetryChapter(start !== null);
+    });
+    return () => {
+      active = false;
+    };
+  }, [store, playingChapter, view]);
+
   // Decyzja SH-004 A6a: gra z poprawnej kopii awaryjnej — tylko na wyraźny wybór gracza.
   // Uszkodzony bieżący zapis zostanie zastąpiony, a kopia zachowana do pierwszego zapisu.
   const loadBackup = useCallback(
@@ -243,6 +295,11 @@ export function GameRoot() {
           engine={view.session.engine}
           saveManager={view.session.manager}
           onNewGame={(kind) => void startNewMission(false, kind)}
+          chapterActions={{
+            onContinue: () => void continueToChapterTwo(),
+            onRetry: () => void retryChapter(),
+            canRetry: canRetryChapter,
+          }}
         />
       );
   }

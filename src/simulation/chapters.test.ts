@@ -11,15 +11,19 @@ describe('beginChapterTwo (SH-049)', () => {
   if (!result.ok) throw new Error(result.code);
   const next = result.state;
 
-  it('start rozdziału 2: misja trwa, następny dzień, faza przyjścia, pauza', () => {
+  it('start rozdziału 2: zespół już w biurze, 9:00, pauza — można od razu urządzać', () => {
     expect(next.mission).toMatchObject({
       chapter: 2,
       status: 'active',
-      phase: 'arriving',
+      phase: 'working',
+      timeInDayMs: 0,
       speed: 0,
       day: won.mission.day + 1,
       report: null,
     });
+    const inOffice = new Set(next.world.movement.agents.map((agent) => agent.id));
+    for (const id of Object.keys(next.staff.employees)) expect(inOffice.has(id)).toBe(true);
+    expect(next.staff.entryQueue).toEqual([]);
   });
 
   it('meble trafiają do magazynu, biuro jest puste', () => {

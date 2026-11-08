@@ -4,6 +4,8 @@ import type { FurnitureType } from '../domain/furniture';
 import { createMovementState } from '../domain/movement';
 import type { GameState } from '../domain/state';
 import { startNextDay } from './commands/startNextDay';
+import { maxTransitSteps } from './commute';
+import { advanceStep } from './step';
 
 export type ChapterTransition =
   { ok: true; state: GameState } | { ok: false; code: 'notWon' | 'notChapterOne' };
@@ -12,7 +14,9 @@ export type ChapterTransition =
 // (bez biurek, z przydziałami), gotówka, reputacja i rozpoczęte projekty; meble jadą do magazynu,
 // rynek kandydatów i tablica zleceń losują się od nowa (RNG ze stanu — deterministycznie).
 // To nie polecenie: wygrana misja odrzuca polecenia, a przejście tworzy nowy stan startowy.
-// Na koniec zwykłe „Następny dzień”: pełna energia, dniówki, oferty, przyjście na pauzie.
+// Na koniec zwykłe „Następny dzień” (pełna energia, dniówki, oferty) i od razu odegrane przyjście:
+// rozdział startuje o 9:00, na pauzie, z zespołem w biurze — urządzanie jest dozwolone tylko
+// w dniu pracy, a biuro jest puste (meble w magazynie).
 export function beginChapterTwo(state: GameState, config: BalanceConfig): ChapterTransition {
   if (state.mission.status !== 'won' || state.prologue) return { ok: false, code: 'notWon' };
   if (state.mission.chapter !== 1) return { ok: false, code: 'notChapterOne' };
@@ -53,5 +57,9 @@ export function beginChapterTwo(state: GameState, config: BalanceConfig): Chapte
   };
   const outcome = startNextDay.execute(moved, { type: 'StartNextDay' }, config);
   if (!outcome.ok) throw new Error(`Nie można rozpocząć rozdziału 2: ${outcome.rejection.code}`);
-  return { ok: true, state: outcome.state };
+  let arrived: GameState = { ...outcome.state, mission: { ...outcome.state.mission, speed: 1 } };
+  for (let i = 0; i <= maxTransitSteps(config) && arrived.mission.phase === 'arriving'; i++) {
+    arrived = advanceStep(arrived, config);
+  }
+  return { ok: true, state: { ...arrived, mission: { ...arrived.mission, speed: 0 } } };
 }

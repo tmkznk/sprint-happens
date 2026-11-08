@@ -12,7 +12,7 @@ import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import type { Engine } from '../simulation/engine';
-import { DayReportDialog } from './DayReportDialog';
+import { DayReportDialog, type ChapterActions } from './DayReportDialog';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
 import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
@@ -69,10 +69,12 @@ export function App({
   engine,
   saveManager,
   onNewGame,
+  chapterActions,
 }: {
   engine: Engine;
   saveManager: SaveManager;
   onNewGame(kind?: MissionKind): void;
+  chapterActions: ChapterActions;
 }) {
   const [selection] = useState(createSelectionStore);
   const [edit] = useState(createFurnitureEditStore);
@@ -179,7 +181,7 @@ export function App({
                   </p>
                 )}
               </div>
-              <DayReportDialog onNewGame={() => onNewGame()} />
+              <DayReportDialog onNewGame={() => onNewGame()} chapterActions={chapterActions} />
               <EventDialog />
               <PrologueFinale onFinish={() => onNewGame('mission')} />
               <SpotlightOverlay />
