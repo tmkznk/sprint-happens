@@ -18,7 +18,8 @@ export type Navigation = {
 };
 
 // Nowa gra: właściwa misja albo prolog (samouczek).
-export type MissionKind = 'mission' | 'prologue';
+// `chapterTwoDev` — tylko wersja deweloperska: start od razu w rozdziale 2.
+export type MissionKind = 'mission' | 'prologue' | 'chapterTwoDev';
 
 export const NavigationContext = createContext<Navigation | null>(null);
 

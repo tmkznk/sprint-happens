@@ -15,10 +15,12 @@ import {
 import { DEFAULT_BALANCE } from '../domain/config';
 import { createInitialState, type GameState } from '../domain/state';
 import { loadChapterStart, prepareChapterTwo } from '../application/chapterFlow';
+import { chapterTwoDevState } from '../application/devStart';
 import { CHAPTER_TWO_ENABLED } from '../application/features';
 import { createFlightGuard, watchConflict } from '../application/sessionGuards';
 import { createIndexedDbSaveStore, revisionOf, type SaveStore } from '../persistence/saveStore';
 import type { ValidationContext } from '../persistence/schema';
+import { serializeSnapshot } from '../persistence/snapshot';
 import { createEngine, type Engine } from '../simulation/engine';
 import { createPrologueState } from '../simulation/prologue';
 import { pwa } from '../pwa/register';
@@ -73,6 +75,7 @@ function randomSeed(): number {
 // Pierwsze uruchomienie zaczyna się od prologu (samouczka); właściwa misja — po nim albo
 // na wyraźny wybór gracza.
 function newState(kind: MissionKind): GameState {
+  if (kind === 'chapterTwoDev') return chapterTwoDevState(DEFAULT_BALANCE, randomSeed());
   return kind === 'prologue'
     ? createPrologueState(DEFAULT_BALANCE, randomSeed())
     : createInitialState(DEFAULT_BALANCE, randomSeed());
@@ -151,9 +154,19 @@ export function GameRoot() {
         (saves) => saves.current,
         () => null,
       );
+      const state = newState(kind);
+      // Wersja deweloperska: start w rozdziale 2 zapisuje też kopię startu rozdziału („Ponów”).
+      if (kind === 'chapterTwoDev') {
+        const copy = serializeSnapshot(
+          state,
+          { gameBuildVersion: __APP_VERSION__, revision: 0, savedAt: new Date().toISOString() },
+          CONTEXT,
+        );
+        if (copy.ok) await store.writeChapterStart(copy.json);
+      }
       const session = createSession(
         store,
-        newState(kind),
+        state,
         { revision: revisionOf(current), state: null, keepPrevious },
         prologueIntro(kind),
       );

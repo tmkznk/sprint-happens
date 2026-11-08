@@ -89,6 +89,17 @@ export function TopBar({
                   onNewGame('prologue');
                 }}
               />
+              {import.meta.env.DEV && (
+                <NewGameButton
+                  label="Rozdział 2 (dev)"
+                  title="Zacząć od razu rozdział 2?"
+                  confirmLabel="Rozdział 2"
+                  onConfirm={() => {
+                    setMenu(false);
+                    onNewGame('chapterTwoDev');
+                  }}
+                />
+              )}
               <button
                 type="button"
                 className="secondary-button"
