@@ -1,9 +1,7 @@
-import type { Employee } from '../../domain/employees';
 import type { Furniture } from '../../domain/furniture';
 import { allocateId } from '../../domain/ids';
 import { canPurchase, recordOperation } from '../finance';
-import { retargetEmployees, validateCandidate } from '../furniture';
-import { compareIds } from '../staff';
+import { assignDeskToFirstDeskless, retargetEmployees, validateCandidate } from '../furniture';
 import { reject, type BuyFurnitureCommand, type CommandHandler } from './types';
 
 // OFF-03, OFF-05, FIN-08 (Z): zakup i ustawienie wyposażenia w trybie „Urządź” (na pauzie).
@@ -35,25 +33,17 @@ export const buyFurniture: CommandHandler<BuyFurnitureCommand> = {
     });
     if (!paid.ok) return reject(paid.code);
 
-    const deskless =
-      item.type === 'desk'
-        ? Object.values(paid.state.staff.employees)
-            .filter((employee) => employee.deskId === null)
-            .sort((a, b) => compareIds(a.id, b.id))[0]
-        : undefined;
-    const employees = deskless
-      ? {
-          ...paid.state.staff.employees,
-          [deskless.id]: { ...deskless, deskId: item.id } as Employee,
-        }
-      : paid.state.staff.employees;
-
-    const bought = {
-      ...paid.state,
-      ids: allocated.sequence,
-      staff: { ...paid.state.staff, employees },
-      world: { ...paid.state.world, furniture: { ...paid.state.world.furniture, [item.id]: item } },
-    };
+    const bought = assignDeskToFirstDeskless(
+      {
+        ...paid.state,
+        ids: allocated.sequence,
+        world: {
+          ...paid.state.world,
+          furniture: { ...paid.state.world.furniture, [item.id]: item },
+        },
+      },
+      item,
+    );
     return { ok: true, state: retargetEmployees(bought, config) };
   },
 };

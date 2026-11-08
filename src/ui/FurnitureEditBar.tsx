@@ -39,6 +39,7 @@ export function FurnitureEditBar() {
           {money.format(config.furniture.prices[edit.furnitureType])}
         </h2>
       )}
+      {edit.mode === 'place' && <h2>Z magazynu: {FURNITURE_NAMES[edit.furnitureType]}</h2>}
       <p>Dotknij podłogi, aby ustawić mebel. Gra jest wstrzymana.</p>
       {problem ? (
         <p className="warning" role="status">
@@ -60,7 +61,7 @@ export function FurnitureEditBar() {
           disabled={problem !== null}
           onClick={confirm}
         >
-          {edit.mode === 'buy' ? 'Kup' : 'Zatwierdź'}
+          {edit.mode === 'buy' ? 'Kup' : edit.mode === 'place' ? 'Ustaw' : 'Zatwierdź'}
         </button>
       </div>
     </section>

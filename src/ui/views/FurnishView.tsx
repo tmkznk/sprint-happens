@@ -1,4 +1,5 @@
 import { Armchair, CodeXml, Coffee, Sprout, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useBalanceConfig, useDispatch, useGameSelector } from '../../application/engineHooks';
 import { useFurnitureEditStore } from '../../application/furnitureEditHooks';
 import { useClearSelection } from '../../application/selectionHooks';
@@ -8,6 +9,7 @@ import { FURNITURE_NAMES, money } from '../labels';
 import { useNavigation } from '../navigation';
 import { LOCKS } from '../prologue/copy';
 import { spotlight, useGuide } from '../prologue/hooks';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { REJECTION_MESSAGES } from '../rejectionMessages';
 
 const TYPES: FurnitureType[] = ['desk', 'sofa', 'coffeeMachine', 'plant'];
@@ -47,12 +49,13 @@ export function FurnishView() {
   const deskGuided = useGuide()?.kind === 'buyDesk';
   const lockText = prologueStep === 'buyDesk' ? LOCKS.shop : LOCKS.rest;
 
-  const choose = (furnitureType: FurnitureType) => {
+  const choose = (furnitureType: FurnitureType, mode: 'buy' | 'place' = 'buy') => {
     if (speed !== 0) dispatch({ type: 'SetSpeed', speed: 0 });
     clearSelection();
-    edit.set({ mode: 'buy', furnitureType, ...placementStart });
+    edit.set({ mode, furnitureType, ...placementStart });
     open('office');
   };
+  const stored = useGameSelector((state) => TYPES.filter((t) => state.world.storage[t]).join(','));
 
   return (
     <>
@@ -61,6 +64,22 @@ export function FurnishView() {
         sprzedać mebel, dotknij go w biurze.
       </p>
       {!isWorking && <p className="alert">{REJECTION_MESSAGES.phaseNotAllowed}</p>}
+      {stored && (
+        <>
+          <h3>W magazynie</h3>
+          <ul className="shop-list">
+            {(stored.split(',') as FurnitureType[]).map((type) => (
+              <StorageRow
+                key={type}
+                type={type}
+                disabled={!isWorking}
+                onPlace={() => choose(type, 'place')}
+              />
+            ))}
+          </ul>
+          <h3>Sklep</h3>
+        </>
+      )}
       <ul className="shop-list">
         {TYPES.map((type) => {
           const Icon = ICONS[type];
@@ -88,5 +107,63 @@ export function FurnishView() {
         })}
       </ul>
     </>
+  );
+}
+
+// SH-050: mebel z magazynu (po przeprowadzce) — ustawienie za darmo albo sprzedaż ze zwrotem
+// części ceny. Selektor zwraca liczbę sztuk.
+function StorageRow({
+  type,
+  disabled,
+  onPlace,
+}: {
+  type: FurnitureType;
+  disabled: boolean;
+  onPlace(): void;
+}) {
+  const config = useBalanceConfig();
+  const dispatch = useDispatch();
+  const count = useGameSelector((state) => state.world.storage[type] ?? 0);
+  const [confirming, setConfirming] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const Icon = ICONS[type];
+  const refund = Math.round(config.furniture.prices[type] * config.furniture.saleRefundRatio);
+
+  const sell = () => {
+    setConfirming(false);
+    const result = dispatch({ type: 'SellFromStorage', furnitureType: type });
+    setMessage(result.ok ? null : REJECTION_MESSAGES[result.rejection.code]);
+  };
+
+  return (
+    <li>
+      <span className="candidate-name">
+        <Icon size={16} aria-hidden="true" /> {FURNITURE_NAMES[type]}
+      </span>
+      <span>Sztuk: {count} · ustawienie za darmo</span>
+      {message && <span className="warning">{message}</span>}
+      <span className="panel-actions">
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={disabled}
+          onClick={() => setConfirming(true)}
+        >
+          Sprzedaj
+        </button>
+        <button type="button" className="primary-button" disabled={disabled} onClick={onPlace}>
+          Ustaw
+        </button>
+      </span>
+      {confirming && (
+        <ConfirmDialog
+          title={`Sprzedać: ${FURNITURE_NAMES[type]}?`}
+          message={`Dostaniesz ${money.format(refund)} zł. Mebel zniknie z magazynu.`}
+          confirmLabel="Sprzedaj"
+          onConfirm={sell}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </li>
   );
 }

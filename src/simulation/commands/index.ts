@@ -7,6 +7,8 @@ import { fireEmployee } from './fireEmployee';
 import { hireCandidate } from './hireCandidate';
 import { moveFurniture } from './moveFurniture';
 import { orderEmployee } from './orderEmployee';
+import { placeFromStorage } from './placeFromStorage';
+import { sellFromStorage } from './sellFromStorage';
 import { sellFurniture } from './sellFurniture';
 import { resolveEvent } from './resolveEvent';
 import { setSpeed } from './setSpeed';
@@ -27,6 +29,8 @@ export const commandHandlers: HandlerRegistry = {
   MoveFurniture: moveFurniture,
   SellFurniture: sellFurniture,
   BuyFurniture: buyFurniture,
+  PlaceFromStorage: placeFromStorage,
+  SellFromStorage: sellFromStorage,
   AcceptOffer: acceptOffer,
   AssignProject: assignProject,
   DeliverProject: deliverProject,

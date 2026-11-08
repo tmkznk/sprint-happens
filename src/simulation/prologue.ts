@@ -95,6 +95,8 @@ export function isLockedInPrologue(state: GameState, command: Command): boolean 
     case 'MoveFurniture':
       return !reached(prologue, 'buyDesk');
     case 'SellFurniture':
+    case 'PlaceFromStorage':
+    case 'SellFromStorage':
     case 'FireEmployee':
       return true;
     default:

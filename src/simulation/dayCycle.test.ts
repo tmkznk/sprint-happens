@@ -181,6 +181,8 @@ describe('polityka faz poleceń (TIME-08)', () => {
       MoveFurniture: 'workDay',
       SellFurniture: 'workDay',
       BuyFurniture: 'workDay',
+      PlaceFromStorage: 'workDay',
+      SellFromStorage: 'workDay',
       AcceptOffer: 'workDay',
       AssignProject: 'workDay',
       DeliverProject: 'delivery',

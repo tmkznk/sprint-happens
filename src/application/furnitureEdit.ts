@@ -3,21 +3,24 @@ import type { Furniture, FurnitureId, FurnitureType, Rotation } from '../domain/
 import type { GridPoint } from '../domain/grid';
 import type { GameState } from '../domain/state';
 import type { Command, RejectionCode } from '../simulation/commands';
+import { storedCount } from '../simulation/commands/storage';
 import { canPurchase } from '../simulation/finance';
 import { validateCandidate } from '../simulation/furniture';
 
 // UX-04 (Z): tryb „Urządź” — podgląd ustawienia mebla przed zatwierdzeniem: przeniesienie
-// istniejącego albo zakup nowego. To stan prezentacji (T:ARCH-02): do silnika trafia dopiero
-// polecenie MoveFurniture/BuyFurniture; anulowanie niczego nie zmienia.
+// istniejącego, zakup nowego albo ustawienie z magazynu (SH-050). To stan prezentacji (T:ARCH-02):
+// do silnika trafia dopiero polecenie MoveFurniture/BuyFurniture/PlaceFromStorage; anulowanie
+// niczego nie zmienia.
 export type FurnitureEdit =
   | { mode: 'move'; furnitureId: FurnitureId; origin: GridPoint; rotation: Rotation }
-  | { mode: 'buy'; furnitureType: FurnitureType; origin: GridPoint; rotation: Rotation };
+  | { mode: 'buy'; furnitureType: FurnitureType; origin: GridPoint; rotation: Rotation }
+  | { mode: 'place'; furnitureType: FurnitureType; origin: GridPoint; rotation: Rotation };
 
 // Nowy mebel nie ma jeszcze ID w stanie — podgląd używa ID spoza sekwencji.
 const PREVIEW_ID = 'furniture-0' as FurnitureId;
 
 export function editCandidate(state: GameState, edit: FurnitureEdit): Furniture | null {
-  if (edit.mode === 'buy') {
+  if (edit.mode !== 'move') {
     return {
       id: PREVIEW_ID,
       type: edit.furnitureType,
@@ -39,12 +42,23 @@ export function editProblem(
   if (!candidate) return 'unknownFurniture';
   const placement = validateCandidate(state, candidate);
   if (placement) return placement;
+  if (edit.mode === 'place') {
+    return storedCount(state, edit.furnitureType) < 1 ? 'notInStorage' : null;
+  }
   return edit.mode === 'buy'
     ? canPurchase(state, config.furniture.prices[edit.furnitureType])
     : null;
 }
 
 export function editCommand(edit: FurnitureEdit): Command {
+  if (edit.mode === 'place') {
+    return {
+      type: 'PlaceFromStorage',
+      furnitureType: edit.furnitureType,
+      origin: edit.origin,
+      rotation: edit.rotation,
+    };
+  }
   return edit.mode === 'buy'
     ? {
         type: 'BuyFurniture',

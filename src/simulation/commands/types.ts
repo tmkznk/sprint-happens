@@ -41,6 +41,14 @@ export type OrderEmployeeCommand = {
   employeeId: EmployeeId;
   target: OrderTarget;
 };
+// Magazyn mebli (SH-050): ustawienie z magazynu bez opłaty i sprzedaż z magazynu.
+export type PlaceFromStorageCommand = {
+  type: 'PlaceFromStorage';
+  furnitureType: FurnitureType;
+  origin: GridPoint;
+  rotation: Rotation;
+};
+export type SellFromStorageCommand = { type: 'SellFromStorage'; furnitureType: FurnitureType };
 export type BuyFurnitureCommand = {
   type: 'BuyFurniture';
   furnitureType: FurnitureType;
@@ -57,6 +65,8 @@ export type Command =
   | MoveFurnitureCommand
   | SellFurnitureCommand
   | BuyFurnitureCommand
+  | PlaceFromStorageCommand
+  | SellFromStorageCommand
   | AcceptOfferCommand
   | AssignProjectCommand
   | DeliverProjectCommand
@@ -94,6 +104,8 @@ export type RejectionCode =
   | 'notPaused'
   // Prolog: funkcja odblokowuje się na późniejszym etapie (albo po ukończeniu prologu).
   | 'prologueLocked'
+  // Magazyn: brak mebla danego typu.
+  | 'notInStorage'
   // OFF-05: niedozwolone ustawienie mebla.
   | PlacementRejection
   // SH-027: operacje finansowe.

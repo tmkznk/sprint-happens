@@ -51,3 +51,35 @@ describe('tryb „Urządź” — ocena i polecenie (SH-013, SH-014)', () => {
     ).toBe('unknownFurniture');
   });
 });
+
+describe('tryb „Urządź” — ustawienie z magazynu (SH-050)', () => {
+  const placeDesk: FurnitureEdit = {
+    mode: 'place',
+    furnitureType: 'desk',
+    origin: { x: 8, y: 7 },
+    rotation: 0,
+  };
+
+  it('bez mebla w magazynie — problem notInStorage', () => {
+    expect(editProblem(testState(), DEFAULT_BALANCE, placeDesk)).toBe('notInStorage');
+  });
+
+  it('z magazynem i dobrym miejscem — bez problemu, nawet bez pieniędzy; polecenie PlaceFromStorage', () => {
+    const start = testState();
+    const poor = recordOperation(start, {
+      key: 'event:x',
+      kind: 'event',
+      amount: -start.finance.cash,
+    });
+    if (!poor.ok) throw new Error('setup');
+    const state = { ...poor.state, world: { ...poor.state.world, storage: { desk: 1 } } };
+
+    expect(editProblem(state, DEFAULT_BALANCE, placeDesk)).toBeNull();
+    expect(editCommand(placeDesk)).toEqual({
+      type: 'PlaceFromStorage',
+      furnitureType: 'desk',
+      origin: { x: 8, y: 7 },
+      rotation: 0,
+    });
+  });
+});

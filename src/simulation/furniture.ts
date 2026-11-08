@@ -8,7 +8,7 @@ import { validateAccess } from '../world/movement/access';
 import { cellKey } from '../world/movement/grid';
 import { occupiedCellKeys } from '../world/movement/movement';
 import { cellKindAt, officeLayoutOf } from '../world/officeLayout';
-import { tasksForEmployee } from './staff';
+import { compareIds, tasksForEmployee } from './staff';
 
 // OFF-05 (Z): niedozwolone ustawienie jest blokowane i wyjaśniane komunikatem.
 export type PlacementRejection =
@@ -151,6 +151,20 @@ function withoutOrderedRest(state: GameState, ids: readonly string[]): GameState
       ...Object.fromEntries(changed.map((e) => [e.id, { ...e, orderedRest: false }])),
     },
   };
+}
+
+// OFF-04 (Z): nowe biurko (zakup albo ustawienie z magazynu) trafia do pierwszej osoby bez biurka.
+export function assignDeskToFirstDeskless(state: GameState, desk: Furniture): GameState {
+  if (desk.type !== 'desk') return state;
+  const deskless = Object.values(state.staff.employees)
+    .filter((employee) => employee.deskId === null)
+    .sort((a, b) => compareIds(a.id, b.id))[0];
+  if (!deskless) return state;
+  const employees = {
+    ...state.staff.employees,
+    [deskless.id]: { ...deskless, deskId: desk.id } as Employee,
+  };
+  return { ...state, staff: { ...state.staff, employees } };
 }
 
 // Po zmianie mebli lub biurek każdy pracownik dostaje aktualny cel: punkt własnego biurka albo
