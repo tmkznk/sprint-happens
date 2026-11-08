@@ -2647,3 +2647,14 @@ progress::-moz-progress-bar {
   font-weight: 600;
   color: var(--muted, inherit);
 }
+
+/* Filtry stanowisk: na telefonie przewijane palcem w poziomie; z myszką (desktop) ukryty pasek
+   przewijania nie pozwala ich przesunąć — pastylki zawijają się do kolejnych wierszy. */
+@media (min-width: 900px), (hover: hover) and (pointer: fine) {
+  .filter-pills {
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+    padding: 2px 0;
+    overflow-x: visible;
+  }
+}
