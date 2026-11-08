@@ -293,17 +293,20 @@ function office(
 }
 
 describe('zachowanie palacza', () => {
-  it('należny papieros: wychodzi od biurka, dochodzi na miejsce terrace#, stoi 200 kroków i wraca do biurka', () => {
+  it('należny papieros: wychodzi od biurka, dochodzi na miejsce terrace#, stoi czas papierosa i wraca do biurka', () => {
+    const steps = RATES.cigaretteSteps;
     const { engine: base, a } = office();
     const engine = makeDue(base, a);
     const desk = { ...agentOf(engine, a).cell };
-    expect(RATES.cigaretteSteps).toBe(200);
+    expect(steps).toBe(
+      (DEFAULT_BALANCE.smoking.cigaretteSeconds * 1000) / DEFAULT_BALANCE.simulation.stepMs,
+    );
 
     engine.step();
     expect(agentOf(engine, a).tasks[0]).toEqual({
       kind: 'use',
       destinationIds: smokingSpotIds(OFFICE_LAYOUT),
-      steps: 200,
+      steps,
     });
     expect(agentOf(engine, a).tasks[1]).toEqual({ kind: 'goTo', cell: desk });
     expect(isOnBreak(engine.getState(), employee(engine, a))).toBe(true);
@@ -311,7 +314,7 @@ describe('zachowanie palacza', () => {
     runUntil(engine, () => onSpot(engine, a));
     expect(agentOf(engine, a).reservedDestination).toBe('terrace#0');
     expect(agentOf(engine, a).cell).toEqual(OFFICE_LAYOUT.smokingSpots[0]);
-    // Pierwszy krok na miejscu to już usedSteps = 1; koniec po dwusetnym.
+    // Pierwszy krok na miejscu to już usedSteps = 1; koniec po ostatnim kroku papierosa.
     expect(agentOf(engine, a).usedSteps).toBe(1);
     let more = 0;
     while (smoking(engine, a)) {
@@ -319,7 +322,7 @@ describe('zachowanie palacza', () => {
       engine.step();
       more++;
     }
-    expect(more).toBe(199);
+    expect(more).toBe(steps - 1);
     expect(engine.getState().world.movement.reservations['terrace#0']).toBeUndefined();
 
     runUntil(engine, () => working(engine, a));

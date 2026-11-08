@@ -113,7 +113,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
   movement: DEFAULT_MOVEMENT_CONFIG,
   mission: {
     startingCash: 15_000,
-    victory: { deliveredProjects: 6, cash: 60_000, reputation: 65 },
+    victory: { deliveredProjects: 6, cash: 50_000, reputation: 65 },
   },
   finance: {
     officeUpkeepPerDay: 1_000,
@@ -139,7 +139,7 @@ export const DEFAULT_BALANCE: BalanceConfig = {
     shortQueue: 1,
   },
   smoking: {
-    cigaretteSeconds: 20,
+    cigaretteSeconds: 12,
   },
   events: {
     dailyChance: 0.35,

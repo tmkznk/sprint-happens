@@ -173,14 +173,16 @@ describe('round-trip migawki (SH-037)', () => {
     expect(roundTrip(outside)).toEqual(outside);
 
     // W połowie palenia.
-    until((state) => (agentIn(state)?.usedSteps ?? 0) >= 100);
+    const half =
+      (DEFAULT_BALANCE.smoking.cigaretteSeconds * 1000) / DEFAULT_BALANCE.simulation.stepMs / 2;
+    until((state) => (agentIn(state)?.usedSteps ?? 0) >= half);
     const smoking = engine.getState();
     expect(agentIn(smoking)?.status).toBe('using');
     expect(roundTrip(smoking)).toEqual(smoking);
 
     const restored = createEngine({ config: DEFAULT_BALANCE, initialState: roundTrip(smoking) });
     const remaining = stepsToEnd(engine);
-    expect(remaining).toBe(100);
+    expect(remaining).toBe(half);
     expect(stepsToEnd(restored)).toBe(remaining);
     expect(restored.getState()).toEqual(engine.getState());
   });
