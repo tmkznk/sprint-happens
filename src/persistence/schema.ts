@@ -27,16 +27,16 @@ import { maxTransitSteps } from '../simulation/commute';
 import { DAY_LENGTH_MS } from '../simulation/time';
 import { occupiedCells } from '../world/geometry';
 import { movementEnvFor } from '../world/movement/officeEnv';
-import { cellKindAt, PROLOGUE_LAYOUT, type OfficeLayout } from '../world/officeLayout';
+import { cellKindAt, officeLayoutOf, type OfficeLayout } from '../world/officeLayout';
 
 // T:SAVE-T02, SAVE-T06 — schemat migawki stanu gry. Każdy system domenowy dodaje tu swój
 // fragment; test typów w schema.test.ts nie przejdzie, jeśli GameState i schemat się rozjadą.
 
-// `layout` — biuro właściwej misji; prolog ma własne, małe biuro.
+// `layout` — biuro rozdziału 1; prolog i rozdział 2 mają własne biura (`officeLayoutOf`).
 export type ValidationContext = { config: BalanceConfig; layout: OfficeLayout };
 
 const layoutFor = (state: GameState, context: ValidationContext) =>
-  state.prologue ? PROLOGUE_LAYOUT : context.layout;
+  state.prologue || state.mission.chapter === 2 ? officeLayoutOf(state) : context.layout;
 
 const furnitureId = z.custom<FurnitureId>(
   (value) => typeof value === 'string' && /^furniture-[1-9]\d*$/.test(value),

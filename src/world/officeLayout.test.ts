@@ -4,7 +4,14 @@ import type { GridPoint } from '../domain/grid';
 import { createInitialState } from '../domain/state';
 import { interactionCells, occupiedCells } from './geometry';
 import { entryCell } from '../simulation/commute';
-import { cellKindAt, OFFICE_LAYOUT, PROLOGUE_LAYOUT, roomAt } from './officeLayout';
+import {
+  cellKindAt,
+  CHAPTER_TWO_LAYOUT,
+  OFFICE_LAYOUT,
+  officeLayoutOf,
+  PROLOGUE_LAYOUT,
+  roomAt,
+} from './officeLayout';
 import { createAgent, createMovementState, stepMovement } from './movement/movement';
 import { movementEnvFor, isSmokingSpotId, smokingSpotIds } from './movement/officeEnv';
 
@@ -163,5 +170,16 @@ describe('taras i dojście (outdoor)', () => {
     let state = createMovementState(agents);
     for (let i = 0; i < 1500; i++) state = stepMovement(state, env);
     expect(state.agents.map((a) => a.status)).toEqual(Array(6).fill('arrived'));
+  });
+});
+
+describe('officeLayoutOf', () => {
+  it('prolog, rozdział 1 i rozdział 2 mają własne biura', () => {
+    const base = createInitialState(DEFAULT_BALANCE, 1);
+    expect(officeLayoutOf({ ...base, prologue: { step: 'acceptFirst' } })).toBe(PROLOGUE_LAYOUT);
+    expect(officeLayoutOf(base)).toBe(OFFICE_LAYOUT);
+    expect(officeLayoutOf({ ...base, mission: { ...base.mission, chapter: 2 } })).toBe(
+      CHAPTER_TWO_LAYOUT,
+    );
   });
 });

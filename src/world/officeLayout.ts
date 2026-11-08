@@ -1,3 +1,4 @@
+import type { Chapter } from '../domain/chapter';
 import type { Rotation } from '../domain/furniture';
 import type { GridPoint, Size } from '../domain/grid';
 
@@ -72,8 +73,16 @@ export const PROLOGUE_LAYOUT: OfficeLayout = {
 };
 
 // Układ biura misji: w prologu małe biuro, we właściwej misji — pełne.
-export function officeLayoutOf(state: { readonly prologue: object | null }): OfficeLayout {
-  return state.prologue ? PROLOGUE_LAYOUT : OFFICE_LAYOUT;
+// Rozdział 2: większe biuro z salką konferencyjną. Tymczasowo obecne biuro — zastąpi je układ
+// z SH-051 (biuro rozdziału 2 musi być większe od biura rozdziału 1).
+export const CHAPTER_TWO_LAYOUT: OfficeLayout = OFFICE_LAYOUT;
+
+export function officeLayoutOf(state: {
+  readonly prologue: object | null;
+  readonly mission: { readonly chapter: Chapter };
+}): OfficeLayout {
+  if (state.prologue) return PROLOGUE_LAYOUT;
+  return state.mission.chapter === 2 ? CHAPTER_TWO_LAYOUT : OFFICE_LAYOUT;
 }
 
 export function isInside(rect: Rect, point: GridPoint): boolean {
