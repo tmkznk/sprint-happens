@@ -1,0 +1,15 @@
+import { describe, expect, it } from 'vitest';
+import { INTERLUDES, type InterludeId } from './interludes';
+
+describe('przerywniki fabularne (SH-048)', () => {
+  it.each<InterludeId>(['afterPrologue', 'afterChapterOne'])(
+    '%s ma tytuł, tekst i przycisk',
+    (id) => {
+      const interlude = INTERLUDES[id];
+      expect(interlude.title.length).toBeGreaterThan(0);
+      expect(interlude.paragraphs.length).toBeGreaterThan(0);
+      for (const paragraph of interlude.paragraphs) expect(paragraph.trim()).toBe(paragraph);
+      expect(interlude.button.length).toBeGreaterThan(0);
+    },
+  );
+});

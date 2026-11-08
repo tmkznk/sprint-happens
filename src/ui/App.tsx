@@ -12,7 +12,9 @@ import { createSelectionStore } from '../application/selection';
 import { SelectionContext } from '../application/selectionHooks';
 import { createOfficeGame } from '../rendering/createOfficeGame';
 import type { Engine } from '../simulation/engine';
+import type { InterludeId } from '../domain/content/interludes';
 import { DayReportDialog, type ChapterActions } from './DayReportDialog';
+import { InterludeCard } from './InterludeCard';
 import { EventDialog } from './EventDialog';
 import { MainNav } from './MainNav';
 import { PHONE_LAYOUT, useMediaQuery, WIDE_LAYOUT } from './mediaQuery';
@@ -82,6 +84,8 @@ export function App({
   const [frameClock] = useState<FrameClock>(() => ({ alpha: 0 }));
   const [tab, setTab] = useState<Tab>('office');
   const [notice, setNotice] = useState<string | null>(null);
+  // SH-048: przerywnik fabularny przed nową misją po prologu i przed rozdziałem 2.
+  const [interlude, setInterlude] = useState<InterludeId | null>(null);
   // Zablokowana w prologu zakładka nie otwiera się — gracz widzi warunek dostępu.
   const navigation = useMemo<Navigation>(
     () => ({
@@ -181,9 +185,29 @@ export function App({
                   </p>
                 )}
               </div>
-              <DayReportDialog onNewGame={() => onNewGame()} chapterActions={chapterActions} />
+              {interlude === null && (
+                <DayReportDialog
+                  onNewGame={() => onNewGame()}
+                  chapterActions={{
+                    ...chapterActions,
+                    onContinue: () => setInterlude('afterChapterOne'),
+                  }}
+                />
+              )}
               <EventDialog />
-              <PrologueFinale onFinish={() => onNewGame('mission')} />
+              {interlude === null && (
+                <PrologueFinale onFinish={() => setInterlude('afterPrologue')} />
+              )}
+              {interlude !== null && (
+                <InterludeCard
+                  id={interlude}
+                  onDone={() =>
+                    interlude === 'afterPrologue'
+                      ? onNewGame('mission')
+                      : chapterActions.onContinue()
+                  }
+                />
+              )}
               <SpotlightOverlay />
             </NavigationContext>
           </OrderFeedbackContext>
