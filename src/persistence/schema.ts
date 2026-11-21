@@ -167,6 +167,7 @@ const missionSchema = z.strictObject({
   day: z.int().min(1),
   phase: z.enum(['arriving', 'working', 'leaving', 'workEnded', 'settled']),
   speed: z.literal(SPEEDS),
+  dayEndSpeed: z.literal(SPEEDS),
   timeInDayMs: z.int().min(0).max(DAY_LENGTH_MS),
   transitSteps: z.int().min(0),
   report: z

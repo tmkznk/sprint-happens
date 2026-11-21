@@ -77,6 +77,9 @@ export type GameState = DeepReadonly<{
     day: number;
     phase: DayPhase;
     speed: Speed;
+    // Tempo, w którym skończył się ostatni dzień pracy — „Następny dzień” startuje w nim
+    // (raport i rozliczenie są na pauzie). 0 przed pierwszym końcem dnia.
+    dayEndSpeed: Speed;
     // Upływ bieżącego dnia w ms czasu gry; rośnie wyłącznie o pełne kroki symulacji.
     timeInDayMs: number;
     // Kroki symulacji w bieżącej fazie przyjścia lub wyjścia (bezpiecznik); poza nimi 0.
@@ -150,6 +153,7 @@ export function createInitialState(config: BalanceConfig, seed: number): GameSta
       day: 1,
       phase: 'working',
       speed: 0,
+      dayEndSpeed: 0,
       timeInDayMs: 0,
       transitSteps: 0,
       report: null,

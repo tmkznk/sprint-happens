@@ -19,6 +19,7 @@ describe('createInitialState', () => {
       day: 1,
       phase: 'working',
       speed: 0,
+      dayEndSpeed: 0,
       timeInDayMs: 0,
       transitSteps: 0,
       report: null,

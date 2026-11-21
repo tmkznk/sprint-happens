@@ -806,7 +806,9 @@ describe('zachowanie palacza', () => {
       runUntilPhase(engine, 'workEnded');
       expect(trips).toBeGreaterThan(0);
       expect(employee(engine, b).cigarettesHandled).toBeGreaterThan(0);
-      return engine.getState();
+      // Zapamiętane tempo z końca dnia z definicji się różni — reszta stanu identyczna.
+      const state = engine.getState();
+      return { ...state, mission: { ...state.mission, dayEndSpeed: 0 } };
     };
     expect(play(4)).toEqual(play(1));
   });

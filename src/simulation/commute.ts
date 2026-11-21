@@ -69,7 +69,13 @@ export function advanceLeaving(state: GameState, config: BalanceConfig): GameSta
   if (movement.agents.length === 0 || transitSteps >= maxTransitSteps(config)) {
     return {
       ...state,
-      mission: { ...state.mission, phase: 'workEnded', speed: 0, transitSteps: 0 },
+      mission: {
+        ...state.mission,
+        phase: 'workEnded',
+        speed: 0,
+        dayEndSpeed: state.mission.speed,
+        transitSteps: 0,
+      },
       world: { ...state.world, movement: { step: movement.step, agents: [], reservations: {} } },
     };
   }

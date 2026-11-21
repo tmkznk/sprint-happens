@@ -6,8 +6,9 @@ import { gameStateSchema, type ValidationContext } from './schema';
 // wersji i dopisania migracji z poprzedniej wersji do MIGRATIONS (SH-039).
 // Wersja 2: stan prologu (`prologue`). Wersja 3: przyjście i wyjście (`mission.transitSteps`,
 // `staff.entryQueue`). Wersja 4: rozkazy dla postaci (`breakHold`, `orderedRest` pracownika).
-// Wersja 5: palenie (`cigarettesHandled` pracownika).
-export const SCHEMA_VERSION = 8;
+// Wersja 5: palenie (`cigarettesHandled` pracownika). Wersja 9: tempo z końca dnia
+// (`mission.dayEndSpeed`).
+export const SCHEMA_VERSION = 9;
 
 // T:SAVE-T05 — migracja stanu z wersji N do N+1. Dostaje głęboką kopię danych (nigdy oryginał)
 // i zwraca nowy kształt; błąd zgłasza wyjątkiem. Wynik przechodzi pełną walidację schematu.
@@ -83,6 +84,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   7: (input) => {
     const state = input as { scrum: Record<string, unknown> | null };
     if (state.scrum) state.scrum.lastCeremony = null;
+    return state;
+  },
+  // 8 → 9: tempo z końca dnia — starsze zapisy zaczynają następny dzień na pauzie, jak dotąd.
+  8: (input) => {
+    const state = input as { mission: Record<string, unknown> };
+    state.mission.dayEndSpeed = 0;
     return state;
   },
 };

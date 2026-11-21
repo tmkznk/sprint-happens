@@ -243,9 +243,15 @@ describe('wyjście z biura po pracy (TIME-08, SH-004 B4)', () => {
     runUntilPhase(slow, 'workEnded');
     runUntilPhase(fast, 'workEnded');
 
-    expect(fast.getState()).toEqual(slow.getState());
+    // Zapamiętane tempo z końca dnia z definicji się różni — reszta stanu identyczna.
+    expect(fast.getState().mission.dayEndSpeed).toBe(4);
+    expect(withoutDayEndSpeed(fast.getState())).toEqual(withoutDayEndSpeed(slow.getState()));
   });
 });
+
+function withoutDayEndSpeed(state: GameState): GameState {
+  return { ...state, mission: { ...state.mission, dayEndSpeed: 0 } };
+}
 
 // Po rozliczeniu dnia: trzech pracowników przy projekcie. Biurka startowe są dwa — trzecie
 // dokupione, chyba że trzeci ma zostać bez biurka.
@@ -305,7 +311,8 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
   it('StartNextDay zaczyna dzień w arriving z kolejką w kolejności ID', () => {
     const engine = morning();
     const { mission, staff, world } = engine.getState();
-    expect(mission).toMatchObject({ phase: 'arriving', timeInDayMs: 0, transitSteps: 0, speed: 0 });
+    // Poprzedni dzień biegł na 4× (gracz testowy) — nowy startuje w tym samym tempie.
+    expect(mission).toMatchObject({ phase: 'arriving', timeInDayMs: 0, transitSteps: 0, speed: 4 });
     const ids = Object.keys(staff.employees).sort(compareIds);
     expect(ids).toHaveLength(3);
     expect(staff.entryQueue).toEqual(ids);
@@ -499,7 +506,10 @@ describe('przyjście przed 9:00 (TIME-04, TIME-05, OFF-04)', () => {
       runUntilPhase(engine, 'working');
       note();
       const state = engine.getState();
-      return { phases, state: { ...state, mission: { ...state.mission, speed: 0 } } };
+      return {
+        phases,
+        state: { ...state, mission: { ...state.mission, speed: 0, dayEndSpeed: 0 } },
+      };
     };
     const slow = run(1);
     const fast = run(4);

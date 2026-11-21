@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 8,
+  "gameBuildVersion": "2.0.0",
+  "revision": 3,
+  "savedAt": "2026-11-21T12:00:00.000Z",
+  "state": {
+    "mission": {
+      "status": "active",
+      "chapter": 1,
+      "day": 1,
+      "phase": "settled",
+      "speed": 0,
+      "timeInDayMs": 600000,
+      "transitSteps": 0,
+      "report": {
+        "day": 1,
+        "income": 2100,
+        "spending": 2000,
+        "wages": 500,
+        "upkeep": 1000,
+        "cashAfterSettlement": 13600,
+        "rescueDeadlineDay": null
+      },
+      "reputation": 50
+    },
+    "finance": {
+      "openingCash": 15000,
+      "cash": 13600,
+      "ledger": [
+        {
+          "key": "advance:project-1",
+          "day": 1,
+          "kind": "advance",
+          "amount": 2100,
+          "ref": "project-1"
+        },
+        {
+          "key": "purchase:furniture-5",
+          "day": 1,
+          "kind": "purchase",
+          "amount": -2000,
+          "ref": "furniture-5"
+        },
+        {
+          "key": "wages:day-1:employee-1",
+          "day": 1,
+          "kind": "wages",
+          "amount": -500,
+          "ref": "employee-1"
+        },
+        {
+          "key": "upkeep:day-1",
+          "day": 1,
+          "kind": "upkeep",
+          "amount": -1000,
+          "ref": null
+        }
+      ],
+      "wagesDueToday": {},
+      "rescueDeadlineDay": null
+    },
+    "contracts": {
+      "offers": [
+        {
+          "id": "offer-2",
+          "templateId": "zgodnie-z-zalacznikiem",
+          "name": "Zgodnie z załącznikiem",
+          "description": "Projekt opisano szczegółowo w załączniku do wiadomości. Załącznika nie ma. Klient pyta, czy możemy już podać termin realizacji.",
+          "scopes": {
+            "frontend": 150,
+            "backend": 150,
+            "devops": 50
+          },
+          "designImportance": 1,
+          "designScope": 50,
+          "deadlineDays": 5,
+          "reward": 9000,
+          "advance": 1800,
+          "latePenaltyPerDay": 200
+        },
+        {
+          "id": "offer-3",
+          "templateId": "mala-stronka",
+          "name": "Tylko mała stronka",
+          "description": "Pięć zakładek, formularz i galeria. Do tego sklep, system rezerwacji i panel dla franczyzobiorców. Klient nadal mówi o tym „wizytówka”.",
+          "scopes": {
+            "frontend": 350,
+            "backend": 250,
+            "devops": 50
+          },
+          "designImportance": 2,
+          "designScope": 150,
+          "deadlineDays": 8,
+          "reward": 18000,
+          "advance": 5400,
+          "latePenaltyPerDay": 450
+        }
+      ],
+      "projects": {
+        "project-1": {
+          "templateId": "test-offer",
+          "name": "Projekt testowy",
+          "description": "Stałe warunki do testów silnika.",
+          "scopes": {
+            "frontend": 60,
+            "backend": 40
+          },
+          "designImportance": 1,
+          "designScope": 20,
+          "deadlineDays": 3,
+          "reward": 7000,
+          "advance": 2100,
+          "latePenaltyPerDay": 700,
+          "id": "project-1",
+          "acceptedOnDay": 1,
+          "deadlineDay": 4,
+          "status": "active",
+          "progress": {
+            "frontend": 60000000,
+            "backend": 0
+          },
+          "fragments": [
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": true,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            },
+            {
+              "specialization": "frontend",
+              "hasBug": false,
+              "testProgress": 0,
+              "repairProgress": 0
+            }
+          ],
+          "fragmentRisk": {
+            "frontend": 0
+          },
+          "designProgress": 0,
+          "delivery": null
+        }
+      },
+      "deliveredCount": 0,
+      "chapterDeliveredCount": 0
+    },
+    "staff": {
+      "employees": {
+        "employee-1": {
+          "id": "employee-1",
+          "personId": "bartek-responsywny",
+          "name": "Bartek Responsywny",
+          "specialization": "frontend",
+          "seniority": "mid",
+          "dailyWage": 500,
+          "hiredOnDay": 1,
+          "deskId": "furniture-1",
+          "projectId": "project-1",
+          "energy": 61390,
+          "satisfaction": 4200000,
+          "badConditionsMs": 0,
+          "lowSatisfactionMs": 0,
+          "breakHold": false,
+          "orderedRest": false,
+          "cigarettesHandled": 3
+        }
+      },
+      "candidates": [
+        {
+          "id": "candidate-1",
+          "personId": "kuba-flexowski",
+          "name": "Kuba Flexowski",
+          "specialization": "frontend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-22",
+          "personId": "igor-komponentowski",
+          "name": "Igor Komponentowski",
+          "specialization": "frontend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-3",
+          "personId": "marek-srednik",
+          "name": "Marek Średnik",
+          "specialization": "frontend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-4",
+          "personId": "maja-selectowska",
+          "name": "Maja Selectowska",
+          "specialization": "backend",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-5",
+          "personId": "kinga-kolejkowska",
+          "name": "Kinga Kolejkowska",
+          "specialization": "backend",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-6",
+          "personId": "grazyna-transakcyjna",
+          "name": "Grażyna Transakcyjna",
+          "specialization": "backend",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-7",
+          "personId": "wiktoria-emulatorska",
+          "name": "Wiktoria Emulatorska",
+          "specialization": "mobile",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-8",
+          "personId": "michal-buildowski",
+          "name": "Michał Buildowski",
+          "specialization": "mobile",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-9",
+          "personId": "robert-synchroniczny",
+          "name": "Robert Synchroniczny",
+          "specialization": "mobile",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-10",
+          "personId": "hania-restartowska",
+          "name": "Hania Restartowska",
+          "specialization": "devops",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-11",
+          "personId": "paulina-klastrowa",
+          "name": "Paulina Klastrowa",
+          "specialization": "devops",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-12",
+          "personId": "renata-monitorska",
+          "name": "Renata Monitorska",
+          "specialization": "devops",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-13",
+          "personId": "mateusz-zgloszeniowski",
+          "name": "Mateusz Zgłoszeniowski",
+          "specialization": "qa",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-14",
+          "personId": "ania-krokowska",
+          "name": "Ania Krokowska",
+          "specialization": "qa",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-15",
+          "personId": "beata-testowa",
+          "name": "Beata Testowa",
+          "specialization": "qa",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-16",
+          "personId": "antek-fontowski",
+          "name": "Antek Fontowski",
+          "specialization": "designer",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-17",
+          "personId": "sebastian-warstwowy",
+          "name": "Sebastian Warstwowy",
+          "specialization": "designer",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-18",
+          "personId": "jerzy-makietowski",
+          "name": "Jerzy Makietowski",
+          "specialization": "designer",
+          "seniority": "senior",
+          "dailyWage": 800
+        },
+        {
+          "id": "candidate-19",
+          "personId": "karolina-arkuszowa",
+          "name": "Karolina Arkuszowa",
+          "specialization": "pm",
+          "seniority": "junior",
+          "dailyWage": 300
+        },
+        {
+          "id": "candidate-20",
+          "personId": "rafal-kamieniowski",
+          "name": "Rafał Kamieniowski",
+          "specialization": "pm",
+          "seniority": "mid",
+          "dailyWage": 500
+        },
+        {
+          "id": "candidate-21",
+          "personId": "teresa-retrospektywna",
+          "name": "Teresa Retrospektywna",
+          "specialization": "pm",
+          "seniority": "senior",
+          "dailyWage": 800
+        }
+      ],
+      "departures": [],
+      "entryQueue": []
+    },
+    "world": {
+      "furniture": {
+        "furniture-1": {
+          "type": "desk",
+          "origin": {
+            "x": 1,
+            "y": 6
+          },
+          "rotation": 270,
+          "id": "furniture-1"
+        },
+        "furniture-2": {
+          "type": "desk",
+          "origin": {
+            "x": 2,
+            "y": 1
+          },
+          "rotation": 0,
+          "id": "furniture-2"
+        },
+        "furniture-3": {
+          "type": "sofa",
+          "origin": {
+            "x": 8,
+            "y": 1
+          },
+          "rotation": 0,
+          "id": "furniture-3"
+        },
+        "furniture-4": {
+          "type": "coffeeMachine",
+          "origin": {
+            "x": 12,
+            "y": 1
+          },
+          "rotation": 0,
+          "id": "furniture-4"
+        },
+        "furniture-5": {
+          "id": "furniture-5",
+          "type": "desk",
+          "origin": {
+            "x": 5,
+            "y": 6
+          },
+          "rotation": 0
+        }
+      },
+      "movement": {
+        "step": 6029,
+        "agents": [],
+        "reservations": {}
+      },
+      "storage": {}
+    },
+    "events": {
+      "scheduledAtMs": null,
+      "pending": null,
+      "lastSeenDay": {},
+      "meetingUntilMs": null,
+      "coffeeBrokenDay": null
+    },
+    "prologue": null,
+    "scrum": null,
+    "ids": {
+      "furniture": 5,
+      "candidate": 22,
+      "offer": 3,
+      "project": 1,
+      "employee": 1
+    },
+    "rng": 3427627860
+  }
+}

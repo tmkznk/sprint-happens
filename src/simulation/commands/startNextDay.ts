@@ -6,7 +6,8 @@ import { beginScrumDay } from '../scrum';
 import type { CommandHandler, StartNextDayCommand } from './types';
 
 // TIME-04, TIME-08 (Z): „Następny dzień” po raporcie — tylko jeśli misja trwa (bramka silnika).
-// Noc nie wymaga upływu czasu symulacji; nowy dzień zaczyna się na pauzie (w fazie przyjścia).
+// Noc nie wymaga upływu czasu symulacji; nowy dzień (faza przyjścia) startuje w tempie, w którym
+// skończył się poprzedni — gracz nie musi wznawiać gry co rano.
 // Operacje dobowe: należna dniówka każdego zatrudnionego za nowy dzień (FIN-03) i uzupełnienie
 // wolnych miejsc na tablicy zleceń (CON-01) oraz pełna energia po nocy (SH-004 A4c).
 export const startNextDay: CommandHandler<StartNextDayCommand> = {
@@ -43,7 +44,8 @@ export const startNextDay: CommandHandler<StartNextDayCommand> = {
       mission: {
         ...state.mission,
         day: state.mission.day + 1,
-        speed: 0,
+        // Dzień startuje w tempie z końca poprzedniego; prolog — na pauzie (samouczek).
+        speed: state.prologue ? 0 : state.mission.dayEndSpeed,
         timeInDayMs: 0,
         report: null,
       },

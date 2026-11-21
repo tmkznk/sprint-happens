@@ -5,7 +5,9 @@ import { deepFreeze } from '../test/deepFreeze';
 import { runUntilPhase, testEngine } from '../test/engineFixture';
 import { commandHandlers, type CommandType } from './commands';
 import { PHASES_BY_CATEGORY, type CommandCategory } from './commands/phases';
+import { startNextDay } from './commands/startNextDay';
 import { createEngine } from './engine';
+import { createPrologueState } from './prologue';
 import { DAY_LENGTH_MS } from './time';
 
 // Dzień pracy i wyjście wszystkich z biura (TIME-08).
@@ -15,10 +17,15 @@ function runToEndOfDay(engine: ReturnType<typeof testEngine>) {
 }
 
 describe('cykl dnia (TIME-08)', () => {
-  it('koniec pracy → rozliczenie → raport → następny dzień na pauzie', () => {
+  it('koniec pracy → rozliczenie → raport → następny dzień w tempie z końca poprzedniego', () => {
     const engine = testEngine();
     runToEndOfDay(engine);
-    expect(engine.getState().mission).toMatchObject({ phase: 'workEnded', speed: 0 });
+    // Raport i rozliczenie na pauzie; tempo dnia zapamiętane na następny dzień.
+    expect(engine.getState().mission).toMatchObject({
+      phase: 'workEnded',
+      speed: 0,
+      dayEndSpeed: 1,
+    });
 
     expect(engine.dispatch({ type: 'SettleDay' })).toEqual({ ok: true });
     expect(engine.getState().mission).toMatchObject({
@@ -32,13 +39,15 @@ describe('cykl dnia (TIME-08)', () => {
     });
 
     expect(engine.dispatch({ type: 'StartNextDay' })).toEqual({ ok: true });
-    // TIME-04: nowy dzień zaczyna się przyjściem do biura o 9:00, na pauzie.
+    // TIME-04: nowy dzień zaczyna się przyjściem do biura o 9:00 — od razu w tempie, w którym
+    // skończył się poprzedni dzień (bez ręcznego wznawiania).
     expect(engine.getState().mission).toEqual({
       status: 'active',
       chapter: 1,
       day: 2,
       phase: 'arriving',
-      speed: 0,
+      speed: 1,
+      dayEndSpeed: 1,
       timeInDayMs: 0,
       transitSteps: 0,
       report: null,
@@ -46,7 +55,6 @@ describe('cykl dnia (TIME-08)', () => {
     });
 
     // Bez pracowników przyjście kończy się od razu — dzień pracy od 9:00, tempo bez zmian.
-    engine.dispatch({ type: 'SetSpeed', speed: 1 });
     runUntilPhase(engine, 'working');
     expect(engine.getState().mission).toEqual({
       status: 'active',
@@ -54,11 +62,37 @@ describe('cykl dnia (TIME-08)', () => {
       day: 2,
       phase: 'working',
       speed: 1,
+      dayEndSpeed: 1,
       timeInDayMs: 0,
       transitSteps: 0,
       report: null,
       reputation: 50,
     });
+  });
+
+  it('następny dzień startuje w tempie wybranym pod koniec poprzedniego (np. 4×)', () => {
+    const engine = testEngine();
+    engine.dispatch({ type: 'SetSpeed', speed: 1 });
+    runUntilPhase(engine, 'leaving');
+    engine.dispatch({ type: 'SetSpeed', speed: 4 });
+    runUntilPhase(engine, 'workEnded');
+    engine.dispatch({ type: 'SettleDay' });
+    engine.dispatch({ type: 'StartNextDay' });
+    expect(engine.getState().mission).toMatchObject({ phase: 'arriving', speed: 4 });
+  });
+
+  it('w prologu następny dzień nadal zaczyna się na pauzie (samouczek prowadzi gracza)', () => {
+    const engine = testEngine();
+    runToEndOfDay(engine);
+    engine.dispatch({ type: 'SettleDay' });
+    const settled = engine.getState();
+    const inPrologue = deepFreeze({
+      ...settled,
+      prologue: createPrologueState(DEFAULT_BALANCE, 1).prologue,
+    }) as GameState;
+    const outcome = startNextDay.execute(inPrologue, { type: 'StartNextDay' }, DEFAULT_BALANCE);
+    if (!outcome.ok) throw new Error(outcome.rejection.code);
+    expect(outcome.state.mission.speed).toBe(0);
   });
 
   it('rozliczenie zachodzi dokładnie raz na dzień', () => {

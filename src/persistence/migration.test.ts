@@ -10,6 +10,7 @@ import saveV4 from './fixtures/save-v4.json?raw';
 import saveV5 from './fixtures/save-v5.json?raw';
 import saveV6 from './fixtures/save-v6.json?raw';
 import saveV7 from './fixtures/save-v7.json?raw';
+import saveV8 from './fixtures/save-v8.json?raw';
 import type { ValidationContext } from './schema';
 import {
   MIGRATIONS,
@@ -34,6 +35,7 @@ const toV2: Migration = (input) => {
   const state = input as Loose;
   state.prologue = null;
   state.mission.transitSteps = 0;
+  state.mission.dayEndSpeed = 0;
   state.mission.chapter = 1;
   state.contracts.chapterDeliveredCount = state.contracts.deliveredCount;
   state.world.storage = {};
@@ -295,5 +297,14 @@ describe('v7 → v8: znacznik ceremonii', () => {
     expect(result.migratedFrom).toBe(7);
     expect(result.envelope.state.scrum?.sprint?.number).toBe(1);
     expect(result.envelope.state.scrum?.lastCeremony).toBeNull();
+  });
+});
+
+describe('v8 → v9: tempo z końca dnia', () => {
+  it('rozliczony dzień z wersji 8 wczytuje się z tempem 0 — następny dzień na pauzie, jak dotąd', () => {
+    const result = parseSnapshot(saveV8, context);
+    if (!result.ok) throw new Error(result.error.issues.join('\n'));
+    expect(result.migratedFrom).toBe(8);
+    expect(result.envelope.state.mission).toMatchObject({ phase: 'settled', dayEndSpeed: 0 });
   });
 });
