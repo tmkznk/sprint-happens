@@ -14,6 +14,8 @@ export type ChapterActions = {
   onRetry(): void;
   // Kopia startu rozdziału 2 istnieje (sprawdzane przez aplikację).
   canRetry: boolean;
+  // Epilog po wygranym rozdziale 2 (koniec kampanii).
+  onEpilogue(): void;
   // Nieudane przejście lub ponowienie — komunikat zamiast cichej porażki.
   error: string | null;
 };
@@ -30,12 +32,15 @@ export function DayReportDialog({
   const status = useGameSelector((state) => state.mission.status);
   const dispatch = useDispatch();
   const delivered = useGameSelector((state) => state.contracts.chapterDeliveredCount);
+  const deliveredTotal = useGameSelector((state) => state.contracts.deliveredCount);
   const reputation = useGameSelector((state) => state.mission.reputation);
   const nextDay = useGuide()?.kind === 'nextDay';
 
   if (!report) return null;
   const bankrupt = status === 'bankrupt';
   const won = status === 'won';
+  // Koniec kampanii: wygrany rozdział 2. Licznik dni biegnie od początku rozdziału 1.
+  const campaignEnd = CHAPTER_TWO_ENABLED && won && chapter === 2;
   const daysLeft = report.rescueDeadlineDay === null ? null : report.rescueDeadlineDay - report.day;
 
   return (
@@ -81,16 +86,28 @@ export function DayReportDialog({
           {/* MIS-03 (Z): koniec misji — podsumowanie i nowa gra po potwierdzeniu; brak dalszej gry. */}
           {status !== 'active' && (
             <>
-              {won && (
-                <p role="status">
-                  Software house przetrwał i zdobył renomę! Misja ukończona w {report.day} dni.
-                </p>
-              )}
+              {won &&
+                (campaignEnd ? (
+                  <p role="status">
+                    Kampania ukończona! JanuszSoft przeszedł drogę od garażu do Scruma w{' '}
+                    {report.day} dni.
+                  </p>
+                ) : (
+                  <p role="status">
+                    Software house przetrwał i zdobył renomę! Misja ukończona w {report.day} dni.
+                  </p>
+                ))}
               <dl>
-                <dt>Dni misji</dt>
+                <dt>{campaignEnd ? 'Dni kampanii' : 'Dni misji'}</dt>
                 <dd>{report.day}</dd>
-                <dt>Oddane projekty</dt>
+                <dt>{campaignEnd ? 'Oddane projekty w rozdziale 2' : 'Oddane projekty'}</dt>
                 <dd>{delivered}</dd>
+                {campaignEnd && (
+                  <>
+                    <dt>Oddane projekty w kampanii</dt>
+                    <dd>{deliveredTotal}</dd>
+                  </>
+                )}
                 <dt>Reputacja</dt>
                 <dd>{reputation}/100</dd>
               </dl>
@@ -103,6 +120,15 @@ export function DayReportDialog({
                     onClick={chapterActions.onContinue}
                   >
                     Dalej: rozdział 2
+                  </button>
+                )}
+                {campaignEnd && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={chapterActions.onEpilogue}
+                  >
+                    Epilog
                   </button>
                 )}
                 {CHAPTER_TWO_ENABLED && bankrupt && chapter === 2 && chapterActions.canRetry && (

@@ -1,7 +1,9 @@
-// Przerywniki fabularne kampanii: przed prologiem i między rozdziałami (SH-048). Gracz jest Januszem — jak w prologu.
+// Przerywniki fabularne kampanii: przed prologiem, między rozdziałami (SH-048) i epilog po
+// rozdziale 2 — koniec kampanii. Gracz jest Januszem — jak w prologu.
 // Wzór: rozdział, który się zaczyna, jego nazwa w cudzysłowie i podtytuł (teksty zaakceptowane
 // przez właściciela 2026-11-08).
-export type InterludeId = 'beforePrologue' | 'afterPrologue' | 'afterChapterOne';
+export type InterludeId =
+  'beforePrologue' | 'afterPrologue' | 'afterChapterOne' | 'afterChapterTwo';
 
 export type Interlude = {
   kicker: string;
@@ -45,5 +47,17 @@ export const INTERLUDES: Readonly<Record<InterludeId, Interlude>> = {
       'Na pierwsze spotkanie przychodzi konsultant od transformacji agile. Obiecuje, że będzie szybciej, lepiej i z karteczkami. Na razie wystawił fakturę.',
     ],
     button: 'Przeprowadzka',
+  },
+  afterChapterTwo: {
+    kicker: 'Epilog',
+    title: '„Dojrzałość organizacyjna”',
+    subtitle: 'Koniec kampanii',
+    paragraphs: [
+      'Sprinty się domykają, retro kończy się wnioskami, a daily trwa prawie piętnaście minut. Konsultant od transformacji agile ogłosił sukces i wystawił ostatnią fakturę.',
+      'JanuszSoft ma stałych klientów, zespół, który wie, co robi, i reputację, której nie trzeba już tłumaczyć wujkowi Zbyszkowi.',
+      'Z garażu został tylko słoik z gwoździami na twoim biurku. Na pamiątkę. I na wypadek, gdyby ekspres znów się zepsuł.',
+      'Kampania ukończona. Dziękujemy za grę!',
+    ],
+    button: 'Zakończ',
   },
 };

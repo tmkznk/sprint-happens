@@ -81,7 +81,8 @@ export function App({
   intro?: InterludeId | null;
   saveManager: SaveManager;
   onNewGame(kind?: MissionKind): void;
-  chapterActions: ChapterActions;
+  // Epilog otwiera App sam — przerywnik to stan interfejsu.
+  chapterActions: Omit<ChapterActions, 'onEpilogue'>;
 }) {
   const [selection] = useState(createSelectionStore);
   const [edit] = useState(createFurnitureEditStore);
@@ -196,6 +197,7 @@ export function App({
                   chapterActions={{
                     ...chapterActions,
                     onContinue: () => setInterlude('afterChapterOne'),
+                    onEpilogue: () => setInterlude('afterChapterTwo'),
                   }}
                 />
               )}
