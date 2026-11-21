@@ -36,7 +36,8 @@ export function beginChapterTwo(state: GameState, config: BalanceConfig): Chapte
 
   const market = fillMarket(
     { candidates: [], ids: state.ids, rng: state.rng },
-    Object.values(employees),
+    // Jak przy zwykłym uzupełnianiu rynku (EMP-03): bez pracowników i bez osób, które odeszły.
+    [...Object.values(employees), ...state.staff.departures],
     config.staff.dailyWage,
     2,
   );

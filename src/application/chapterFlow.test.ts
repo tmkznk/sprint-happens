@@ -3,6 +3,8 @@ import { DEFAULT_BALANCE } from '../domain/config';
 import type { ValidationContext } from '../persistence/schema';
 import { createMemorySaveStore } from '../persistence/saveStore';
 import { wonChapterOne } from '../test/chapterFixture';
+import { PEOPLE } from '../domain/content/people';
+import type { EmployeeId } from '../domain/employees';
 import { OFFICE_LAYOUT } from '../world/officeLayout';
 import { loadChapterStart, prepareChapterTwo } from './chapterFlow';
 
@@ -18,6 +20,28 @@ describe('przejście do rozdziału 2 w aplikacji (SH-049)', () => {
     const { store } = createMemorySaveStore();
     await store.writeChapterStart(prepared.chapterStartJson);
     expect(await loadChapterStart(store, context)).toEqual(prepared.state);
+  });
+
+  it('zespół z odejściami (zwolnieni, rezygnacje) — przejście przechodzi walidację zapisu', () => {
+    const won = wonChapterOne();
+    const employed = new Set(Object.values(won.staff.employees).map((e) => e.personId));
+    // Kilka osób z każdej grupy rynku odeszło — wcześniej wracały jako kandydaci rozdziału 2.
+    const departures = PEOPLE.filter((p) => !employed.has(p.id))
+      .filter((_, index) => index % 2 === 0)
+      .map((person, index) => ({
+        employeeId: `employee-${String(900 + index)}` as EmployeeId,
+        personId: person.id,
+        name: person.name,
+        day: 1,
+        reason: 'fired' as const,
+      }));
+    const prepared = prepareChapterTwo(
+      { ...won, staff: { ...won.staff, departures } },
+      context,
+      '2.0.0',
+      NOW,
+    );
+    expect(prepared.ok ? 'ok' : prepared.detail).toBe('ok');
   });
 
   it('misja w toku — przejście niedozwolone', () => {

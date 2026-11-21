@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../domain/config';
-import { MAX_ENERGY, SENIORITIES, SPECIALIZATIONS } from '../domain/employees';
+import { PEOPLE } from '../domain/content/people';
+import { MAX_ENERGY, SENIORITIES, SPECIALIZATIONS, type EmployeeId } from '../domain/employees';
 import { wonChapterOne } from '../test/chapterFixture';
 import { deepFreeze } from '../test/deepFreeze';
 import { beginChapterTwo } from './chapters';
@@ -64,6 +65,23 @@ describe('beginChapterTwo (SH-049)', () => {
         ).toBe(true);
       }
     }
+  });
+
+  it('osoby, które odeszły z firmy, nie wracają na rynek kandydatów', () => {
+    const won = wonChapterOne();
+    const employed = new Set(Object.values(won.staff.employees).map((e) => e.personId));
+    // Odeszli wszyscy poza zespołem — z poprawką rynek jest pusty, bez niej wracają odeszli.
+    const departures = PEOPLE.filter((p) => !employed.has(p.id)).map((person, index) => ({
+      employeeId: `employee-${String(900 + index)}` as EmployeeId,
+      personId: person.id,
+      name: person.name,
+      day: 1,
+      reason: 'quit' as const,
+    }));
+    const state = deepFreeze({ ...won, staff: { ...won.staff, departures } });
+    const result = beginChapterTwo(state, DEFAULT_BALANCE);
+    if (!result.ok) throw new Error(result.code);
+    expect(result.state.staff.candidates).toEqual([]);
   });
 
   it('deterministyczne: ten sam stan daje ten sam wynik', () => {
