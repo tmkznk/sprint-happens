@@ -14,6 +14,8 @@ export type ChapterActions = {
   onRetry(): void;
   // Kopia startu rozdziału 2 istnieje (sprawdzane przez aplikację).
   canRetry: boolean;
+  // Nieudane przejście lub ponowienie — komunikat zamiast cichej porażki.
+  error: string | null;
 };
 
 export function DayReportDialog({
@@ -109,6 +111,11 @@ export function DayReportDialog({
                   </button>
                 )}
               </div>
+              {chapterActions.error !== null && (
+                <p className="warning" role="alert">
+                  {chapterActions.error}
+                </p>
+              )}
             </>
           )}
           {status === 'active' && (

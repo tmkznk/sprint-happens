@@ -23,10 +23,27 @@ describe('przejście do rozdziału 2 w aplikacji (SH-049)', () => {
   it('misja w toku — przejście niedozwolone', () => {
     const won = wonChapterOne();
     const active = { ...won, mission: { ...won.mission, status: 'active' as const } };
-    expect(prepareChapterTwo(active, context, '1.0.0', NOW)).toEqual({
+    expect(prepareChapterTwo(active, context, '1.0.0', NOW)).toMatchObject({
       ok: false,
       reason: 'notAllowed',
     });
+  });
+
+  it('stan, który nie przechodzi walidacji zapisu — powód z listą problemów zamiast cichej porażki', () => {
+    const won = wonChapterOne();
+    const broken = { ...won, finance: { ...won.finance, cash: Number.NaN } };
+    const prepared = prepareChapterTwo(broken, context, '1.0.0', NOW);
+    expect(prepared.ok).toBe(false);
+    if (prepared.ok) return;
+    expect(prepared.reason).toBe('invalid');
+    expect(prepared.detail).toContain('invalidState');
+  });
+
+  it('wyjątek w przejściu — wynik z powodem, nie wyjątek', () => {
+    const won = wonChapterOne();
+    const broken = { ...won, staff: null } as unknown as typeof won;
+    const prepared = prepareChapterTwo(broken, context, '1.0.0', NOW);
+    expect(prepared).toMatchObject({ ok: false, reason: 'failed' });
   });
 
   it('brak albo uszkodzona kopia startu — null', async () => {

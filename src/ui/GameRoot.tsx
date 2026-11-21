@@ -14,7 +14,7 @@ import {
 } from '../application/tabCoordinator';
 import { DEFAULT_BALANCE } from '../domain/config';
 import { createInitialState, type GameState } from '../domain/state';
-import { loadChapterStart, prepareChapterTwo } from '../application/chapterFlow';
+import { describeError, loadChapterStart, prepareChapterTwo } from '../application/chapterFlow';
 import { chapterTwoDevState } from '../application/devStart';
 import { CHAPTER_TWO_ENABLED } from '../application/features';
 import { createFlightGuard, watchConflict } from '../application/sessionGuards';
@@ -113,8 +113,12 @@ export function GameRoot() {
   const coordinatorRef = useRef<TabCoordinator | null>(null);
   const sessionRef = useRef<Session | null>(null);
 
+  // Nieudane przejście do rozdziału 2 / ponowienie — komunikat w oknie końca rozdziału.
+  const [chapterError, setChapterError] = useState<string | null>(null);
+
   const play = useCallback((session: Session) => {
     sessionRef.current = session;
+    setChapterError(null);
     setView({ kind: 'playing', session });
   }, []);
 
@@ -181,34 +185,51 @@ export function GameRoot() {
   const continueToChapterTwo = useCallback(async () => {
     const current = sessionRef.current;
     if (!current) return;
-    const prepared = prepareChapterTwo(
-      current.engine.getState(),
-      CONTEXT,
-      __APP_VERSION__,
-      new Date().toISOString(),
-    );
-    if (!prepared.ok) return;
-    await store.writeChapterStart(prepared.chapterStartJson);
-    const saves = await store.read().catch(() => ({ current: null }));
-    const session = createSession(store, prepared.state, {
-      revision: revisionOf(saves.current),
-      state: null,
-    });
-    await session.manager.save();
-    play(session);
+    try {
+      const prepared = prepareChapterTwo(
+        current.engine.getState(),
+        CONTEXT,
+        __APP_VERSION__,
+        new Date().toISOString(),
+      );
+      if (!prepared.ok) {
+        reportChapterFailure(setChapterError, `${prepared.reason}: ${prepared.detail}`);
+        return;
+      }
+      // Kopia startu służy tylko do „Ponów rozdział 2” — jej brak nie blokuje przejścia
+      // (np. pamięć niedostępna: gra działa bez zapisu, błąd pokaże wskaźnik zapisu).
+      const copy = await store.writeChapterStart(prepared.chapterStartJson);
+      if (!copy.ok) console.warn('Nie zapisano kopii startu rozdziału 2:', copy.message);
+      const saves = await store.read().catch(() => ({ current: null }));
+      const session = createSession(store, prepared.state, {
+        revision: revisionOf(saves.current),
+        state: null,
+      });
+      await session.manager.save();
+      play(session);
+    } catch (error) {
+      reportChapterFailure(setChapterError, describeError(error));
+    }
   }, [store, play]);
 
   // Ponowienie rozdziału 2 po bankructwie: stan z kopii startu rozdziału zastępuje zapis.
   const retryChapter = useCallback(async () => {
-    const start = await loadChapterStart(store, CONTEXT);
-    if (!start) return;
-    const saves = await store.read().catch(() => ({ current: null }));
-    const session = createSession(store, start, {
-      revision: revisionOf(saves.current),
-      state: null,
-    });
-    await session.manager.save();
-    play(session);
+    try {
+      const start = await loadChapterStart(store, CONTEXT);
+      if (!start) {
+        reportChapterFailure(setChapterError, 'brak poprawnej kopii startu rozdziału');
+        return;
+      }
+      const saves = await store.read().catch(() => ({ current: null }));
+      const session = createSession(store, start, {
+        revision: revisionOf(saves.current),
+        state: null,
+      });
+      await session.manager.save();
+      play(session);
+    } catch (error) {
+      reportChapterFailure(setChapterError, describeError(error));
+    }
   }, [store, play]);
 
   // Drugie dotknięcie w trakcie przejścia lub ponowienia nic nie robi (dwie sesje = konflikt zapisu).
@@ -326,10 +347,17 @@ export function GameRoot() {
             onContinue: () => void chapterGuard.run(continueToChapterTwo),
             onRetry: () => void chapterGuard.run(retryChapter),
             canRetry: canRetryChapter,
+            error: chapterError,
           }}
         />
       );
   }
+}
+
+// Gracz widzi komunikat z opisem (do zgłoszenia), szczegóły trafiają też do konsoli.
+function reportChapterFailure(setError: (message: string) => void, detail: string): void {
+  console.error('Rozdział 2: przejście nie powiodło się —', detail);
+  setError(`Nie udało się przejść do rozdziału 2 (${detail}). Spróbuj ponownie.`);
 }
 
 const LOAD_ERROR_MESSAGES: Record<LoadErrorCode, string> = {

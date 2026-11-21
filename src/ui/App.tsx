@@ -212,13 +212,16 @@ export function App({
               {interlude !== null && (
                 <InterludeCard
                   id={interlude}
-                  onDone={() =>
-                    interlude === 'beforePrologue'
-                      ? setInterlude(null)
-                      : interlude === 'afterPrologue'
-                        ? onNewGame('mission')
-                        : chapterActions.onContinue()
-                  }
+                  onDone={() => {
+                    if (interlude === 'afterPrologue') {
+                      onNewGame('mission');
+                      return;
+                    }
+                    setInterlude(null);
+                    // Po rozdziale 1 przerywnik znika przed próbą przejścia — przy błędzie
+                    // gracz widzi komunikat w oknie końca rozdziału, a nie martwy przycisk.
+                    if (interlude === 'afterChapterOne') chapterActions.onContinue();
+                  }}
                 />
               )}
               <SpotlightOverlay />
