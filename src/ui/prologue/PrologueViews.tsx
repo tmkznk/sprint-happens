@@ -1,3 +1,4 @@
+import { Confetti } from '../Confetti';
 import { ArrowUpRight, Check, Coffee, Flag, X } from 'lucide-react';
 import { useState } from 'react';
 import { useSelection } from '../../application/selectionHooks';
@@ -168,6 +169,7 @@ export function PrologueFinale({ onFinish }: { onFinish(): void }) {
             </button>
           </div>
         </section>
+        <Confetti />
       </div>
     </ModalLayer>
   );

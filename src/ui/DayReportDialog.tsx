@@ -1,4 +1,5 @@
 import { CHAPTER_TWO_ENABLED } from '../application/features';
+import { Confetti } from './Confetti';
 import { ModalLayer } from './ModalLayer';
 import { useDispatch, useGameSelector } from '../application/engineHooks';
 import { money } from './labels';
@@ -154,6 +155,7 @@ export function DayReportDialog({
             </button>
           )}
         </section>
+        {won && <Confetti />}
       </div>
     </ModalLayer>
   );
