@@ -1,4 +1,12 @@
-import { BookOpen, Settings, Star, Wallet } from 'lucide-react';
+import {
+  BookOpen,
+  FastForward,
+  GraduationCap,
+  RotateCcw,
+  Settings,
+  Star,
+  Wallet,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useGameSelector } from '../application/engineHooks';
 import type { SaveManager } from '../application/saveManager';
@@ -75,6 +83,7 @@ export function TopBar({
               <OfflineBadge />
               <InstallButton />
               <NewGameButton
+                icon={<RotateCcw size={16} aria-hidden="true" />}
                 onConfirm={() => {
                   setMenu(false);
                   onNewGame('mission');
@@ -82,6 +91,7 @@ export function TopBar({
               />
               <NewGameButton
                 label="Zagraj prolog"
+                icon={<GraduationCap size={16} aria-hidden="true" />}
                 title="Rozpocząć prolog?"
                 confirmLabel="Prolog"
                 onConfirm={() => {
@@ -92,6 +102,7 @@ export function TopBar({
               {import.meta.env.DEV && (
                 <NewGameButton
                   label="Rozdział 2 (dev)"
+                  icon={<FastForward size={16} aria-hidden="true" />}
                   title="Zacząć od razu rozdział 2?"
                   confirmLabel="Rozdział 2"
                   onConfirm={() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
 
 // SAVE-04 (Z): nowa misja (lub prolog) wymaga potwierdzenia zastąpienia istniejącego zapisu.
@@ -7,18 +7,22 @@ export function NewGameButton({
   label = 'Nowa gra',
   title = 'Rozpocząć nową misję?',
   confirmLabel = 'Nowa misja',
+  icon,
 }: {
   onConfirm(): void;
   label?: string;
   title?: string;
   confirmLabel?: string;
+  // Ikona przed etykietą (menu ustawień).
+  icon?: ReactNode;
 }) {
   const [asking, setAsking] = useState(false);
 
   return (
     <>
       <button type="button" className="secondary-button" onClick={() => setAsking(true)}>
-        {label}
+        {icon}
+        {icon ? ` ${label}` : label}
       </button>
       {asking && (
         <ConfirmDialog
